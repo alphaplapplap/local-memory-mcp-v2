@@ -5,3 +5,8 @@ requests>=2.25.0
 psycopg2-binary>=2.9.0
 pgvector>=0.2.0
 python-dotenv>=1.0.0
+
+# Document processing dependencies
+chardet>=5.0.0  # Character encoding detection
+PyPDF2>=3.0.0   # PDF processing (optional)
+pdfplumber>=0.9.0  # Better PDF processing (optional)

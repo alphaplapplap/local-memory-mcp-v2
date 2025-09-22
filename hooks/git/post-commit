@@ -1,0 +1,10 @@
+#!/bin/bash
+# .git/hooks/post-commit
+
+COMMIT_MSG=$(git log -1 --pretty=%B)
+BRANCH=$(git branch --show-current)
+FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+# Store in memory service
+echo "Store commit memory: Branch: $BRANCH, Message: $COMMIT_MSG, Files: $FILES" | \
+  mcp-memory-cli store --tags "git,commit,$BRANCH"

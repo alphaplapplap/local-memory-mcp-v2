@@ -8,11 +8,35 @@ __pycache__/
 data/
 postgres_data/
 .DS_Store
-*.db 
+*.db
 *.sqlite3
 *.so
 
 faiss_*
+
+# Test files and scripts
+test_*.py
+test_*.js
+test_*.sql
+k6_*.js
+add_test_memories.py
+setup_system_memories.py
+
+# Local config and credentials
+config.json
+*.env
+bridge_server.py
+
+# Memory exports
+memory_export*.json
+memory_dump*.json
+
+# Backup files
+*.backup
+*.bak
+
+# Node modules (if any)
+node_modules/
 
 # Distribution / packaging
 .Python

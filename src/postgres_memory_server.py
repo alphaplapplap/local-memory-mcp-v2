@@ -228,22 +228,93 @@ def search_memories(query: str, domain: Optional[str] = None,
 def list_memory_domains() -> List[str]:
     """
     List all available memory domains in the database.
-    
+
     This tool returns a list of all domain tables that have been created in the database.
     Each domain represents a separate context for storing memories (e.g., 'default', 'startup', 'health').
-    
+
     Returns:
     List[str]: A list of domain names that can be used with store_memory and search_memories.
-    
+
     Example usage:
     - list_memory_domains() might return: ["default", "startup", "health", "personal"]
-    
+
     This is useful for:
     - Discovering what domains are available before storing/searching
     - Understanding the organization of stored memories
     - Validating domain names before use
     """
     return memory_api.list_domains()
+
+@mcp.tool
+def ingest_document(file_path: str, domain: Optional[str] = None,
+                   chunk_size: Optional[int] = 1000, chunk_overlap: Optional[int] = 200) -> str:
+    """
+    Ingest a document file into the memory system.
+
+    Parameters:
+    - file_path (str): Path to the document file to ingest
+    - domain (str, optional): Memory domain to store in (default: "documents")
+    - chunk_size (int, optional): Size of text chunks in characters (default: 1000)
+    - chunk_overlap (int, optional): Overlap between chunks in characters (default: 200)
+
+    Returns:
+    str: Summary of ingestion results
+
+    Example usage:
+    - ingest_document("/path/to/document.pdf", "research", 800, 150)
+    - ingest_document("/path/to/notes.md", chunk_size=1200)
+    """
+    try:
+        from ingestion.manager import DocumentIngestionManager
+        from pathlib import Path
+
+        # Initialize ingestion manager
+        ingestion_manager = DocumentIngestionManager(memory_api, domain or "documents")
+
+        # Run ingestion
+        import asyncio
+        result = asyncio.run(ingestion_manager.ingest_document(
+            Path(file_path),
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap
+        ))
+
+        return f"Ingestion completed: {result.chunks_stored}/{result.chunks_processed} chunks stored in {result.processing_time:.2f}s. Success: {result.success}"
+
+    except Exception as e:
+        return f"Ingestion failed: {str(e)}"
+
+@mcp.tool
+def ingest_text_content(content: str, source_name: str, domain: Optional[str] = None) -> str:
+    """
+    Ingest raw text content directly into the memory system.
+
+    Parameters:
+    - content (str): Text content to ingest
+    - source_name (str): Name/source identifier for the content
+    - domain (str, optional): Memory domain to store in (default: "documents")
+
+    Returns:
+    str: Summary of ingestion results
+
+    Example usage:
+    - ingest_text_content("User prefers Python for data analysis", "user_preferences")
+    - ingest_text_content("Meeting notes from today...", "meeting_2024_01_15", "work")
+    """
+    try:
+        from ingestion.manager import DocumentIngestionManager
+
+        # Initialize ingestion manager
+        ingestion_manager = DocumentIngestionManager(memory_api, domain or "documents")
+
+        # Run ingestion
+        import asyncio
+        result = asyncio.run(ingestion_manager.ingest_text_content(content, source_name))
+
+        return f"Text ingestion completed: {result.chunks_stored}/{result.chunks_processed} chunks stored in {result.processing_time:.2f}s. Success: {result.success}"
+
+    except Exception as e:
+        return f"Text ingestion failed: {str(e)}"
 
 @mcp.prompt
 def summarize_memories(memories: List[Dict[str, Any]]) -> str:

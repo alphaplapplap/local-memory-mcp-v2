@@ -85,33 +85,35 @@ class PostgresMemoryAPI:
         domain = domain or self.default_domain
         self._ensure_table_exists(domain)
         
-        # Try vector search first if embeddings are available
-        if self.ollama_embeddings:
+        # Try vector search first if embeddings are available and query is not empty
+        if self.ollama_embeddings and query.strip():
             try:
                 query_embedding = self.ollama_embeddings.get_embedding(query)
-                
-                with self._get_connection() as conn:
-                    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                        table_name = sql.Identifier(f"{domain}_memories")
-                        
-                        # Vector similarity search - return ALL results up to limit regardless of score
-                        search_query = sql.SQL("""
-                            SELECT id, content, metadata,
-                                   1 - (embedding <=> %s::vector) AS score
-                            FROM {}
-                            WHERE embedding IS NOT NULL
-                            ORDER BY embedding <=> %s::vector
-                            LIMIT %s
-                        """).format(table_name)
-                        
-                        cursor.execute(search_query, (query_embedding, query_embedding, limit))
-                        results = cursor.fetchall()
-                        
-                        # Return vector results if we have any, regardless of similarity score
-                        if results:
-                            return [dict(row) for row in results]
-                        
-                        # If no records have embeddings, fall through to text search
+
+                # Ensure we have a valid embedding (list of numbers)
+                if query_embedding and isinstance(query_embedding, list) and len(query_embedding) > 0:
+                    with self._get_connection() as conn:
+                        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                            table_name = sql.Identifier(f"{domain}_memories")
+
+                            # Vector similarity search - return ALL results up to limit regardless of score
+                            search_query = sql.SQL("""
+                                SELECT id, content, metadata,
+                                       1 - (embedding <=> %s::vector) AS score
+                                FROM {}
+                                WHERE embedding IS NOT NULL
+                                ORDER BY embedding <=> %s::vector
+                                LIMIT %s
+                            """).format(table_name)
+
+                            cursor.execute(search_query, (query_embedding, query_embedding, limit))
+                            results = cursor.fetchall()
+
+                            # Return vector results if we have any, regardless of similarity score
+                            if results:
+                                return [dict(row) for row in results]
+
+                            # If no records have embeddings, fall through to text search
             except Exception as e:
                 print(f"Vector search failed: {e}")
         
