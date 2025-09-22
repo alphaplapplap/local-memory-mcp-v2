@@ -4,7 +4,29 @@
 COMMIT_MSG=$(git log -1 --pretty=%B)
 BRANCH=$(git branch --show-current)
 FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+COMMIT_HASH=$(git rev-parse HEAD)
 
-# Store in memory service
-echo "Store commit memory: Branch: $BRANCH, Message: $COMMIT_MSG, Files: $FILES" | \
-  mcp-memory-cli store --tags "git,commit,$BRANCH"
+# Store in memory service using Python API
+python3 -c "
+import asyncio
+import sys
+sys.path.insert(0, '$(pwd)/src')
+from python_api import MemoryAPI
+
+async def store():
+    api = MemoryAPI('http://localhost:8000')
+    content = '''Git Commit:
+Branch: $BRANCH
+Hash: $COMMIT_HASH
+Message: $COMMIT_MSG
+Files: $FILES'''
+
+    result = await api.store_memory(
+        content=content,
+        tags=['git', 'commit', '$BRANCH'],
+        metadata={'commit_hash': '$COMMIT_HASH', 'branch': '$BRANCH'}
+    )
+    print(f'Stored commit memory: {result}')
+
+asyncio.run(store())
+" 2>/dev/null || echo "Memory service not available"
