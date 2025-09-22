@@ -3,30 +3,20 @@
 
 COMMIT_MSG=$(git log -1 --pretty=%B)
 BRANCH=$(git branch --show-current)
-FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
-COMMIT_HASH=$(git rev-parse HEAD)
+FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | head -10)
+COMMIT_HASH=$(git rev-parse --short HEAD)
 
-# Store in memory service using Python API
-python3 -c "
-import asyncio
-import sys
-sys.path.insert(0, '$(pwd)/src')
-from python_api import MemoryAPI
+# Store in memory service using curl
+CONTENT="Git Commit [$COMMIT_HASH] on branch '$BRANCH': $COMMIT_MSG. Files modified: $(echo $FILES | tr '\n' ', ')"
 
-async def store():
-    api = MemoryAPI('http://localhost:8000')
-    content = '''Git Commit:
-Branch: $BRANCH
-Hash: $COMMIT_HASH
-Message: $COMMIT_MSG
-Files: $FILES'''
-
-    result = await api.store_memory(
-        content=content,
-        tags=['git', 'commit', '$BRANCH'],
-        metadata={'commit_hash': '$COMMIT_HASH', 'branch': '$BRANCH'}
-    )
-    print(f'Stored commit memory: {result}')
-
-asyncio.run(store())
-" 2>/dev/null || echo "Memory service not available"
+curl -X POST http://localhost:8000/api/memories \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"content\": \"$CONTENT\",
+    \"tags\": [\"git\", \"commit\", \"$BRANCH\"],
+    \"metadata\": {
+      \"commit_hash\": \"$COMMIT_HASH\",
+      \"branch\": \"$BRANCH\",
+      \"type\": \"git_commit\"
+    }
+  }" 2>/dev/null | grep -q "id" && echo "✓ Commit stored in memory" || echo "Memory service not available"
