@@ -14,55 +14,67 @@
 
 """Semantic clustering system for memory organization."""
 
-import uuid
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
-from collections import Counter
 import re
+import uuid
+from collections import Counter
+from datetime import datetime
+from typing import Dict, List
+
+import numpy as np
 
 try:
-    from sklearn.cluster import DBSCAN, AgglomerativeClustering, OPTICS
-    from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
+    from sklearn.cluster import DBSCAN, OPTICS, AgglomerativeClustering
+    from sklearn.metrics import (
+        calinski_harabasz_score,
+        davies_bouldin_score,
+        silhouette_score,
+    )
     from sklearn.neighbors import NearestNeighbors
-    from scipy.spatial.distance import pdist, squareform
-    import scipy.cluster.hierarchy as hierarchy
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
 
-from consolidation.base import ConsolidationBase, ConsolidationConfig, MemoryCluster
+from .base import ConsolidationBase, ConsolidationConfig, MemoryCluster
 from models.memory import Memory
+
 
 class SemanticClusteringEngine(ConsolidationBase):
     """
     Creates semantic clusters of related memories for organization and compression.
-    
+
     Uses embedding-based clustering algorithms (DBSCAN, Hierarchical) to group
     semantically similar memories, enabling efficient compression and retrieval.
     """
-    
+
     def __init__(self, config: ConsolidationConfig):
         super().__init__(config)
         self.min_cluster_size = config.min_cluster_size
         self.algorithm = config.clustering_algorithm
-        
+
         if not SKLEARN_AVAILABLE:
-            self.logger.warning("sklearn not available, using simple clustering fallback")
-            self.algorithm = 'simple'
-    
+            self.logger.warning(
+                "sklearn not available, using simple clustering fallback"
+            )
+            self.algorithm = "simple"
+
     async def process(self, memories: List[Memory], **kwargs) -> List[MemoryCluster]:
         """Create semantic clusters from memories."""
-        if not self._validate_memories(memories) or len(memories) < self.min_cluster_size:
+        if (
+            not self._validate_memories(memories)
+            or len(memories) < self.min_cluster_size
+        ):
             return []
-        
+
         # Filter memories with embeddings
         memories_with_embeddings = [m for m in memories if m.embedding]
-        
+
         if len(memories_with_embeddings) < self.min_cluster_size:
-            self.logger.warning(f"Only {len(memories_with_embeddings)} memories have embeddings, need at least {self.min_cluster_size}")
+            self.logger.warning(
+                f"Only {len(memories_with_embeddings)} memories have embeddings, need at least {self.min_cluster_size}"
+            )
             return []
-        
+
         # Extract embeddings matrix and ensure they are numeric
         embedding_list = []
         for m in memories_with_embeddings:
@@ -71,46 +83,58 @@ class SemanticClusteringEngine(ConsolidationBase):
                 if isinstance(m.embedding, str):
                     try:
                         # Handle pgvector string format like '[0.1,0.2,0.3]'
-                        embedding = eval(m.embedding)  # Safe for numeric lists
+                        import ast
+
+                        embedding = ast.literal_eval(
+                            m.embedding
+                        )  # Safe for numeric lists
                         if not isinstance(embedding, list):
                             raise ValueError("Not a list")
                         embedding = [float(x) for x in embedding]
                     except (ValueError, AttributeError, SyntaxError):
-                        self.logger.warning(f"Failed to parse embedding string: {m.embedding[:50]}...")
+                        self.logger.warning(
+                            f"Failed to parse embedding string: {m.embedding[:50]}..."
+                        )
                         continue
                 elif isinstance(m.embedding, list):
                     embedding = [float(x) for x in m.embedding]
                 else:
                     self.logger.warning(f"Unknown embedding type: {type(m.embedding)}")
                     continue
-                
+
                 embedding_list.append(embedding)
             else:
                 self.logger.warning(f"Memory {m.content_hash} has no embedding")
-        
+
         if not embedding_list:
             self.logger.warning("No valid embeddings found")
             return []
-        
+
         embeddings = np.array(embedding_list)
-        
+
         # Perform clustering
-        if self.algorithm == 'dbscan':
+        if self.algorithm == "dbscan":
             cluster_labels = await self._dbscan_clustering(embeddings)
-        elif self.algorithm == 'hierarchical':
+        elif self.algorithm == "hierarchical":
             cluster_labels = await self._hierarchical_clustering(embeddings)
         else:
             cluster_labels = await self._simple_clustering(embeddings)
-        
+
         # Create cluster objects
-        clusters = await self._create_clusters(memories_with_embeddings, cluster_labels, embeddings)
-        
+        clusters = await self._create_clusters(
+            memories_with_embeddings, cluster_labels, embeddings
+        )
+
         # Filter by minimum cluster size
-        valid_clusters = [c for c in clusters if len(c.memory_hashes) >= self.min_cluster_size]
-        
-        self.logger.info(f"Created {len(valid_clusters)} valid clusters from {len(memories_with_embeddings)} memories")
+        valid_clusters = [
+            c for c in clusters if len(c.memory_hashes) >= self.min_cluster_size
+        ]
+
+        self.logger.info(
+            f"Created {len(valid_clusters)} valid clusters from {len(memories_with_embeddings)} memories"
+        )
         return valid_clusters
-    
+
     async def _dbscan_clustering(self, embeddings: np.ndarray) -> np.ndarray:
         """Perform DBSCAN clustering with automatic eps optimization."""
         if not SKLEARN_AVAILABLE:
@@ -128,22 +152,26 @@ class SemanticClusteringEngine(ConsolidationBase):
             2,
             min(
                 self.min_cluster_size // 2,
-                int(np.log(n_samples)) + 1  # Logarithmic scaling with data size
-            )
+                int(np.log(n_samples)) + 1,  # Logarithmic scaling with data size
+            ),
         )
 
-        clustering = DBSCAN(eps=eps, min_samples=min_samples, metric='cosine')
+        clustering = DBSCAN(eps=eps, min_samples=min_samples, metric="cosine")
         labels = clustering.fit_predict(embeddings)
 
         # Try OPTICS as fallback if DBSCAN produces too many outliers
         outlier_ratio = np.sum(labels == -1) / n_samples
         if outlier_ratio > 0.5 and n_samples > 10:  # More than 50% outliers
-            self.logger.info(f"DBSCAN produced {outlier_ratio:.1%} outliers, trying OPTICS")
+            self.logger.info(
+                f"DBSCAN produced {outlier_ratio:.1%} outliers, trying OPTICS"
+            )
             labels = await self._optics_clustering(embeddings)
 
-        self.logger.debug(f"DBSCAN: eps={eps:.3f}, min_samples={min_samples}, "
-                         f"found {len(set(labels)) - (1 if -1 in labels else 0)} clusters, "
-                         f"{np.sum(labels == -1)} outliers")
+        self.logger.debug(
+            f"DBSCAN: eps={eps:.3f}, min_samples={min_samples}, "
+            f"found {len(set(labels)) - (1 if -1 in labels else 0)} clusters, "
+            f"{np.sum(labels == -1)} outliers"
+        )
         return labels
 
     async def _find_optimal_eps(self, embeddings: np.ndarray) -> float:
@@ -154,7 +182,7 @@ class SemanticClusteringEngine(ConsolidationBase):
         k = min(self.min_cluster_size, n_samples - 1)
 
         # Compute k-nearest neighbors
-        nbrs = NearestNeighbors(n_neighbors=k + 1, metric='cosine')
+        nbrs = NearestNeighbors(n_neighbors=k + 1, metric="cosine")
         nbrs.fit(embeddings)
         distances, indices = nbrs.kneighbors(embeddings)
 
@@ -170,7 +198,10 @@ class SemanticClusteringEngine(ConsolidationBase):
             grad2 = np.gradient(grad1)
 
             # Find point of maximum change (elbow)
-            elbow_idx = np.argmax(np.abs(grad2[len(grad2)//4:3*len(grad2)//4])) + len(grad2)//4
+            elbow_idx = (
+                np.argmax(np.abs(grad2[len(grad2) // 4 : 3 * len(grad2) // 4]))
+                + len(grad2) // 4
+            )
             optimal_eps = k_distances[elbow_idx]
         else:
             # Fallback to percentile-based method
@@ -188,69 +219,77 @@ class SemanticClusteringEngine(ConsolidationBase):
             return await self._simple_clustering(embeddings)
 
         n_samples = embeddings.shape[0]
-        min_samples = max(2, min(self.min_cluster_size // 2, int(np.log(n_samples)) + 1))
+        min_samples = max(
+            2, min(self.min_cluster_size // 2, int(np.log(n_samples)) + 1)
+        )
 
         clustering = OPTICS(
             min_samples=min_samples,
-            metric='cosine',
-            cluster_method='dbscan',
-            eps=0.5  # Maximum epsilon to consider
+            metric="cosine",
+            cluster_method="dbscan",
+            eps=0.5,  # Maximum epsilon to consider
         )
         labels = clustering.fit_predict(embeddings)
 
-        self.logger.debug(f"OPTICS: min_samples={min_samples}, "
-                         f"found {len(set(labels)) - (1 if -1 in labels else 0)} clusters")
+        self.logger.debug(
+            f"OPTICS: min_samples={min_samples}, "
+            f"found {len(set(labels)) - (1 if -1 in labels else 0)} clusters"
+        )
         return labels
-    
+
     async def _hierarchical_clustering(self, embeddings: np.ndarray) -> np.ndarray:
         """Perform hierarchical clustering on embeddings."""
         if not SKLEARN_AVAILABLE:
             return await self._simple_clustering(embeddings)
-        
+
         # Estimate number of clusters (heuristic: sqrt of samples / 2)
         n_samples = embeddings.shape[0]
-        n_clusters = max(2, min(n_samples // self.min_cluster_size, int(np.sqrt(n_samples) / 2)))
-        
+        n_clusters = max(
+            2, min(n_samples // self.min_cluster_size, int(np.sqrt(n_samples) / 2))
+        )
+
         clustering = AgglomerativeClustering(
-            n_clusters=n_clusters,
-            metric='cosine',
-            linkage='average'
+            n_clusters=n_clusters, metric="cosine", linkage="average"
         )
         labels = clustering.fit_predict(embeddings)
-        
-        self.logger.debug(f"Hierarchical: n_clusters={n_clusters}, found {len(set(labels))} clusters")
+
+        self.logger.debug(
+            f"Hierarchical: n_clusters={n_clusters}, found {len(set(labels))} clusters"
+        )
         return labels
-    
+
     async def _simple_clustering(self, embeddings: np.ndarray) -> np.ndarray:
         """Simple fallback clustering using cosine similarity threshold."""
         n_samples = embeddings.shape[0]
         labels = np.full(n_samples, -1)  # Start with all as noise
         current_cluster = 0
-        
-        similarity_threshold = 0.5  # Threshold for grouping (lowered to allow more clustering)
-        
+
+        similarity_threshold = (
+            0.5  # Threshold for grouping (lowered to allow more clustering)
+        )
+
         for i in range(n_samples):
             if labels[i] != -1:  # Already assigned
                 continue
-            
+
             # Start new cluster
             cluster_members = [i]
             labels[i] = current_cluster
-            
+
             # Find similar memories
             for j in range(i + 1, n_samples):
                 if labels[j] != -1:  # Already assigned
                     continue
-                
+
                 # Calculate cosine similarity
                 similarity = np.dot(embeddings[i], embeddings[j]) / (
                     np.linalg.norm(embeddings[i]) * np.linalg.norm(embeddings[j])
                 )
-                
+
                 if similarity >= similarity_threshold:
                     labels[j] = current_cluster
                     cluster_members.append(j)
-            
+
             # Only keep cluster if it meets minimum size
             if len(cluster_members) >= self.min_cluster_size:
                 current_cluster += 1
@@ -258,15 +297,14 @@ class SemanticClusteringEngine(ConsolidationBase):
                 # Mark as noise
                 for member in cluster_members:
                     labels[member] = -1
-        
-        self.logger.debug(f"Simple clustering: threshold={similarity_threshold}, found {current_cluster} clusters")
+
+        self.logger.debug(
+            f"Simple clustering: threshold={similarity_threshold}, found {current_cluster} clusters"
+        )
         return labels
-    
+
     async def _create_clusters(
-        self,
-        memories: List[Memory],
-        labels: np.ndarray,
-        embeddings: np.ndarray
+        self, memories: List[Memory], labels: np.ndarray, embeddings: np.ndarray
     ) -> List[MemoryCluster]:
         """Create MemoryCluster objects from clustering results with quality metrics."""
         clusters = []
@@ -279,27 +317,33 @@ class SemanticClusteringEngine(ConsolidationBase):
             if np.sum(valid_indices) > 1:
                 try:
                     # Silhouette score: -1 to 1, higher is better
-                    quality_metrics['silhouette'] = float(silhouette_score(
-                        embeddings[valid_indices],
-                        labels[valid_indices],
-                        metric='cosine'
-                    ))
+                    quality_metrics["silhouette"] = float(
+                        silhouette_score(
+                            embeddings[valid_indices],
+                            labels[valid_indices],
+                            metric="cosine",
+                        )
+                    )
 
                     # Davies-Bouldin index: lower is better
-                    quality_metrics['davies_bouldin'] = float(davies_bouldin_score(
-                        embeddings[valid_indices],
-                        labels[valid_indices]
-                    ))
+                    quality_metrics["davies_bouldin"] = float(
+                        davies_bouldin_score(
+                            embeddings[valid_indices], labels[valid_indices]
+                        )
+                    )
 
                     # Calinski-Harabasz score: higher is better
-                    quality_metrics['calinski_harabasz'] = float(calinski_harabasz_score(
-                        embeddings[valid_indices],
-                        labels[valid_indices]
-                    ))
+                    quality_metrics["calinski_harabasz"] = float(
+                        calinski_harabasz_score(
+                            embeddings[valid_indices], labels[valid_indices]
+                        )
+                    )
 
-                    self.logger.info(f"Clustering quality - Silhouette: {quality_metrics['silhouette']:.3f}, "
-                                   f"Davies-Bouldin: {quality_metrics['davies_bouldin']:.3f}, "
-                                   f"Calinski-Harabasz: {quality_metrics['calinski_harabasz']:.1f}")
+                    self.logger.info(
+                        f"Clustering quality - Silhouette: {quality_metrics['silhouette']:.3f}, "
+                        f"Davies-Bouldin: {quality_metrics['davies_bouldin']:.3f}, "
+                        f"Calinski-Harabasz: {quality_metrics['calinski_harabasz']:.1f}"
+                    )
                 except Exception as e:
                     self.logger.warning(f"Failed to calculate quality metrics: {e}")
 
@@ -332,22 +376,32 @@ class SemanticClusteringEngine(ConsolidationBase):
             cluster_quality = coherence_score
             if SKLEARN_AVAILABLE and len(cluster_embeddings) > 2:
                 try:
-                    # Create sub-labels for within-cluster analysis
-                    sub_labels = np.zeros(len(cluster_embeddings))
-                    cluster_silhouette = float(np.mean([
-                        np.dot(cluster_embeddings[i], cluster_embeddings[j]) / (
-                            np.linalg.norm(cluster_embeddings[i]) * np.linalg.norm(cluster_embeddings[j])
+                    # Calculate cluster silhouette score
+                    cluster_silhouette = (
+                        float(
+                            np.mean(
+                                [
+                                    np.dot(cluster_embeddings[i], cluster_embeddings[j])
+                                    / (
+                                        np.linalg.norm(cluster_embeddings[i])
+                                        * np.linalg.norm(cluster_embeddings[j])
+                                    )
+                                    for i in range(len(cluster_embeddings))
+                                    for j in range(i + 1, len(cluster_embeddings))
+                                ]
+                            )
                         )
-                        for i in range(len(cluster_embeddings))
-                        for j in range(i + 1, len(cluster_embeddings))
-                    ])) if len(cluster_embeddings) > 1 else 1.0
+                        if len(cluster_embeddings) > 1
+                        else 1.0
+                    )
                     cluster_quality = (coherence_score + cluster_silhouette) / 2
-                except Exception:
-                    pass  # Use coherence_score as fallback
-            
+                except Exception as e:
+                    self.logger.warning(f"Failed to calculate cluster quality: {e}")
+                    # Use coherence_score as fallback
+
             # Extract theme keywords
             theme_keywords = await self._extract_theme_keywords(cluster_memories)
-            
+
             # Create cluster
             cluster = MemoryCluster(
                 cluster_id=str(uuid.uuid4()),
@@ -357,71 +411,123 @@ class SemanticClusteringEngine(ConsolidationBase):
                 created_at=datetime.now(),
                 theme_keywords=theme_keywords,
                 metadata={
-                    'algorithm': self.algorithm,
-                    'cluster_size': len(cluster_memories),
-                    'average_memory_age': self._calculate_average_age(cluster_memories),
-                    'tag_distribution': self._analyze_tag_distribution(cluster_memories),
-                    'cluster_quality': cluster_quality,
-                    'global_metrics': quality_metrics if quality_metrics else None
-                }
+                    "algorithm": self.algorithm,
+                    "cluster_size": len(cluster_memories),
+                    "average_memory_age": self._calculate_average_age(cluster_memories),
+                    "tag_distribution": self._analyze_tag_distribution(
+                        cluster_memories
+                    ),
+                    "cluster_quality": cluster_quality,
+                    "global_metrics": quality_metrics if quality_metrics else None,
+                },
             )
-            
+
             clusters.append(cluster)
-        
+
         return clusters
-    
+
     async def _extract_theme_keywords(self, memories: List[Memory]) -> List[str]:
         """Extract theme keywords that represent the cluster."""
         # Combine all content
-        all_text = ' '.join([m.content for m in memories])
-        
+        all_text = " ".join([m.content for m in memories])
+
         # Collect all tags
         all_tags = []
         for memory in memories:
             all_tags.extend(memory.tags)
-        
+
         # Count tag frequency
         tag_counts = Counter(all_tags)
-        
+
         # Extract frequent words from content (simple approach)
-        words = re.findall(r'\b[a-zA-Z]{4,}\b', all_text.lower())
+        words = re.findall(r"\b[a-zA-Z]{4,}\b", all_text.lower())
         word_counts = Counter(words)
-        
+
         # Remove common stop words
         stop_words = {
-            'this', 'that', 'with', 'have', 'will', 'from', 'they', 'know',
-            'want', 'been', 'good', 'much', 'some', 'time', 'very', 'when',
-            'come', 'here', 'just', 'like', 'long', 'make', 'many', 'over',
-            'such', 'take', 'than', 'them', 'well', 'were', 'what', 'work',
-            'your', 'could', 'should', 'would', 'there', 'their', 'these',
-            'about', 'after', 'again', 'before', 'being', 'between', 'during',
-            'under', 'where', 'while', 'other', 'through', 'against'
+            "this",
+            "that",
+            "with",
+            "have",
+            "will",
+            "from",
+            "they",
+            "know",
+            "want",
+            "been",
+            "good",
+            "much",
+            "some",
+            "time",
+            "very",
+            "when",
+            "come",
+            "here",
+            "just",
+            "like",
+            "long",
+            "make",
+            "many",
+            "over",
+            "such",
+            "take",
+            "than",
+            "them",
+            "well",
+            "were",
+            "what",
+            "work",
+            "your",
+            "could",
+            "should",
+            "would",
+            "there",
+            "their",
+            "these",
+            "about",
+            "after",
+            "again",
+            "before",
+            "being",
+            "between",
+            "during",
+            "under",
+            "where",
+            "while",
+            "other",
+            "through",
+            "against",
         }
-        
+
         # Filter and get top words
-        filtered_words = {word: count for word, count in word_counts.items() 
-                         if word not in stop_words and count > 1}
-        
+        filtered_words = {
+            word: count
+            for word, count in word_counts.items()
+            if word not in stop_words and count > 1
+        }
+
         # Combine tags and words, prioritize tags
         theme_keywords = []
-        
+
         # Add top tags (weight by frequency)
         for tag, count in tag_counts.most_common(5):
             if count > 1:  # Tag appears in multiple memories
                 theme_keywords.append(tag)
-        
+
         # Add top words
-        for word, count in sorted(filtered_words.items(), key=lambda x: x[1], reverse=True)[:10]:
+        for word, count in sorted(
+            filtered_words.items(), key=lambda x: x[1], reverse=True
+        )[:10]:
             if word not in theme_keywords:
                 theme_keywords.append(word)
-        
+
         return theme_keywords[:10]  # Limit to top 10
-    
+
     def _calculate_average_age(self, memories: List[Memory]) -> float:
         """Calculate average age of memories in days."""
         now = datetime.now()
         ages = []
-        
+
         for memory in memories:
             if memory.created_at:
                 created_dt = datetime.utcfromtimestamp(memory.created_at)
@@ -430,54 +536,52 @@ class SemanticClusteringEngine(ConsolidationBase):
             elif memory.timestamp:
                 age_days = (now - memory.timestamp).days
                 ages.append(age_days)
-        
+
         return sum(ages) / len(ages) if ages else 0.0
-    
+
     def _analyze_tag_distribution(self, memories: List[Memory]) -> Dict[str, int]:
         """Analyze tag distribution within the cluster."""
         all_tags = []
         for memory in memories:
             all_tags.extend(memory.tags)
-        
+
         return dict(Counter(all_tags))
-    
+
     async def merge_similar_clusters(
-        self,
-        clusters: List[MemoryCluster],
-        similarity_threshold: float = 0.8
+        self, clusters: List[MemoryCluster], similarity_threshold: float = 0.8
     ) -> List[MemoryCluster]:
         """Merge clusters that are very similar to each other."""
         if len(clusters) <= 1:
             return clusters
-        
+
         # Calculate pairwise similarities between cluster centroids
         centroids = np.array([cluster.centroid_embedding for cluster in clusters])
-        
+
         merged = [False] * len(clusters)
         result_clusters = []
-        
+
         for i, cluster1 in enumerate(clusters):
             if merged[i]:
                 continue
-            
+
             # Start with current cluster
             merge_group = [i]
             merged[i] = True
-            
+
             # Find similar clusters to merge
             for j in range(i + 1, len(clusters)):
                 if merged[j]:
                     continue
-                
+
                 # Calculate cosine similarity between centroids
                 similarity = np.dot(centroids[i], centroids[j]) / (
                     np.linalg.norm(centroids[i]) * np.linalg.norm(centroids[j])
                 )
-                
+
                 if similarity >= similarity_threshold:
                     merge_group.append(j)
                     merged[j] = True
-            
+
             # Create merged cluster
             if len(merge_group) == 1:
                 # No merging needed
@@ -488,41 +592,43 @@ class SemanticClusteringEngine(ConsolidationBase):
                     [clusters[idx] for idx in merge_group]
                 )
                 result_clusters.append(merged_cluster)
-        
+
         self.logger.info(f"Merged {len(clusters)} clusters into {len(result_clusters)}")
         return result_clusters
-    
-    async def _merge_cluster_group(self, clusters: List[MemoryCluster]) -> MemoryCluster:
+
+    async def _merge_cluster_group(
+        self, clusters: List[MemoryCluster]
+    ) -> MemoryCluster:
         """Merge a group of similar clusters into one."""
         # Combine all memory hashes
         all_memory_hashes = []
         for cluster in clusters:
             all_memory_hashes.extend(cluster.memory_hashes)
-        
+
         # Calculate new centroid (average of all centroids weighted by cluster size)
         total_size = sum(len(cluster.memory_hashes) for cluster in clusters)
         weighted_centroid = np.zeros(len(clusters[0].centroid_embedding))
-        
+
         for cluster in clusters:
             weight = len(cluster.memory_hashes) / total_size
             centroid = np.array(cluster.centroid_embedding)
             weighted_centroid += weight * centroid
-        
+
         # Combine theme keywords
         all_keywords = []
         for cluster in clusters:
             all_keywords.extend(cluster.theme_keywords)
-        
+
         keyword_counts = Counter(all_keywords)
         merged_keywords = [kw for kw, count in keyword_counts.most_common(10)]
-        
+
         # Calculate average coherence score
         total_memories = sum(len(cluster.memory_hashes) for cluster in clusters)
         weighted_coherence = sum(
             cluster.coherence_score * len(cluster.memory_hashes) / total_memories
             for cluster in clusters
         )
-        
+
         return MemoryCluster(
             cluster_id=str(uuid.uuid4()),
             memory_hashes=all_memory_hashes,
@@ -531,9 +637,9 @@ class SemanticClusteringEngine(ConsolidationBase):
             created_at=datetime.now(),
             theme_keywords=merged_keywords,
             metadata={
-                'algorithm': f"{self.algorithm}_merged",
-                'cluster_size': len(all_memory_hashes),
-                'merged_from': [cluster.cluster_id for cluster in clusters],
-                'merge_timestamp': datetime.now().isoformat()
-            }
+                "algorithm": f"{self.algorithm}_merged",
+                "cluster_size": len(all_memory_hashes),
+                "merged_from": [cluster.cluster_id for cluster in clusters],
+                "merge_timestamp": datetime.now().isoformat(),
+            },
         )

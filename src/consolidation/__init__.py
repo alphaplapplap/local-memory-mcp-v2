@@ -15,46 +15,51 @@
 """
 Dream-inspired memory consolidation system.
 
-This module implements autonomous memory consolidation inspired by human cognitive 
-processes during sleep cycles, featuring exponential decay scoring, creative 
+This module implements autonomous memory consolidation inspired by human cognitive
+processes during sleep cycles, featuring exponential decay scoring, creative
 association discovery, semantic compression, and controlled forgetting.
 """
 
-from consolidation.base import (
+from .associations import CreativeAssociationEngine
+from .base import (
     ConsolidationBase,
     ConsolidationConfig,
-    ConsolidationReport,
-    ConsolidationError,
     ConsolidationConfigError,
-    ConsolidationProcessingError
+    ConsolidationError,
+    ConsolidationProcessingError,
+    ConsolidationReport,
 )
-from consolidation.postgres_consolidator import PostgreSQLConsolidator
-from consolidation.decay import ExponentialDecayCalculator
-from consolidation.associations import CreativeAssociationEngine
-from consolidation.clustering import SemanticClusteringEngine
-from consolidation.compression import SemanticCompressionEngine
-from consolidation.forgetting import ControlledForgettingEngine
-from consolidation.consolidator import DreamInspiredConsolidator
-from consolidation.scheduler import ConsolidationScheduler
-from consolidation.health import ConsolidationHealthMonitor, HealthStatus, HealthMetric, HealthAlert
+from .clustering import SemanticClusteringEngine
+from .compression import SemanticCompressionEngine
+from .consolidator import DreamInspiredConsolidator
+from .decay import ExponentialDecayCalculator
+from .forgetting import ControlledForgettingEngine
+from .health import (
+    ConsolidationHealthMonitor,
+    HealthAlert,
+    HealthMetric,
+    HealthStatus,
+)
+from .postgres_consolidator import PostgreSQLConsolidator
+from .scheduler import ConsolidationScheduler
 
 __all__ = [
-    'ConsolidationBase',
-    'ConsolidationConfig',
-    'ConsolidationReport',
-    'ConsolidationError',
-    'ConsolidationConfigError',
-    'ConsolidationProcessingError',
-    'PostgreSQLConsolidator',
-    'ExponentialDecayCalculator',
-    'CreativeAssociationEngine',
-    'SemanticClusteringEngine',
-    'SemanticCompressionEngine',
-    'ControlledForgettingEngine',
-    'DreamInspiredConsolidator',
-    'ConsolidationScheduler',
-    'ConsolidationHealthMonitor',
-    'HealthStatus',
-    'HealthMetric',
-    'HealthAlert'
+    "ConsolidationBase",
+    "ConsolidationConfig",
+    "ConsolidationReport",
+    "ConsolidationError",
+    "ConsolidationConfigError",
+    "ConsolidationProcessingError",
+    "PostgreSQLConsolidator",
+    "ExponentialDecayCalculator",
+    "CreativeAssociationEngine",
+    "SemanticClusteringEngine",
+    "SemanticCompressionEngine",
+    "ControlledForgettingEngine",
+    "DreamInspiredConsolidator",
+    "ConsolidationScheduler",
+    "ConsolidationHealthMonitor",
+    "HealthStatus",
+    "HealthMetric",
+    "HealthAlert",
 ]

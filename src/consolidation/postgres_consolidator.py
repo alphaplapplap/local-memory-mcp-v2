@@ -1,8 +1,10 @@
-import asyncpg
 import json
-from typing import List, Dict, Tuple, Optional
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
+import asyncpg
+
 
 class PostgreSQLConsolidator:
     def __init__(self, connection_string: str, embedding_client):
@@ -10,13 +12,14 @@ class PostgreSQLConsolidator:
         self.embedding_client = embedding_client
         self.logger = logging.getLogger(__name__)
 
-    async def consolidate_memories(self, domain_id: Optional[str] = None,
-                                 days_back: int = 30) -> Dict:
+    async def consolidate_memories(
+        self, domain_id: Optional[str] = None, days_back: int = 30
+    ) -> Dict:
         """
         Consolidate memories using dream-inspired algorithms
         Adapted from doobidoo's consolidation system
         """
-        domain = domain_id or 'default'
+        domain = domain_id or "default"
         table_name = f"{domain}_memories"
 
         try:
@@ -27,8 +30,10 @@ class PostgreSQLConsolidator:
 
         try:
             # Phase 1: Identify consolidation candidates
-            candidates = await self._find_consolidation_candidates(conn, table_name, days_back)
-            
+            candidates = await self._find_consolidation_candidates(
+                conn, table_name, days_back
+            )
+
             if not candidates:
                 return {
                     "status": "no_candidates",
@@ -36,12 +41,12 @@ class PostgreSQLConsolidator:
                     "processed": 0,
                     "clusters_created": 0,
                     "memories_archived": 0,
-                    "consolidated_memories": 0
+                    "consolidated_memories": 0,
                 }
 
             # Phase 2: Cluster similar memories
             clusters = await self._cluster_similar_memories(candidates)
-            
+
             if not clusters:
                 return {
                     "status": "no_clusters",
@@ -49,21 +54,23 @@ class PostgreSQLConsolidator:
                     "processed": len(candidates),
                     "clusters_created": 0,
                     "memories_archived": 0,
-                    "consolidated_memories": 0
+                    "consolidated_memories": 0,
                 }
 
             # Phase 3: Generate consolidated memories
             consolidated = await self._generate_consolidated_memories(clusters)
 
             # Phase 4: Archive or merge original memories
-            archived_count = await self._archive_consolidated_memories(conn, consolidated, table_name)
+            archived_count = await self._archive_consolidated_memories(
+                conn, consolidated, table_name
+            )
 
             return {
                 "status": "success",
                 "processed": len(candidates),
                 "clusters_created": len(clusters),
                 "memories_archived": archived_count,
-                "consolidated_memories": len(consolidated)
+                "consolidated_memories": len(consolidated),
             }
         except Exception as e:
             self.logger.error(f"Consolidation failed: {e}")
@@ -71,31 +78,40 @@ class PostgreSQLConsolidator:
         finally:
             await conn.close()
 
-    async def _find_consolidation_candidates(self, conn, table_name, days_back) -> List[Dict]:
+    async def _find_consolidation_candidates(
+        self, conn, table_name, days_back
+    ) -> List[Dict]:
         """Find memories eligible for consolidation"""
         cutoff_date = datetime.now() - timedelta(days=days_back)
 
         try:
             # Check if table exists first
-            table_exists = await conn.fetchval("""
+            table_exists = await conn.fetchval(
+                """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
+                    SELECT FROM information_schema.tables
                     WHERE table_name = $1
                 )
-            """, table_name)
-            
+            """,
+                table_name,
+            )
+
             if not table_exists:
                 self.logger.warning(f"Table {table_name} does not exist")
                 return []
 
-            # Use dynamic table name
-            sql = f"""
+            # Use dynamic table name with proper escaping
+            from psycopg2 import sql as psycopg2_sql
+
+            sql = psycopg2_sql.SQL(
+                """
                 SELECT id, content, metadata, embedding, created_at
-                FROM {table_name}
+                FROM {}
                 WHERE created_at >= $1
                 AND NOT COALESCE((metadata->>'consolidated')::boolean, false)
                 ORDER BY created_at DESC
             """
+            ).format(psycopg2_sql.Identifier(table_name))
 
             rows = await conn.fetch(sql, cutoff_date)
 
@@ -106,20 +122,23 @@ class PostgreSQLConsolidator:
                 if isinstance(metadata, str):
                     try:
                         import json
+
                         metadata = json.loads(metadata)
-                    except:
+                    except (json.JSONDecodeError, TypeError):
                         metadata = {}
                 elif metadata is None:
                     metadata = {}
-                
-                candidates.append({
-                    "id": row["id"],
-                    "content": row["content"],
-                    "metadata": metadata,
-                    "embedding": row["embedding"],
-                    "created_at": row["created_at"]
-                })
-            
+
+                candidates.append(
+                    {
+                        "id": row["id"],
+                        "content": row["content"],
+                        "metadata": metadata,
+                        "embedding": row["embedding"],
+                        "created_at": row["created_at"],
+                    }
+                )
+
             return candidates
         except Exception as e:
             self.logger.error(f"Error finding consolidation candidates: {e}")
@@ -143,14 +162,13 @@ class PostgreSQLConsolidator:
             used_indices.add(i)
 
             # Find similar memories
-            for j, other_memory in enumerate(memories[i+1:], i+1):
+            for j, other_memory in enumerate(memories[i + 1 :], i + 1):
                 if j in used_indices:
                     continue
 
                 # Calculate cosine similarity between embeddings
                 similarity = self._cosine_similarity(
-                    memory["embedding"],
-                    other_memory["embedding"]
+                    memory["embedding"], other_memory["embedding"]
                 )
 
                 if similarity > similarity_threshold:
@@ -166,38 +184,42 @@ class PostgreSQLConsolidator:
     def _cosine_similarity(self, vec1, vec2) -> float:
         """Calculate cosine similarity between two vectors"""
         import math
-        
+
         # Handle None or invalid embeddings
         if vec1 is None or vec2 is None:
             return 0.0
-            
+
         # Convert to list if needed
         if isinstance(vec1, str):
             try:
-                vec1 = eval(vec1)  # Safe for numeric lists
-            except:
+                import ast
+
+                vec1 = ast.literal_eval(vec1)  # Safe for numeric lists
+            except (ValueError, SyntaxError):
                 return 0.0
         elif not isinstance(vec1, list):
             try:
                 vec1 = list(vec1)
-            except:
+            except (TypeError, ValueError):
                 return 0.0
-                
+
         if isinstance(vec2, str):
             try:
-                vec2 = eval(vec2)  # Safe for numeric lists
-            except:
+                import ast
+
+                vec2 = ast.literal_eval(vec2)  # Safe for numeric lists
+            except (ValueError, SyntaxError):
                 return 0.0
         elif not isinstance(vec2, list):
             try:
                 vec2 = list(vec2)
-            except:
+            except (TypeError, ValueError):
                 return 0.0
-        
+
         # Ensure vectors have the same length
         if len(vec1) != len(vec2):
             return 0.0
-            
+
         # Ensure all elements are numeric
         try:
             vec1 = [float(x) for x in vec1]
@@ -214,7 +236,9 @@ class PostgreSQLConsolidator:
 
         return dot_product / (magnitude1 * magnitude2)
 
-    async def _generate_consolidated_memories(self, clusters: List[List[Dict]]) -> List[Dict]:
+    async def _generate_consolidated_memories(
+        self, clusters: List[List[Dict]]
+    ) -> List[Dict]:
         """
         Generate consolidated memories from clusters
         This is where you'd implement LLM-based consolidation
@@ -235,11 +259,13 @@ class PostgreSQLConsolidator:
             merged_metadata["source_count"] = len(cluster)
             merged_metadata["consolidated_at"] = datetime.now().isoformat()
 
-            consolidated.append({
-                "content": consolidated_content,
-                "metadata": merged_metadata,
-                "source_memory_ids": [m["id"] for m in cluster]
-            })
+            consolidated.append(
+                {
+                    "content": consolidated_content,
+                    "metadata": merged_metadata,
+                    "source_memory_ids": [m["id"] for m in cluster],
+                }
+            )
 
         return consolidated
 
@@ -266,7 +292,7 @@ class PostgreSQLConsolidator:
         for metadata in metadatas:
             if metadata is None:
                 continue
-                
+
             # Collect all tags
             if "tags" in metadata and metadata["tags"]:
                 if isinstance(metadata["tags"], list):
@@ -278,10 +304,7 @@ class PostgreSQLConsolidator:
             if "importance" in metadata and metadata["importance"] is not None:
                 try:
                     importance = float(metadata["importance"])
-                    merged["importance"] = max(
-                        merged.get("importance", 0),
-                        importance
-                    )
+                    merged["importance"] = max(merged.get("importance", 0), importance)
                 except (ValueError, TypeError):
                     pass
 
@@ -290,7 +313,9 @@ class PostgreSQLConsolidator:
 
         return merged
 
-    async def _archive_consolidated_memories(self, conn, consolidated: List[Dict], table_name: str) -> int:
+    async def _archive_consolidated_memories(
+        self, conn, consolidated: List[Dict], table_name: str
+    ) -> int:
         """Archive original memories after consolidation"""
         archived_count = 0
 
@@ -298,16 +323,31 @@ class PostgreSQLConsolidator:
             try:
                 # Mark source memories as archived
                 if consolidated_memory.get("source_memory_ids"):
-                    await conn.execute(f"""
-                        UPDATE {table_name}
-                        SET metadata = metadata || '{{"archived": true, "archived_at": "{datetime.now().isoformat()}"}}'::jsonb
+                    from psycopg2 import sql as psycopg2_sql
+
+                    sql = psycopg2_sql.SQL(
+                        """
+                        UPDATE {}
+                        SET metadata = metadata || %s::jsonb
                         WHERE id = ANY($1)
-                    """, consolidated_memory["source_memory_ids"])
+                    """
+                    ).format(psycopg2_sql.Identifier(table_name))
+                    archived_metadata = {
+                        "archived": True,
+                        "archived_at": datetime.now().isoformat(),
+                    }
+                    await conn.execute(
+                        sql,
+                        (json.dumps(archived_metadata),),
+                        consolidated_memory["source_memory_ids"],
+                    )
 
                 # Insert consolidated memory
                 if self.embedding_client:
                     try:
-                        embedding = await self.embedding_client.get_embedding(consolidated_memory["content"])
+                        embedding = await self.embedding_client.get_embedding(
+                            consolidated_memory["content"]
+                        )
                     except Exception as e:
                         self.logger.warning(f"Failed to get embedding: {e}")
                         embedding = None
@@ -316,30 +356,37 @@ class PostgreSQLConsolidator:
 
                 # Generate a new ID for domain-specific tables (they use VARCHAR ids)
                 import uuid
+
                 new_id = str(uuid.uuid4())
 
                 # Convert embedding to string format for pgvector
                 if embedding is not None:
                     if isinstance(embedding, list):
-                        embedding_str = '[' + ','.join(str(x) for x in embedding) + ']'
+                        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
                     else:
                         embedding_str = str(embedding)
                 else:
                     # Create a zero vector if no embedding available
-                    embedding_str = '[0.0]'
+                    embedding_str = "[0.0]"
 
-                await conn.execute(f"""
-                    INSERT INTO {table_name} (id, content, embedding, metadata, created_at)
+                from psycopg2 import sql as psycopg2_sql
+
+                sql = psycopg2_sql.SQL(
+                    """
+                    INSERT INTO {} (id, content, embedding, metadata, created_at)
                     VALUES ($1, $2, $3::vector, $4, NOW())
-                """,
+                """
+                ).format(psycopg2_sql.Identifier(table_name))
+                await conn.execute(
+                    sql,
                     new_id,
                     consolidated_memory["content"],
                     embedding_str,
-                    json.dumps(consolidated_memory["metadata"])
+                    json.dumps(consolidated_memory["metadata"]),
                 )
 
                 archived_count += len(consolidated_memory.get("source_memory_ids", []))
-                
+
             except Exception as e:
                 self.logger.error(f"Error archiving consolidated memory: {e}")
                 continue
