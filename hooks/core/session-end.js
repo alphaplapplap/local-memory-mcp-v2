@@ -206,44 +206,19 @@ function analyzeConversation(conversationData) {
 }
 
 /**
- * Store session consolidation to memory service
+ * Call MCP service tools
  */
-async function storeSessionMemory(endpoint, apiKey, content, projectContext, analysis) {
+async function callMCPService(endpoint, apiKey, toolName, arguments_) {
     return new Promise((resolve, reject) => {
-        const url = new URL('/api/memories', endpoint);
-        
-        // Generate tags based on analysis and project context
-        const tags = [
-            'claude-code-session',
-            'session-consolidation',
-            projectContext.name,
-            `language:${projectContext.language}`,
-            ...analysis.topics.slice(0, 3), // Top 3 topics as tags
-            ...projectContext.frameworks.slice(0, 2), // Top 2 frameworks
-            `confidence:${Math.round(analysis.confidence * 100)}`
-        ].filter(Boolean);
-        
+        const url = new URL('/mcp', endpoint);
+
         const postData = JSON.stringify({
-            content: content,
-            tags: tags,
-            memory_type: 'session-summary',
-            metadata: {
-                session_analysis: {
-                    topics: analysis.topics,
-                    decisions_count: analysis.decisions.length,
-                    insights_count: analysis.insights.length,
-                    code_changes_count: analysis.codeChanges.length,
-                    next_steps_count: analysis.nextSteps.length,
-                    session_length: analysis.sessionLength,
-                    confidence: analysis.confidence
-                },
-                project_context: {
-                    name: projectContext.name,
-                    language: projectContext.language,
-                    frameworks: projectContext.frameworks
-                },
-                generated_by: 'claude-code-session-end-hook',
-                generated_at: new Date().toISOString()
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'tools/call',
+            params: {
+                name: toolName,
+                arguments: arguments_
             }
         });
 
@@ -270,7 +245,11 @@ async function storeSessionMemory(endpoint, apiKey, content, projectContext, ana
             res.on('end', () => {
                 try {
                     const response = JSON.parse(data);
-                    resolve(response);
+                    if (response.result) {
+                        resolve(response.result);
+                    } else {
+                        resolve({ success: false, error: 'No result in response', data });
+                    }
                 } catch (parseError) {
                     resolve({ success: false, error: 'Parse error', data });
                 }
@@ -283,6 +262,49 @@ async function storeSessionMemory(endpoint, apiKey, content, projectContext, ana
 
         req.write(postData);
         req.end();
+    });
+}
+
+/**
+ * Store session consolidation as memory
+ */
+async function storeSessionMemory(endpoint, apiKey, content, projectContext, analysis, sessionId) {
+    // Use MCP store_memory tool instead of direct API call
+    const metadata = {
+        source: 'session-end-hook',
+        session_analysis: {
+            topics: analysis.topics,
+            decisions_count: analysis.decisions.length,
+            insights_count: analysis.insights.length,
+            code_changes_count: analysis.codeChanges.length,
+            next_steps_count: analysis.nextSteps.length,
+            session_length: analysis.sessionLength,
+            confidence: analysis.confidence
+        },
+        project_context: {
+            name: projectContext.name,
+            language: projectContext.language,
+            frameworks: projectContext.frameworks
+        },
+        session_id: sessionId,
+        generated_by: 'claude-code-session-end-hook',
+        generated_at: new Date().toISOString(),
+        tags: [
+            'claude-code-session',
+            'session-consolidation',
+            projectContext.name,
+            `language:${projectContext.language}`,
+            ...analysis.topics.slice(0, 3), // Top 3 topics as tags
+            ...projectContext.frameworks.slice(0, 2), // Top 2 frameworks
+            `confidence:${Math.round(analysis.confidence * 100)}`
+        ].filter(Boolean)
+    };
+
+    return await callMCPService(endpoint, apiKey, 'store_memory', {
+        content: content,
+        domain: 'default',
+        metadata: metadata,
+        importance: Math.round(analysis.confidence * 10) // 0-10 scale
     });
 }
 
@@ -327,25 +349,103 @@ async function onSessionEnd(context) {
         
         console.log(`[Memory Hook] Session analysis: ${analysis.topics.length} topics, ${analysis.decisions.length} decisions, confidence: ${(analysis.confidence * 100).toFixed(1)}%`);
         
+        // Try to get active session info or find recent session
+        let sessionId = context.sessionId; // If provided by context
+        let sessionInfo = null;
+
+        if (!sessionId) {
+            // Try to find recent active session for this project
+            try {
+                const sessions = await callMCPService(
+                    config.memoryService.endpoint,
+                    config.memoryService.apiKey,
+                    'get_session_history',
+                    {
+                        project_name: projectContext.name,
+                        limit: 1
+                    }
+                );
+
+                if (sessions && sessions.recent_sessions && sessions.recent_sessions.length > 0) {
+                    const lastSession = sessions.recent_sessions[0];
+                    if (lastSession.status === 'active') {
+                        sessionId = lastSession.id;
+                        sessionInfo = lastSession;
+                    }
+                }
+            } catch (error) {
+                console.log('[Memory Hook] Could not retrieve session info');
+            }
+        }
+
         // Format session consolidation
         const consolidation = formatSessionConsolidation(analysis, projectContext);
-        
-        // Store to memory service
-        const result = await storeSessionMemory(
-            config.memoryService.endpoint,
-            config.memoryService.apiKey,
-            consolidation,
-            projectContext,
-            analysis
-        );
-        
-        if (result.success || result.content_hash) {
-            console.log(`[Memory Hook] Session consolidation stored successfully`);
-            if (result.content_hash) {
-                console.log(`[Memory Hook] Memory hash: ${result.content_hash.substring(0, 8)}...`);
+
+        // End the session if we have session tracking
+        if (sessionId) {
+            try {
+                const endResult = await callMCPService(
+                    config.memoryService.endpoint,
+                    config.memoryService.apiKey,
+                    'end_session',
+                    {
+                        session_id: sessionId,
+                        final_topics: analysis.topics,
+                        conversation_summary: consolidation.slice(0, 500), // Truncate for summary
+                        outcome_type: analysis.confidence > 0.7 ? 'completed' : 'partial'
+                    }
+                );
+
+                if (endResult && !endResult.error) {
+                    console.log(`[Memory Hook] Session ${sessionId} ended successfully`);
+                } else {
+                    console.log(`[Memory Hook] Failed to end session: ${endResult?.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.log(`[Memory Hook] Error ending session: ${error.message}`);
+            }
+        }
+
+        // Store session consolidation as memory if confidence is high enough
+        if (analysis.confidence > 0.3) {
+            const result = await storeSessionMemory(
+                config.memoryService.endpoint,
+                config.memoryService.apiKey,
+                consolidation,
+                projectContext,
+                analysis,
+                sessionId
+            );
+
+            if (result && (result.success || result.content_hash || result.id)) {
+                const memoryId = result.id || result.content_hash;
+                console.log(`[Memory Hook] Session consolidation stored successfully: ${memoryId}`);
+
+                // Track the summary memory with the session if we have session ID
+                if (sessionId && memoryId) {
+                    try {
+                        await callMCPService(
+                            config.memoryService.endpoint,
+                            config.memoryService.apiKey,
+                            'track_session_memory',
+                            {
+                                session_id: sessionId,
+                                memory_id: memoryId,
+                                domain: 'default',
+                                created_during_session: true,
+                                interaction_type: 'created',
+                                relevance_score: analysis.confidence
+                            }
+                        );
+                    } catch (error) {
+                        // Silently handle tracking errors
+                    }
+                }
+            } else {
+                console.warn('[Memory Hook] Failed to store session consolidation:', result?.error || 'Unknown error');
             }
         } else {
-            console.warn('[Memory Hook] Failed to store session consolidation:', result.error || 'Unknown error');
+            console.log('[Memory Hook] Session confidence too low for memory storage');
         }
         
     } catch (error) {

@@ -1098,6 +1098,261 @@ def learning_session(topic: str, key_points: str, questions: str = "") -> str:
     
     return response_text
 
+# Session Management Tools
+
+@server.tool
+def start_session(
+    session_id: str,
+    project_name: Optional[str] = None,
+    working_directory: Optional[str] = None,
+    initial_topics: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Start a new conversation session with optional project context.
+
+    This tool begins tracking a new session and attempts to link it to existing
+    conversation threads for continuity. If recent sessions exist in the same
+    project, this session will be linked as a continuation.
+
+    Parameters:
+    - session_id (str): Unique identifier for this session. Examples:
+                       * "session-2024-01-15-143022"
+                       * "claude-session-abc123"
+                       * Use timestamp or UUID-based IDs for uniqueness
+
+    - project_name (str, optional): Name of the project this session relates to.
+                                   Used for linking sessions into conversation threads.
+                                   Examples: "my-app", "data-analysis", "website-redesign"
+
+    - working_directory (str, optional): Current working directory path.
+                                        Examples: "/Users/name/projects/my-app"
+
+    - initial_topics (List[str], optional): Initial topics or goals for this session.
+                                           Examples: ["debugging", "authentication", "database"]
+
+    Returns:
+    Dict[str, Any]: Session information including:
+        - session_id (str): The session identifier
+        - thread_id (str): Conversation thread this session belongs to
+        - parent_session_id (str): Previous related session (if continuation)
+        - project_name (str): Project name
+        - is_continuation (bool): Whether this continues a previous conversation
+
+    Example usage:
+    - start_session("session-123", "my-app", "/path/to/project", ["setup", "debugging"])
+    - start_session("claude-session-456") # Minimal usage
+    """
+    try:
+        project_context = {}
+        if project_name:
+            project_context["name"] = project_name
+
+        result = memory_api.start_session(
+            session_id=session_id,
+            project_context=project_context,
+            working_directory=working_directory,
+            initial_topics=initial_topics,
+        )
+        return result
+    except Exception as e:
+        print(f"Error starting session {session_id}: {e}", file=sys.stderr)
+        return {"error": str(e)}
+
+
+@server.tool
+def end_session(
+    session_id: str,
+    final_topics: Optional[List[str]] = None,
+    conversation_summary: Optional[str] = None,
+    outcome_type: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    End a conversation session with summary and outcomes.
+
+    This tool marks a session as completed and stores the final outcomes.
+    The session data becomes part of the conversation history for future
+    session continuity.
+
+    Parameters:
+    - session_id (str): The session identifier to end
+
+    - final_topics (List[str], optional): Topics covered during the session.
+                                         Examples: ["bug-fixed", "database-optimized", "tests-added"]
+
+    - conversation_summary (str, optional): Brief summary of what was accomplished.
+                                           Examples: "Fixed authentication bug and added unit tests"
+
+    - outcome_type (str, optional): Type of session outcome.
+                                   Examples: "completed", "planning", "partial", "debugging"
+
+    Returns:
+    Dict[str, Any]: Session completion status including:
+        - session_id (str): The session identifier
+        - status (str): "completed" if successful
+        - thread_id (str): Conversation thread ID
+
+    Example usage:
+    - end_session("session-123", ["bug-fixed", "tests-added"], "Successfully fixed login issue")
+    - end_session("session-456", outcome_type="planning")
+    """
+    try:
+        outcome = {}
+        if outcome_type:
+            outcome["type"] = outcome_type
+
+        result = memory_api.end_session(
+            session_id=session_id,
+            outcome=outcome,
+            final_topics=final_topics,
+            conversation_summary=conversation_summary,
+        )
+        return result
+    except Exception as e:
+        print(f"Error ending session {session_id}: {e}", file=sys.stderr)
+        return {"error": str(e)}
+
+
+@server.tool
+def get_session_history(
+    project_name: Optional[str] = None,
+    limit: int = 5,
+    include_memories: bool = False,
+) -> Dict[str, Any]:
+    """
+    Get recent session history for conversation continuity.
+
+    This tool retrieves information about recent sessions to provide context
+    for new sessions. Useful for understanding recent work and decisions.
+
+    Parameters:
+    - project_name (str, optional): Filter sessions by project name.
+                                   If not provided, returns sessions across all projects.
+
+    - limit (int, optional): Maximum number of recent sessions to return (default: 5).
+                            Range: 1-20.
+
+    - include_memories (bool, optional): Whether to include associated memories (default: false).
+                                        When true, returns memories that were loaded or created
+                                        during each session.
+
+    Returns:
+    Dict[str, Any]: Session history including:
+        - recent_sessions (List[Dict]): List of recent session data
+        - total_sessions (int): Number of sessions returned
+        - session_memories (List[Dict]): Associated memories (if include_memories=true)
+
+    Each session includes:
+        - id, project_name, started_at, ended_at
+        - initial_topics, final_topics, conversation_summary
+        - outcome, thread_id, parent_session_id
+
+    Example usage:
+    - get_session_history("my-app", 3) # Last 3 sessions for my-app project
+    - get_session_history(limit=10, include_memories=true) # Detailed history
+    """
+    try:
+        result = memory_api.get_session_context(
+            project_name=project_name,
+            limit=limit,
+            include_memories=include_memories,
+        )
+        return result
+    except Exception as e:
+        print(f"Error getting session history: {e}", file=sys.stderr)
+        return {"error": str(e)}
+
+
+@server.tool
+def get_conversation_threads(
+    project_name: Optional[str] = None,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Get conversation threads showing session relationships.
+
+    This tool shows conversation threads that group related sessions together.
+    Each thread represents an ongoing conversation or work stream within a project.
+
+    Parameters:
+    - project_name (str, optional): Filter threads by project name.
+                                   If not provided, returns threads across all projects.
+
+    - limit (int, optional): Maximum number of threads to return (default: 10).
+                            Range: 1-50.
+
+    Returns:
+    List[Dict[str, Any]]: List of conversation threads, each containing:
+        - id (str): Thread identifier
+        - project_name (str): Associated project
+        - created_at (datetime): When thread was created
+        - last_updated (datetime): Last activity in thread
+        - topics (List[str]): Accumulated topics across all sessions
+        - session_count (int): Number of sessions in this thread
+        - last_session_end (datetime): When last session in thread ended
+
+    Example usage:
+    - get_conversation_threads("my-app") # Threads for specific project
+    - get_conversation_threads(limit=20) # All recent threads
+    """
+    try:
+        result = memory_api.get_conversation_threads(
+            project_name=project_name,
+            limit=limit,
+        )
+        return result
+    except Exception as e:
+        print(f"Error getting conversation threads: {e}", file=sys.stderr)
+        return {"error": str(e)}
+
+
+@server.tool
+def track_session_memory(
+    session_id: str,
+    memory_id: str,
+    domain: str,
+    created_during_session: bool = True,
+    interaction_type: str = "loaded",
+    relevance_score: Optional[float] = None,
+) -> bool:
+    """
+    Track the relationship between a session and a memory.
+
+    This tool creates an association between a session and a memory,
+    recording how the memory was used during the session. This data
+    helps with session continuity and memory relevance scoring.
+
+    Parameters:
+    - session_id (str): The session identifier
+    - memory_id (str): The memory identifier to associate
+    - domain (str): The domain where the memory is stored
+    - created_during_session (bool, optional): Whether memory was created during session (default: true)
+    - interaction_type (str, optional): How memory was used. Options:
+                                       * "loaded" - Memory was retrieved and used
+                                       * "created" - Memory was created during session
+                                       * "referenced" - Memory was mentioned or related
+    - relevance_score (float, optional): Relevance score 0.0-1.0 for this memory to the session
+
+    Returns:
+    bool: True if association was created successfully
+
+    Example usage:
+    - track_session_memory("session-123", "mem-456", "default", true, "created", 0.9)
+    - track_session_memory("session-123", "mem-789", "work", false, "loaded", 0.7)
+    """
+    try:
+        result = memory_api.track_session_memory(
+            session_id=session_id,
+            memory_id=memory_id,
+            domain=domain,
+            created_during_session=created_during_session,
+            interaction_type=interaction_type,
+            relevance_score=relevance_score,
+        )
+        return result
+    except Exception as e:
+        print(f"Error tracking session memory: {e}", file=sys.stderr)
+        return False
+
 
 if __name__ == "__main__":
     import asyncio

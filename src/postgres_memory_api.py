@@ -830,3 +830,279 @@ class PostgresMemoryAPI:
             return {"status": "success", **result}
         except Exception as e:
             return {"error": f"Consolidation failed: {e}"}
+
+    # Session Management Methods
+
+    @handle_errors()
+    @validate_inputs(
+        session_id=lambda x: isinstance(x, str) and x.strip() != "",
+        project_context=lambda x: x is None or isinstance(x, dict),
+        working_directory=lambda x: x is None or isinstance(x, str),
+    )
+    def start_session(
+        self,
+        session_id: str,
+        project_context: Optional[Dict[str, Any]] = None,
+        working_directory: Optional[str] = None,
+        initial_topics: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Start a new session and optionally link to existing conversation thread."""
+        with error_context("start_session", session_id=session_id):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    project_name = project_context.get("name") if project_context else None
+
+                    # Try to find recent related sessions for thread linking
+                    thread_id = None
+                    parent_session_id = None
+
+                    if project_name:
+                        # Look for recent sessions in same project (last 24 hours)
+                        cursor.execute("""
+                            SELECT id, thread_id FROM sessions
+                            WHERE project_name = %s
+                            AND status = 'completed'
+                            AND started_at > NOW() - INTERVAL '24 hours'
+                            ORDER BY started_at DESC
+                            LIMIT 1
+                        """, (project_name,))
+
+                        recent_session = cursor.fetchone()
+                        if recent_session:
+                            parent_session_id = recent_session['id']
+                            thread_id = recent_session['thread_id']
+
+                    # Create new thread if no existing one found
+                    if not thread_id:
+                        import uuid
+                        thread_id = f"thread-{uuid.uuid4().hex[:12]}"
+
+                        cursor.execute("""
+                            INSERT INTO conversation_threads (id, project_name, metadata)
+                            VALUES (%s, %s, %s)
+                        """, (thread_id, project_name, json.dumps(project_context or {})))
+
+                    # Create session record
+                    cursor.execute("""
+                        INSERT INTO sessions (
+                            id, project_name, working_directory, initial_topics,
+                            thread_id, parent_session_id, metadata
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        session_id,
+                        project_name,
+                        working_directory,
+                        initial_topics or [],
+                        thread_id,
+                        parent_session_id,
+                        json.dumps(project_context or {})
+                    ))
+
+                    conn.commit()
+
+                    logger.info(f"Started session {session_id} in thread {thread_id}")
+
+                    return {
+                        "session_id": session_id,
+                        "thread_id": thread_id,
+                        "parent_session_id": parent_session_id,
+                        "project_name": project_name,
+                        "is_continuation": parent_session_id is not None
+                    }
+
+    @handle_errors()
+    @validate_inputs(
+        session_id=lambda x: isinstance(x, str) and x.strip() != "",
+        outcome=lambda x: x is None or isinstance(x, dict),
+    )
+    def end_session(
+        self,
+        session_id: str,
+        outcome: Optional[Dict[str, Any]] = None,
+        final_topics: Optional[List[str]] = None,
+        conversation_summary: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """End a session with outcome and summary."""
+        with error_context("end_session", session_id=session_id):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    # Check if session exists and is active
+                    cursor.execute("""
+                        SELECT id, thread_id, project_name FROM sessions
+                        WHERE id = %s AND status = 'active'
+                    """, (session_id,))
+
+                    session = cursor.fetchone()
+                    if not session:
+                        raise ValidationError(f"Active session {session_id} not found")
+
+                    # Update session with completion data
+                    cursor.execute("""
+                        UPDATE sessions
+                        SET ended_at = NOW(),
+                            status = 'completed',
+                            final_topics = %s,
+                            conversation_summary = %s,
+                            outcome = %s
+                        WHERE id = %s
+                    """, (
+                        final_topics or [],
+                        conversation_summary,
+                        json.dumps(outcome or {}),
+                        session_id
+                    ))
+
+                    # Update conversation thread topics
+                    if final_topics and session['thread_id']:
+                        cursor.execute("""
+                            UPDATE conversation_threads
+                            SET topics = array(
+                                SELECT DISTINCT unnest(topics || %s::text[])
+                            )
+                            WHERE id = %s
+                        """, (final_topics, session['thread_id']))
+
+                    conn.commit()
+
+                    logger.info(f"Ended session {session_id}")
+
+                    return {
+                        "session_id": session_id,
+                        "status": "completed",
+                        "thread_id": session['thread_id']
+                    }
+
+    @handle_errors()
+    @validate_inputs(
+        session_id=lambda x: isinstance(x, str) and x.strip() != "",
+        memory_id=lambda x: isinstance(x, str) and x.strip() != "",
+        domain=lambda x: isinstance(x, str) and x.strip() != "",
+    )
+    def track_session_memory(
+        self,
+        session_id: str,
+        memory_id: str,
+        domain: str,
+        created_during_session: bool = True,
+        interaction_type: str = "loaded",
+        relevance_score: Optional[float] = None,
+    ) -> bool:
+        """Track the relationship between a session and a memory."""
+        with error_context("track_session_memory", session_id=session_id, memory_id=memory_id):
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO session_memories (
+                            session_id, memory_id, domain, created_during_session,
+                            interaction_type, relevance_score
+                        ) VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (session_id, memory_id, domain) DO UPDATE SET
+                            interaction_type = EXCLUDED.interaction_type,
+                            relevance_score = EXCLUDED.relevance_score
+                    """, (
+                        session_id, memory_id, domain, created_during_session,
+                        interaction_type, relevance_score
+                    ))
+
+                    conn.commit()
+                    return True
+
+    @handle_errors()
+    @validate_inputs(
+        project_name=lambda x: x is None or isinstance(x, str),
+        limit=lambda x: isinstance(x, int) and x > 0,
+    )
+    def get_session_context(
+        self,
+        project_name: Optional[str] = None,
+        limit: int = 5,
+        include_memories: bool = False,
+    ) -> Dict[str, Any]:
+        """Get recent session context for continuity."""
+        with error_context("get_session_context", project_name=project_name):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    # Build query based on project filter
+                    where_clause = "WHERE status = 'completed'"
+                    params = []
+
+                    if project_name:
+                        where_clause += " AND project_name = %s"
+                        params.append(project_name)
+
+                    # Get recent sessions
+                    cursor.execute(f"""
+                        SELECT
+                            id, project_name, started_at, ended_at,
+                            initial_topics, final_topics, conversation_summary,
+                            outcome, thread_id, parent_session_id
+                        FROM sessions
+                        {where_clause}
+                        ORDER BY ended_at DESC
+                        LIMIT %s
+                    """, params + [limit])
+
+                    sessions = cursor.fetchall()
+
+                    result = {
+                        "recent_sessions": [dict(session) for session in sessions],
+                        "total_sessions": len(sessions)
+                    }
+
+                    if sessions and include_memories:
+                        # Get memories associated with recent sessions
+                        session_ids = [s['id'] for s in sessions]
+                        placeholders = ','.join(['%s'] * len(session_ids))
+
+                        cursor.execute(f"""
+                            SELECT
+                                sm.session_id, sm.memory_id, sm.domain,
+                                sm.created_during_session, sm.interaction_type,
+                                sm.relevance_score
+                            FROM session_memories sm
+                            WHERE sm.session_id IN ({placeholders})
+                            ORDER BY sm.relevance_score DESC NULLS LAST
+                        """, session_ids)
+
+                        memories = cursor.fetchall()
+                        result["session_memories"] = [dict(mem) for mem in memories]
+
+                    return result
+
+    @handle_errors()
+    @validate_inputs(
+        project_name=lambda x: x is None or isinstance(x, str),
+    )
+    def get_conversation_threads(
+        self,
+        project_name: Optional[str] = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """Get conversation threads with session counts."""
+        with error_context("get_conversation_threads", project_name=project_name):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    where_clause = "WHERE ct.status = 'active'"
+                    params = []
+
+                    if project_name:
+                        where_clause += " AND ct.project_name = %s"
+                        params.append(project_name)
+
+                    cursor.execute(f"""
+                        SELECT
+                            ct.id, ct.project_name, ct.created_at, ct.last_updated,
+                            ct.topics, ct.metadata,
+                            COUNT(s.id) as session_count,
+                            MAX(s.ended_at) as last_session_end
+                        FROM conversation_threads ct
+                        LEFT JOIN sessions s ON ct.id = s.thread_id
+                        {where_clause}
+                        GROUP BY ct.id, ct.project_name, ct.created_at, ct.last_updated,
+                                 ct.topics, ct.metadata
+                        ORDER BY ct.last_updated DESC
+                        LIMIT %s
+                    """, params + [limit])
+
+                    threads = cursor.fetchall()
+                    return [dict(thread) for thread in threads]

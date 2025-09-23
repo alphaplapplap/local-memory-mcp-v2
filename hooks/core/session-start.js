@@ -556,18 +556,33 @@ async function ensureProjectDomain(endpoint, apiKey, domainName) {
 async function queryMemoryService(endpoint, apiKey, query) {
     return new Promise((resolve, reject) => {
         const url = new URL('/mcp', endpoint);
+
+        // Handle different tool calls
+        let toolName, toolArguments;
+
+        if (query.tool) {
+            // Direct tool call
+            toolName = query.tool;
+            toolArguments = { ...query };
+            delete toolArguments.tool; // Remove the tool key from arguments
+        } else {
+            // Legacy search_memories call
+            toolName = 'search_memories';
+            toolArguments = {
+                query: query.semanticQuery || '',
+                limit: query.limit || 10,
+                domain: query.domain || 'default',
+                time_filter: query.time_filter || null
+            };
+        }
+
         const postData = JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             method: 'tools/call',
             params: {
-                name: 'search_memories',
-                arguments: {
-                    query: query.semanticQuery || '',
-                    limit: query.limit || 10,
-                    domain: query.domain || 'default',
-                    time_filter: query.time_filter || null
-                }
+                name: toolName,
+                arguments: toolArguments
             }
         });
 
@@ -683,7 +698,73 @@ async function onSessionStart(context) {
         
         // Initialize memory collection array early
         const allMemories = [];
-        
+
+        // Initialize session tracking
+        let sessionInfo = null;
+        const sessionEnabled = config.sessionManagement?.enabled !== false; // Default to true
+
+        if (sessionEnabled) {
+            try {
+                // Generate session ID
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                const sessionId = `session-${timestamp}-${Math.random().toString(36).substr(2, 6)}`;
+
+                // Start session with project context
+                const sessionResult = await queryMemoryService(
+                    config.memoryService.endpoint,
+                    config.memoryService.apiKey,
+                    {
+                        tool: 'start_session',
+                        session_id: sessionId,
+                        project_name: projectContext.name,
+                        working_directory: context.workingDirectory || process.cwd(),
+                        initial_topics: context.userMessage ? [context.userMessage.slice(0, 50)] : []
+                    }
+                );
+
+                if (sessionResult && sessionResult.session_id) {
+                    sessionInfo = sessionResult;
+
+                    if (verbose && !cleanMode) {
+                        if (sessionInfo.is_continuation) {
+                            console.log(`${CONSOLE_COLORS.GREEN}🔗 Session${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Continuing conversation ${CONSOLE_COLORS.BRIGHT}${sessionInfo.thread_id}${CONSOLE_COLORS.RESET}`);
+                        } else {
+                            console.log(`${CONSOLE_COLORS.GREEN}🆕 Session${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Started new thread ${CONSOLE_COLORS.BRIGHT}${sessionInfo.thread_id}${CONSOLE_COLORS.RESET}`);
+                        }
+                    }
+
+                    // Get conversation context if this is a continuation
+                    if (sessionInfo.is_continuation && verbose && !cleanMode) {
+                        try {
+                            const historyResult = await queryMemoryService(
+                                config.memoryService.endpoint,
+                                config.memoryService.apiKey,
+                                {
+                                    tool: 'get_session_history',
+                                    project_name: projectContext.name,
+                                    limit: 3,
+                                    include_memories: false
+                                }
+                            );
+
+                            if (historyResult && historyResult.recent_sessions && historyResult.recent_sessions.length > 0) {
+                                const lastSession = historyResult.recent_sessions[0];
+                                if (lastSession.conversation_summary) {
+                                    console.log(`${CONSOLE_COLORS.BLUE}📝 Previous${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} ${lastSession.conversation_summary.slice(0, 80)}...`);
+                                }
+                            }
+                        } catch (error) {
+                            // Silently handle history lookup errors
+                        }
+                    }
+                }
+            } catch (error) {
+                if (verbose && !cleanMode) {
+                    console.log(`${CONSOLE_COLORS.YELLOW}⚠️ Session${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Session tracking unavailable`);
+                }
+            }
+        }
+
         // Auto-create and switch to project domain
         const projectDomain = projectContext.name.toLowerCase()
             .replace(/[^a-z0-9_-]/g, '_')
@@ -1100,6 +1181,30 @@ async function onSessionStart(context) {
                 await context.injectSystemMessage(contextMessage);
                 if (!cleanMode) {
                     console.log(`${CONSOLE_COLORS.GREEN}✅ Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Context injected ${CONSOLE_COLORS.GRAY}(${topMemories.length} memories)${CONSOLE_COLORS.RESET}`);
+                }
+
+                // Track session memory usage if session is active
+                if (sessionInfo && sessionInfo.session_id && topMemories.length > 0) {
+                    try {
+                        // Track each loaded memory with the session
+                        for (const memory of topMemories) {
+                            await queryMemoryService(
+                                config.memoryService.endpoint,
+                                config.memoryService.apiKey,
+                                {
+                                    tool: 'track_session_memory',
+                                    session_id: sessionInfo.session_id,
+                                    memory_id: memory.id,
+                                    domain: memory.domain || 'default',
+                                    created_during_session: false,
+                                    interaction_type: 'loaded',
+                                    relevance_score: memory.score || memory.relevance_score || null
+                                }
+                            );
+                        }
+                    } catch (error) {
+                        // Silently handle session tracking errors
+                    }
                 }
             } else if (verbose && !cleanMode) {
                 // Fallback: log context for manual copying with styling
