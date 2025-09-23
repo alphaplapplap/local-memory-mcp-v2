@@ -1,0 +1,28 @@
+[Unit]
+Description=Local Memory MCP Server
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=linuxbabe
+Group=staff
+WorkingDirectory=/Users/linuxbabe/local-memory-mcp
+Environment=PATH=/Users/linuxbabe/local-memory-mcp/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=POSTGRES_DB=memory_db
+Environment=POSTGRES_USER=postgres
+Environment=POSTGRES_PASSWORD=postgres
+Environment=POSTGRES_HOST=localhost
+Environment=POSTGRES_PORT=5432
+Environment=OLLAMA_API_URL=http://localhost:11434
+Environment=OLLAMA_EMBEDDING_MODEL=nomic-embed-text:v1.5
+Environment=ENVIRONMENT=production
+Environment=LOG_LEVEL=INFO
+ExecStart=/Users/linuxbabe/local-memory-mcp/venv/bin/python /Users/linuxbabe/local-memory-mcp/bridge_server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

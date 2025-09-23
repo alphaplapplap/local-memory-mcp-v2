@@ -8,9 +8,9 @@ Base classes and interfaces for document ingestion.
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from pathlib import Path
-from typing import List, Dict, Any, Optional, AsyncGenerator
 from datetime import datetime
+from pathlib import Path
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class DocumentChunk:
         chunk_index: Position of this chunk in the document
         source_file: Original file path
     """
+
     content: str
     metadata: Dict[str, Any]
     chunk_index: int
@@ -33,12 +34,12 @@ class DocumentChunk:
 
     def __post_init__(self):
         """Add default metadata after initialization."""
-        if 'source' not in self.metadata:
-            self.metadata['source'] = str(self.source_file)
-        if 'chunk_index' not in self.metadata:
-            self.metadata['chunk_index'] = self.chunk_index
-        if 'extracted_at' not in self.metadata:
-            self.metadata['extracted_at'] = datetime.now().isoformat()
+        if "source" not in self.metadata:
+            self.metadata["source"] = str(self.source_file)
+        if "chunk_index" not in self.metadata:
+            self.metadata["chunk_index"] = self.chunk_index
+        if "extracted_at" not in self.metadata:
+            self.metadata["extracted_at"] = datetime.now().isoformat()
 
 
 @dataclass
@@ -54,6 +55,7 @@ class IngestionResult:
         source_file: Original file that was processed
         processing_time: Time taken to process in seconds
     """
+
     success: bool
     chunks_processed: int
     chunks_stored: int
@@ -103,7 +105,9 @@ class DocumentLoader(ABC):
         pass
 
     @abstractmethod
-    async def extract_chunks(self, file_path: Path, **kwargs) -> AsyncGenerator[DocumentChunk, None]:
+    async def extract_chunks(
+        self, file_path: Path, **kwargs
+    ) -> AsyncGenerator[DocumentChunk, None]:
         """
         Extract text chunks from a document.
 
@@ -153,10 +157,10 @@ class DocumentLoader(ABC):
         """
         stat = file_path.stat()
         return {
-            'source_file': str(file_path),
-            'file_name': file_path.name,
-            'file_extension': file_path.suffix.lower(),
-            'file_size': stat.st_size,
-            'modified_time': datetime.fromtimestamp(stat.st_mtime).isoformat(),
-            'loader_type': self.__class__.__name__
+            "source_file": str(file_path),
+            "file_name": file_path.name,
+            "file_extension": file_path.suffix.lower(),
+            "file_size": stat.st_size,
+            "modified_time": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            "loader_type": self.__class__.__name__,
         }

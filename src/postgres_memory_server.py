@@ -3,7 +3,9 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 
-from fastmcp import FastMCP
+import mcp.server.stdio
+import mcp.types as types
+from mcp.server import InitializationOptions, NotificationOptions, Server
 
 from ollama_embeddings import OllamaEmbeddings
 from postgres_memory_api import PostgresMemoryAPI
@@ -12,7 +14,7 @@ from postgres_memory_api import PostgresMemoryAPI
 server_name = os.environ.get("MCP_SERVER_NAME", "Local Context Memory")
 
 # Initialize the MCP server
-mcp = FastMCP(name=server_name)
+server = Server(server_name)
 
 # Check if Ollama is available
 ollama_available = False
@@ -50,7 +52,7 @@ except Exception as e:
 memory_api = PostgresMemoryAPI(ollama_embeddings=ollama_embeddings)
 
 
-@mcp.tool
+@server.tool
 def store_memory(
     content: str,
     domain: Optional[str] = None,
@@ -117,7 +119,7 @@ def store_memory(
     return memory_id
 
 
-@mcp.tool
+@server.tool
 def update_memory(
     memory_id: str,
     content: Optional[str] = None,
@@ -208,7 +210,7 @@ def get_memories(
     return results
 
 
-@mcp.tool
+@server.tool
 def search_memories(
     query: str, domain: Optional[str] = None, limit: Optional[int] = 5
 ) -> List[Dict[str, Any]]:
@@ -265,7 +267,7 @@ def search_memories(
     return results
 
 
-@mcp.tool
+@server.tool
 def recall_memory(
     query: str, n_results: Optional[int] = 5
 ) -> List[Dict[str, Any]]:
@@ -315,7 +317,7 @@ def recall_memory(
     return results
 
 
-@mcp.tool
+@server.tool
 def search_by_tag(
     tags: List[str], domain: Optional[str] = None, limit: Optional[int] = 5
 ) -> List[Dict[str, Any]]:
@@ -369,7 +371,7 @@ def search_by_tag(
     return results
 
 
-@mcp.tool
+@server.tool
 def list_memory_domains() -> List[str]:
     """
     List all available memory domains in the database.
@@ -391,7 +393,7 @@ def list_memory_domains() -> List[str]:
     return memory_api.list_domains()
 
 
-@mcp.tool
+@server.tool
 def delete_memory(
     memory_id: str, domain: Optional[str] = None
 ) -> bool:
@@ -423,7 +425,7 @@ def delete_memory(
         return False
 
 
-@mcp.tool
+@server.tool
 def delete_by_tag(
     tags: List[str], domain: Optional[str] = None
 ) -> int:
@@ -468,7 +470,7 @@ def delete_by_tag(
         return 0
 
 
-@mcp.tool
+@server.tool
 def get_current_project_domain() -> str:
     """
     Get the current project domain based on the working directory.
@@ -493,7 +495,7 @@ def get_current_project_domain() -> str:
     return get_project_domain()
 
 
-@mcp.tool
+@server.tool
 def create_domain(domain_name: str) -> bool:
     """
     Create a new memory domain.
@@ -542,7 +544,7 @@ def create_domain(domain_name: str) -> bool:
         return False
 
 
-@mcp.tool
+@server.tool
 def get_domain_info(domain_name: str) -> Dict[str, Any]:
     """
     Get detailed information about a specific memory domain.
@@ -604,7 +606,7 @@ def get_domain_info(domain_name: str) -> Dict[str, Any]:
         }
 
 
-@mcp.tool
+@server.tool
 def switch_to_domain(domain_name: str) -> Dict[str, Any]:
     """
     Switch the current working domain context.
@@ -675,7 +677,7 @@ def switch_to_domain(domain_name: str) -> Dict[str, Any]:
         }
 
 
-@mcp.tool
+@server.tool
 def copy_memories_between_domains(
     source_domain: str,
     target_domain: str,
@@ -790,7 +792,7 @@ def copy_memories_between_domains(
         }
 
 
-@mcp.tool
+@server.tool
 def ingest_document(
     file_path: str,
     domain: Optional[str] = None,
@@ -836,7 +838,7 @@ def ingest_document(
         return f"Ingestion failed: {str(e)}"
 
 
-@mcp.tool
+@server.tool
 def ingest_text_content(
     content: str, source_name: str, domain: Optional[str] = None
 ) -> str:
@@ -1093,4 +1095,20 @@ def learning_session(topic: str, key_points: str, questions: str = "") -> str:
 
 
 if __name__ == "__main__":
-    mcp.run()  # Start the FastMCP server
+    import asyncio
+    async def main():
+        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name=server_name,
+                    server_version="1.0.0",
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
+                ),
+            )
+    
+    asyncio.run(main())

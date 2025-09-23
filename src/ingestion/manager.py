@@ -6,21 +6,22 @@ Integrates with postgres_memory_api.py for storing document chunks
 
 import asyncio
 import logging
-import time
-from pathlib import Path
-from typing import List, Dict, Any, Optional, AsyncGenerator
-from datetime import datetime
-
-from .base import DocumentLoader, DocumentChunk, IngestionResult
-from .chunker import TextChunker, ChunkingStrategy
-from .registry import get_loader_for_file, is_supported_file
+import os
 
 # Import your existing memory API
 import sys
-import os
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any, AsyncGenerator, Dict, List, Optional
+
+from .base import DocumentChunk, DocumentLoader, IngestionResult
+from .chunker import ChunkingStrategy, TextChunker
+from .registry import get_loader_for_file, is_supported_file
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from postgres_memory_api import PostgresMemoryAPI
 from ollama_embeddings import OllamaEmbeddings
+from postgres_memory_api import PostgresMemoryAPI
 
 logger = logging.getLogger(__name__)
 
@@ -47,18 +48,16 @@ class DocumentIngestionManager:
         """
         self.memory_api = memory_api
         self.domain = domain
-        self.chunker = TextChunker(ChunkingStrategy(
-            chunk_size=1000,
-            chunk_overlap=200,
-            respect_paragraph_boundaries=True,
-            respect_sentence_boundaries=True
-        ))
+        self.chunker = TextChunker(
+            ChunkingStrategy(
+                chunk_size=1000,
+                chunk_overlap=200,
+                respect_paragraph_boundaries=True,
+                respect_sentence_boundaries=True,
+            )
+        )
 
-    async def ingest_document(
-        self,
-        file_path: Path,
-        **kwargs
-    ) -> IngestionResult:
+    async def ingest_document(self, file_path: Path, **kwargs) -> IngestionResult:
         """
         Ingest a single document into the memory system.
 
@@ -87,10 +86,13 @@ class DocumentIngestionManager:
             if not is_supported_file(file_path):
                 raise ValueError(f"Unsupported file format: {file_path.suffix}")
 
-            # Get appropriate loader
-            loader = get_loader_for_file(file_path)
-            if not loader:
+            # Get appropriate loader class
+            loader_class = get_loader_for_file(file_path)
+            if not loader_class:
                 raise ValueError(f"No loader available for: {file_path}")
+
+            # Instantiate the loader
+            loader = loader_class()
 
             logger.info(f"Starting ingestion of {file_path}")
 
@@ -103,11 +105,13 @@ class DocumentIngestionManager:
                     memory_id = self.memory_api.store_memory(
                         content=chunk.content,
                         metadata=chunk.metadata,
-                        domain=self.domain
+                        domain=self.domain,
                     )
                     chunks_stored += 1
 
-                    logger.debug(f"Stored chunk {chunks_processed} as memory {memory_id}")
+                    logger.debug(
+                        f"Stored chunk {chunks_processed} as memory {memory_id}"
+                    )
 
                 except Exception as e:
                     error_msg = f"Failed to store chunk {chunks_processed}: {str(e)}"
@@ -123,10 +127,12 @@ class DocumentIngestionManager:
                 chunks_stored=chunks_stored,
                 errors=errors,
                 source_file=file_path,
-                processing_time=processing_time
+                processing_time=processing_time,
             )
 
-            logger.info(f"Ingestion completed: {chunks_stored}/{chunks_processed} chunks stored in {processing_time:.2f}s")
+            logger.info(
+                f"Ingestion completed: {chunks_stored}/{chunks_processed} chunks stored in {processing_time:.2f}s"
+            )
             return result
 
         except Exception as e:
@@ -141,14 +147,11 @@ class DocumentIngestionManager:
                 chunks_stored=chunks_stored,
                 errors=errors,
                 source_file=file_path,
-                processing_time=processing_time
+                processing_time=processing_time,
             )
 
     async def ingest_directory(
-        self,
-        directory_path: Path,
-        recursive: bool = True,
-        **kwargs
+        self, directory_path: Path, recursive: bool = True, **kwargs
     ) -> List[IngestionResult]:
         """
         Ingest all supported documents in a directory.
@@ -179,22 +182,21 @@ class DocumentIngestionManager:
                 results.append(result)
             except Exception as e:
                 logger.error(f"Failed to process {file_path}: {str(e)}")
-                results.append(IngestionResult(
-                    success=False,
-                    chunks_processed=0,
-                    chunks_stored=0,
-                    errors=[str(e)],
-                    source_file=file_path,
-                    processing_time=0.0
-                ))
+                results.append(
+                    IngestionResult(
+                        success=False,
+                        chunks_processed=0,
+                        chunks_stored=0,
+                        errors=[str(e)],
+                        source_file=file_path,
+                        processing_time=0.0,
+                    )
+                )
 
         return results
 
     async def ingest_text_content(
-        self,
-        content: str,
-        source_name: str,
-        **kwargs
+        self, content: str, source_name: str, **kwargs
     ) -> IngestionResult:
         """
         Ingest raw text content directly.
@@ -215,10 +217,10 @@ class DocumentIngestionManager:
         try:
             # Create metadata
             metadata = {
-                'source': source_name,
-                'content_type': 'raw_text',
-                'total_characters': len(content),
-                'ingested_at': datetime.now().isoformat()
+                "source": source_name,
+                "content_type": "raw_text",
+                "total_characters": len(content),
+                "ingested_at": datetime.now().isoformat(),
             }
 
             # Chunk the content
@@ -230,9 +232,7 @@ class DocumentIngestionManager:
                 try:
                     # Store chunk in memory system
                     memory_id = self.memory_api.store_memory(
-                        content=chunk_text,
-                        metadata=chunk_metadata,
-                        domain=self.domain
+                        content=chunk_text, metadata=chunk_metadata, domain=self.domain
                     )
                     chunks_stored += 1
 
@@ -250,7 +250,7 @@ class DocumentIngestionManager:
                 chunks_stored=chunks_stored,
                 errors=errors,
                 source_file=Path(source_name),
-                processing_time=processing_time
+                processing_time=processing_time,
             )
 
         except Exception as e:
@@ -265,5 +265,5 @@ class DocumentIngestionManager:
                 chunks_stored=chunks_stored,
                 errors=errors,
                 source_file=Path(source_name),
-                processing_time=processing_time
+                processing_time=processing_time,
             )

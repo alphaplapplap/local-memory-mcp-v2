@@ -1,0 +1,2256 @@
+src/adaptive_lru_cache.py:10:1: F401 'typing.Tuple' imported but unused
+src/adaptive_lru_cache.py:45:80: E501 line too long (90 > 79 characters)
+src/adaptive_lru_cache.py:115:80: E501 line too long (89 > 79 characters)
+src/adaptive_lru_cache.py:139:80: E501 line too long (111 > 79 characters)
+src/adaptive_lru_cache.py:147:80: E501 line too long (85 > 79 characters)
+src/adaptive_lru_cache.py:170:80: E501 line too long (86 > 79 characters)
+src/adaptive_lru_cache.py:197:80: E501 line too long (81 > 79 characters)
+src/adaptive_lru_cache.py:207:80: E501 line too long (84 > 79 characters)
+src/adaptive_lru_cache.py:209:80: E501 line too long (108 > 79 characters)
+src/adaptive_lru_cache.py:238:80: E501 line too long (109 > 79 characters)
+src/adaptive_lru_cache.py:248:80: E501 line too long (81 > 79 characters)
+src/adaptive_lru_cache.py:251:80: E501 line too long (96 > 79 characters)
+src/adaptive_lru_cache.py:254:80: E501 line too long (85 > 79 characters)
+src/adaptive_lru_cache.py:263:80: E501 line too long (80 > 79 characters)
+src/adaptive_lru_cache.py:263:81: W292 no newline at end of file
+src/api_error_handling.py:23:1: W293 blank line contains whitespace
+src/api_error_handling.py:28:1: W293 blank line contains whitespace
+src/api_error_handling.py:31:80: E501 line too long (86 > 79 characters)
+src/api_error_handling.py:32:80: E501 line too long (81 > 79 characters)
+src/api_error_handling.py:34:80: E501 line too long (81 > 79 characters)
+src/api_error_handling.py:37:80: E501 line too long (87 > 79 characters)
+src/api_error_handling.py:38:80: E501 line too long (80 > 79 characters)
+src/api_error_handling.py:39:80: E501 line too long (87 > 79 characters)
+src/api_error_handling.py:40:80: E501 line too long (98 > 79 characters)
+src/api_error_handling.py:42:80: E501 line too long (94 > 79 characters)
+src/api_error_handling.py:43:80: E501 line too long (96 > 79 characters)
+src/api_error_handling.py:46:1: W293 blank line contains whitespace
+src/api_error_handling.py:54:1: W293 blank line contains whitespace
+src/api_error_handling.py:62:1: W293 blank line contains whitespace
+src/api_error_handling.py:70:1: W293 blank line contains whitespace
+src/api_error_handling.py:78:1: W293 blank line contains whitespace
+src/api_error_handling.py:86:1: W293 blank line contains whitespace
+src/api_error_handling.py:94:1: W293 blank line contains whitespace
+src/api_error_handling.py:95:80: E501 line too long (80 > 79 characters)
+src/api_error_handling.py:102:1: W293 blank line contains whitespace
+src/api_error_handling.py:110:1: W293 blank line contains whitespace
+src/api_error_handling.py:116:1: W293 blank line contains whitespace
+src/api_error_handling.py:118:1: W293 blank line contains whitespace
+src/api_error_handling.py:119:80: E501 line too long (80 > 79 characters)
+src/api_error_handling.py:126:1: W293 blank line contains whitespace
+src/api_error_handling.py:127:80: E501 line too long (91 > 79 characters)
+src/api_error_handling.py:134:1: W293 blank line contains whitespace
+src/api_error_handling.py:138:1: W293 blank line contains whitespace
+src/api_error_handling.py:140:1: W293 blank line contains whitespace
+src/api_error_handling.py:148:1: W293 blank line contains whitespace
+src/api_error_handling.py:149:80: E501 line too long (87 > 79 characters)
+src/api_error_handling.py:156:1: W293 blank line contains whitespace
+src/api_error_handling.py:157:80: E501 line too long (89 > 79 characters)
+src/api_error_handling.py:164:1: W293 blank line contains whitespace
+src/api_error_handling.py:172:1: W293 blank line contains whitespace
+src/api_error_handling.py:176:1: W293 blank line contains whitespace
+src/api_error_handling.py:183:1: W293 blank line contains whitespace
+src/api_error_handling.py:185:14: W291 trailing whitespace
+src/api_error_handling.py:186:52: W291 trailing whitespace
+src/api_error_handling.py:192:1: W293 blank line contains whitespace
+src/api_error_handling.py:200:1: W293 blank line contains whitespace
+src/api_error_handling.py:206:1: W293 blank line contains whitespace
+src/api_error_handling.py:211:1: W293 blank line contains whitespace
+src/api_error_handling.py:227:1: W293 blank line contains whitespace
+src/api_error_handling.py:232:22: W291 trailing whitespace
+src/api_error_handling.py:233:30: W291 trailing whitespace
+src/api_error_handling.py:238:1: W293 blank line contains whitespace
+src/api_error_handling.py:245:1: W293 blank line contains whitespace
+src/api_error_handling.py:248:1: W293 blank line contains whitespace
+src/api_error_handling.py:251:1: W293 blank line contains whitespace
+src/api_error_handling.py:255:1: W293 blank line contains whitespace
+src/api_error_handling.py:267:1: W293 blank line contains whitespace
+src/api_error_handling.py:269:1: W293 blank line contains whitespace
+src/api_error_handling.py:280:1: W293 blank line contains whitespace
+src/api_error_handling.py:290:1: W293 blank line contains whitespace
+src/api_error_handling.py:294:1: W293 blank line contains whitespace
+src/api_error_handling.py:301:80: E501 line too long (81 > 79 characters)
+src/api_error_handling.py:302:1: W293 blank line contains whitespace
+src/api_error_handling.py:310:1: W293 blank line contains whitespace
+src/api_error_handling.py:316:1: W293 blank line contains whitespace
+src/api_error_handling.py:322:1: W293 blank line contains whitespace
+src/api_error_handling.py:325:1: W293 blank line contains whitespace
+src/api_error_handling.py:328:1: W293 blank line contains whitespace
+src/api_error_handling.py:337:1: W293 blank line contains whitespace
+src/api_error_handling.py:343:80: E501 line too long (81 > 79 characters)
+src/api_error_handling.py:349:1: W293 blank line contains whitespace
+src/api_error_handling.py:359:1: W293 blank line contains whitespace
+src/api_error_handling.py:364:1: W293 blank line contains whitespace
+src/api_error_handling.py:371:80: E501 line too long (90 > 79 characters)
+src/api_error_handling.py:377:80: E501 line too long (90 > 79 characters)
+src/api_error_handling.py:379:1: W293 blank line contains whitespace
+src/api_error_handling.py:385:80: E501 line too long (88 > 79 characters)
+src/api_error_handling.py:386:80: E501 line too long (84 > 79 characters)
+src/api_error_handling.py:387:1: W293 blank line contains whitespace
+src/api_error_handling.py:390:1: W293 blank line contains whitespace
+src/automation/decision_logger.py:3:1: E302 expected 2 blank lines, found 1
+src/automation/decision_logger.py:7:80: E501 line too long (80 > 79 characters)
+src/automation/decision_logger.py:22:10: W292 no newline at end of file
+src/connection_pool.py:5:1: F401 'psycopg2.pool' imported but unused
+src/connection_pool.py:17:1: W293 blank line contains whitespace
+src/connection_pool.py:18:23: W291 trailing whitespace
+src/connection_pool.py:23:1: W293 blank line contains whitespace
+src/connection_pool.py:28:1: W293 blank line contains whitespace
+src/connection_pool.py:33:1: W293 blank line contains whitespace
+src/connection_pool.py:42:80: E501 line too long (114 > 79 characters)
+src/connection_pool.py:45:80: E501 line too long (81 > 79 characters)
+src/connection_pool.py:47:80: E501 line too long (121 > 79 characters)
+src/connection_pool.py:50:80: E501 line too long (100 > 79 characters)
+src/connection_pool.py:52:1: W293 blank line contains whitespace
+src/connection_pool.py:63:1: W293 blank line contains whitespace
+src/connection_pool.py:82:1: W293 blank line contains whitespace
+src/connection_pool.py:88:1: W293 blank line contains whitespace
+src/connection_pool.py:92:1: W293 blank line contains whitespace
+src/connection_pool.py:94:1: W293 blank line contains whitespace
+src/connection_pool.py:103:1: W293 blank line contains whitespace
+src/connection_pool.py:110:1: W293 blank line contains whitespace
+src/connection_pool.py:116:1: W293 blank line contains whitespace
+src/connection_pool.py:121:1: W293 blank line contains whitespace
+src/connection_pool.py:126:80: E501 line too long (81 > 79 characters)
+src/connection_pool.py:134:1: W293 blank line contains whitespace
+src/connection_pool.py:141:1: W293 blank line contains whitespace
+src/connection_pool.py:149:1: W293 blank line contains whitespace
+src/connection_pool.py:159:1: W293 blank line contains whitespace
+src/connection_pool.py:165:1: W293 blank line contains whitespace
+src/connection_pool.py:170:1: W293 blank line contains whitespace
+src/connection_pool.py:172:80: E501 line too long (95 > 79 characters)
+src/connection_pool.py:174:1: W293 blank line contains whitespace
+src/connection_pool.py:176:1: W293 blank line contains whitespace
+src/connection_pool.py:189:1: W293 blank line contains whitespace
+src/connection_pool.py:196:1: W293 blank line contains whitespace
+src/connection_pool.py:200:1: W293 blank line contains whitespace
+src/connection_pool.py:202:1: W293 blank line contains whitespace
+src/connection_pool.py:207:80: E501 line too long (105 > 79 characters)
+src/connection_pool.py:208:80: E501 line too long (105 > 79 characters)
+src/connection_pool.py:209:80: E501 line too long (110 > 79 characters)
+src/connection_pool.py:211:1: W293 blank line contains whitespace
+src/connection_pool.py:218:1: W293 blank line contains whitespace
+src/connection_pool.py:227:66: W291 trailing whitespace
+src/connection_pool.py:228:31: E128 continuation line under-indented for visual indent
+src/connection_pool.py:229:31: E128 continuation line under-indented for visual indent
+src/connection_pool.py:229:80: E501 line too long (83 > 79 characters)
+src/connection_pool.py:232:1: W293 blank line contains whitespace
+src/connection_pool.py:238:1: W293 blank line contains whitespace
+src/connection_pool.py:240:1: W293 blank line contains whitespace
+src/consolidation/__init__.py:18:80: E501 line too long (82 > 79 characters)
+src/consolidation/__init__.py:18:83: W291 trailing whitespace
+src/consolidation/__init__.py:19:77: W291 trailing whitespace
+src/consolidation/__init__.py:39:80: E501 line too long (100 > 79 characters)
+src/consolidation/__init__.py:60:2: W292 no newline at end of file
+src/consolidation/associations.py:19:1: F401 'typing.Any' imported but unused
+src/consolidation/associations.py:25:80: E501 line too long (88 > 79 characters)
+src/consolidation/associations.py:28:1: E302 expected 2 blank lines, found 1
+src/consolidation/associations.py:40:1: E302 expected 2 blank lines, found 1
+src/consolidation/associations.py:43:1: W293 blank line contains whitespace
+src/consolidation/associations.py:48:1: W293 blank line contains whitespace
+src/consolidation/associations.py:54:1: W293 blank line contains whitespace
+src/consolidation/associations.py:58:80: E501 line too long (89 > 79 characters)
+src/consolidation/associations.py:59:80: E501 line too long (102 > 79 characters)
+src/consolidation/associations.py:65:1: W293 blank line contains whitespace
+src/consolidation/associations.py:66:80: E501 line too long (89 > 79 characters)
+src/consolidation/associations.py:70:1: W293 blank line contains whitespace
+src/consolidation/associations.py:73:1: W293 blank line contains whitespace
+src/consolidation/associations.py:76:1: W293 blank line contains whitespace
+src/consolidation/associations.py:83:1: W293 blank line contains whitespace
+src/consolidation/associations.py:86:1: W293 blank line contains whitespace
+src/consolidation/associations.py:87:80: E501 line too long (81 > 79 characters)
+src/consolidation/associations.py:89:80: E501 line too long (82 > 79 characters)
+src/consolidation/associations.py:90:1: W293 blank line contains whitespace
+src/consolidation/associations.py:91:80: E501 line too long (83 > 79 characters)
+src/consolidation/associations.py:92:80: E501 line too long (81 > 79 characters)
+src/consolidation/associations.py:94:1: W293 blank line contains whitespace
+src/consolidation/associations.py:95:80: E501 line too long (105 > 79 characters)
+src/consolidation/associations.py:97:1: W293 blank line contains whitespace
+src/consolidation/associations.py:98:80: E501 line too long (90 > 79 characters)
+src/consolidation/associations.py:103:1: W293 blank line contains whitespace
+src/consolidation/associations.py:111:1: W293 blank line contains whitespace
+src/consolidation/associations.py:112:80: E501 line too long (88 > 79 characters)
+src/consolidation/associations.py:113:80: E501 line too long (82 > 79 characters)
+src/consolidation/associations.py:117:1: W293 blank line contains whitespace
+src/consolidation/associations.py:121:1: W293 blank line contains whitespace
+src/consolidation/associations.py:125:1: W293 blank line contains whitespace
+src/consolidation/associations.py:128:1: W293 blank line contains whitespace
+src/consolidation/associations.py:131:1: W293 blank line contains whitespace
+src/consolidation/associations.py:134:1: W293 blank line contains whitespace
+src/consolidation/associations.py:139:1: W293 blank line contains whitespace
+src/consolidation/associations.py:142:1: W293 blank line contains whitespace
+src/consolidation/associations.py:145:1: W293 blank line contains whitespace
+src/consolidation/associations.py:147:1: W293 blank line contains whitespace
+src/consolidation/associations.py:149:14: W291 trailing whitespace
+src/consolidation/associations.py:150:22: W291 trailing whitespace
+src/consolidation/associations.py:151:22: W291 trailing whitespace
+src/consolidation/associations.py:159:1: W293 blank line contains whitespace
+src/consolidation/associations.py:166:1: W293 blank line contains whitespace
+src/consolidation/associations.py:171:1: W293 blank line contains whitespace
+src/consolidation/associations.py:178:1: W293 blank line contains whitespace
+src/consolidation/associations.py:182:1: W293 blank line contains whitespace
+src/consolidation/associations.py:185:1: W293 blank line contains whitespace
+src/consolidation/associations.py:188:80: E501 line too long (87 > 79 characters)
+src/consolidation/associations.py:190:1: W293 blank line contains whitespace
+src/consolidation/associations.py:201:1: W293 blank line contains whitespace
+src/consolidation/associations.py:205:1: W293 blank line contains whitespace
+src/consolidation/associations.py:210:1: W293 blank line contains whitespace
+src/consolidation/associations.py:214:1: W293 blank line contains whitespace
+src/consolidation/associations.py:218:1: W293 blank line contains whitespace
+src/consolidation/associations.py:220:80: E501 line too long (99 > 79 characters)
+src/consolidation/associations.py:221:80: E501 line too long (83 > 79 characters)
+src/consolidation/associations.py:224:1: W293 blank line contains whitespace
+src/consolidation/associations.py:226:1: W293 blank line contains whitespace
+src/consolidation/associations.py:227:80: E501 line too long (90 > 79 characters)
+src/consolidation/associations.py:231:1: W293 blank line contains whitespace
+src/consolidation/associations.py:234:1: W293 blank line contains whitespace
+src/consolidation/associations.py:245:1: W293 blank line contains whitespace
+src/consolidation/associations.py:253:31: E261 at least two spaces before inline comment
+src/consolidation/associations.py:254:31: E261 at least two spaces before inline comment
+src/consolidation/associations.py:256:1: W293 blank line contains whitespace
+src/consolidation/associations.py:260:1: W293 blank line contains whitespace
+src/consolidation/associations.py:263:1: W293 blank line contains whitespace
+src/consolidation/associations.py:265:1: W293 blank line contains whitespace
+src/consolidation/associations.py:271:1: W293 blank line contains whitespace
+src/consolidation/associations.py:272:80: E501 line too long (81 > 79 characters)
+src/consolidation/associations.py:275:1: W293 blank line contains whitespace
+src/consolidation/associations.py:278:80: E501 line too long (85 > 79 characters)
+src/consolidation/associations.py:279:1: W293 blank line contains whitespace
+src/consolidation/associations.py:284:1: W293 blank line contains whitespace
+src/consolidation/associations.py:286:80: E501 line too long (80 > 79 characters)
+src/consolidation/associations.py:288:1: W293 blank line contains whitespace
+src/consolidation/associations.py:290:1: W293 blank line contains whitespace
+src/consolidation/associations.py:300:1: W293 blank line contains whitespace
+src/consolidation/associations.py:303:1: W293 blank line contains whitespace
+src/consolidation/associations.py:306:1: W293 blank line contains whitespace
+src/consolidation/associations.py:309:1: W293 blank line contains whitespace
+src/consolidation/associations.py:311:1: W293 blank line contains whitespace
+src/consolidation/associations.py:313:1: W293 blank line contains whitespace
+src/consolidation/associations.py:314:80: E501 line too long (99 > 79 characters)
+src/consolidation/associations.py:317:80: E501 line too long (80 > 79 characters)
+src/consolidation/associations.py:330:1: W293 blank line contains whitespace
+src/consolidation/associations.py:341:1: W293 blank line contains whitespace
+src/consolidation/associations.py:353:1: W293 blank line contains whitespace
+src/consolidation/associations.py:354:22: W292 no newline at end of file
+src/consolidation/base.py:18:1: F401 'typing.Tuple' imported but unused
+src/consolidation/base.py:27:1: E302 expected 2 blank lines, found 1
+src/consolidation/base.py:30:1: W293 blank line contains whitespace
+src/consolidation/base.py:35:26: W291 trailing whitespace
+src/consolidation/base.py:39:1: W293 blank line contains whitespace
+src/consolidation/base.py:45:1: W293 blank line contains whitespace
+src/consolidation/base.py:50:1: W293 blank line contains whitespace
+src/consolidation/base.py:55:1: W293 blank line contains whitespace
+src/consolidation/base.py:62:1: E302 expected 2 blank lines, found 1
+src/consolidation/base.py:76:1: E302 expected 2 blank lines, found 1
+src/consolidation/base.py:86:1: E302 expected 2 blank lines, found 1
+src/consolidation/base.py:97:1: E302 expected 2 blank lines, found 1
+src/consolidation/base.py:99:1: W293 blank line contains whitespace
+src/consolidation/base.py:102:80: E501 line too long (80 > 79 characters)
+src/consolidation/base.py:103:1: W293 blank line contains whitespace
+src/consolidation/base.py:108:1: W293 blank line contains whitespace
+src/consolidation/base.py:114:1: W293 blank line contains whitespace
+src/consolidation/base.py:119:1: W293 blank line contains whitespace
+src/consolidation/base.py:121:1: W293 blank line contains whitespace
+src/consolidation/base.py:122:80: E501 line too long (101 > 79 characters)
+src/consolidation/base.py:125:1: W293 blank line contains whitespace
+src/consolidation/base.py:132:80: E501 line too long (81 > 79 characters)
+src/consolidation/base.py:134:1: W293 blank line contains whitespace
+src/consolidation/base.py:138:1: W293 blank line contains whitespace
+src/consolidation/base.py:144:1: E302 expected 2 blank lines, found 1
+src/consolidation/base.py:148:1: E302 expected 2 blank lines, found 1
+src/consolidation/base.py:152:1: E302 expected 2 blank lines, found 1
+src/consolidation/base.py:154:9: W292 no newline at end of file
+src/consolidation/clustering.py:19:1: F401 'typing.Any' imported but unused
+src/consolidation/clustering.py:19:1: F401 'typing.Optional' imported but unused
+src/consolidation/clustering.py:19:1: F401 'typing.Tuple' imported but unused
+src/consolidation/clustering.py:26:80: E501 line too long (95 > 79 characters)
+src/consolidation/clustering.py:28:5: F401 'scipy.spatial.distance.pdist' imported but unused
+src/consolidation/clustering.py:28:5: F401 'scipy.spatial.distance.squareform' imported but unused
+src/consolidation/clustering.py:29:5: F401 'scipy.cluster.hierarchy' imported but unused
+src/consolidation/clustering.py:34:80: E501 line too long (84 > 79 characters)
+src/consolidation/clustering.py:37:1: E302 expected 2 blank lines, found 1
+src/consolidation/clustering.py:39:80: E501 line too long (83 > 79 characters)
+src/consolidation/clustering.py:40:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:42:80: E501 line too long (80 > 79 characters)
+src/consolidation/clustering.py:44:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:49:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:51:80: E501 line too long (90 > 79 characters)
+src/consolidation/clustering.py:53:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:54:80: E501 line too long (85 > 79 characters)
+src/consolidation/clustering.py:56:80: E501 line too long (90 > 79 characters)
+src/consolidation/clustering.py:58:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:61:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:63:80: E501 line too long (136 > 79 characters)
+src/consolidation/clustering.py:65:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:79:80: E501 line too long (103 > 79 characters)
+src/consolidation/clustering.py:84:80: E501 line too long (87 > 79 characters)
+src/consolidation/clustering.py:86:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:89:80: E501 line too long (80 > 79 characters)
+src/consolidation/clustering.py:90:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:94:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:96:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:104:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:106:80: E501 line too long (100 > 79 characters)
+src/consolidation/clustering.py:107:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:109:80: E501 line too long (95 > 79 characters)
+src/consolidation/clustering.py:110:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:111:80: E501 line too long (119 > 79 characters)
+src/consolidation/clustering.py:113:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:131:80: E501 line too long (80 > 79 characters)
+src/consolidation/clustering.py:141:80: E501 line too long (92 > 79 characters)
+src/consolidation/clustering.py:145:26: E128 continuation line under-indented for visual indent
+src/consolidation/clustering.py:145:80: E501 line too long (92 > 79 characters)
+src/consolidation/clustering.py:146:26: E128 continuation line under-indented for visual indent
+src/consolidation/clustering.py:173:80: E501 line too long (95 > 79 characters)
+src/consolidation/clustering.py:191:80: E501 line too long (89 > 79 characters)
+src/consolidation/clustering.py:202:26: E128 continuation line under-indented for visual indent
+src/consolidation/clustering.py:202:80: E501 line too long (91 > 79 characters)
+src/consolidation/clustering.py:204:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:205:80: E501 line too long (83 > 79 characters)
+src/consolidation/clustering.py:209:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:212:80: E501 line too long (97 > 79 characters)
+src/consolidation/clustering.py:213:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:220:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:221:80: E501 line too long (102 > 79 characters)
+src/consolidation/clustering.py:223:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:229:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:230:80: E501 line too long (95 > 79 characters)
+src/consolidation/clustering.py:231:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:235:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:239:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:244:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:247:80: E501 line too long (81 > 79 characters)
+src/consolidation/clustering.py:249:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:253:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:261:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:262:80: E501 line too long (115 > 79 characters)
+src/consolidation/clustering.py:264:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:271:80: E501 line too long (88 > 79 characters)
+src/consolidation/clustering.py:289:80: E501 line too long (83 > 79 characters)
+src/consolidation/clustering.py:295:80: E501 line too long (89 > 79 characters)
+src/consolidation/clustering.py:300:80: E501 line too long (110 > 79 characters)
+src/consolidation/clustering.py:301:36: E128 continuation line under-indented for visual indent
+src/consolidation/clustering.py:301:80: E501 line too long (95 > 79 characters)
+src/consolidation/clustering.py:302:36: E128 continuation line under-indented for visual indent
+src/consolidation/clustering.py:302:80: E501 line too long (100 > 79 characters)
+src/consolidation/clustering.py:304:80: E501 line too long (84 > 79 characters)
+src/consolidation/clustering.py:336:21: F841 local variable 'sub_labels' is assigned to but never used
+src/consolidation/clustering.py:338:80: E501 line too long (80 > 79 characters)
+src/consolidation/clustering.py:339:80: E501 line too long (105 > 79 characters)
+src/consolidation/clustering.py:344:80: E501 line too long (80 > 79 characters)
+src/consolidation/clustering.py:347:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:349:80: E501 line too long (81 > 79 characters)
+src/consolidation/clustering.py:350:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:362:80: E501 line too long (88 > 79 characters)
+src/consolidation/clustering.py:363:80: E501 line too long (89 > 79 characters)
+src/consolidation/clustering.py:365:80: E501 line too long (82 > 79 characters)
+src/consolidation/clustering.py:368:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:370:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:372:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:373:80: E501 line too long (81 > 79 characters)
+src/consolidation/clustering.py:377:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:382:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:385:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:389:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:400:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:402:77: W291 trailing whitespace
+src/consolidation/clustering.py:403:26: E128 continuation line under-indented for visual indent
+src/consolidation/clustering.py:404:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:407:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:412:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:414:80: E501 line too long (97 > 79 characters)
+src/consolidation/clustering.py:417:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:419:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:424:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:433:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:435:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:436:80: E501 line too long (82 > 79 characters)
+src/consolidation/clustering.py:441:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:443:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:452:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:454:80: E501 line too long (82 > 79 characters)
+src/consolidation/clustering.py:455:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:458:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:462:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:466:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:471:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:476:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:480:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:491:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:492:80: E501 line too long (88 > 79 characters)
+src/consolidation/clustering.py:494:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:495:80: E501 line too long (89 > 79 characters)
+src/consolidation/clustering.py:501:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:502:80: E501 line too long (84 > 79 characters)
+src/consolidation/clustering.py:505:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:510:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:515:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:518:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:520:80: E501 line too long (80 > 79 characters)
+src/consolidation/clustering.py:522:80: E501 line too long (81 > 79 characters)
+src/consolidation/clustering.py:525:1: W293 blank line contains whitespace
+src/consolidation/clustering.py:539:10: W292 no newline at end of file
+src/consolidation/compression.py:17:1: F401 'numpy as np' imported but unused
+src/consolidation/compression.py:18:1: F401 'typing.Tuple' imported but unused
+src/consolidation/compression.py:18:1: F401 'typing.Set' imported but unused
+src/consolidation/compression.py:25:80: E501 line too long (84 > 79 characters)
+src/consolidation/compression.py:28:1: E302 expected 2 blank lines, found 1
+src/consolidation/compression.py:39:1: E302 expected 2 blank lines, found 1
+src/consolidation/compression.py:42:1: W293 blank line contains whitespace
+src/consolidation/compression.py:46:1: W293 blank line contains whitespace
+src/consolidation/compression.py:51:1: W293 blank line contains whitespace
+src/consolidation/compression.py:54:80: E501 line too long (89 > 79 characters)
+src/consolidation/compression.py:62:1: W293 blank line contains whitespace
+src/consolidation/compression.py:63:80: E501 line too long (120 > 79 characters)
+src/consolidation/compression.py:67:1: W293 blank line contains whitespace
+src/consolidation/compression.py:70:1: W293 blank line contains whitespace
+src/consolidation/compression.py:78:1: W293 blank line contains whitespace
+src/consolidation/compression.py:81:1: W293 blank line contains whitespace
+src/consolidation/compression.py:86:1: W293 blank line contains whitespace
+src/consolidation/compression.py:89:1: W293 blank line contains whitespace
+src/consolidation/compression.py:90:80: E501 line too long (117 > 79 characters)
+src/consolidation/compression.py:94:1: W293 blank line contains whitespace
+src/consolidation/compression.py:96:80: E501 line too long (89 > 79 characters)
+src/consolidation/compression.py:97:1: W293 blank line contains whitespace
+src/consolidation/compression.py:100:1: W293 blank line contains whitespace
+src/consolidation/compression.py:103:1: W293 blank line contains whitespace
+src/consolidation/compression.py:107:1: W293 blank line contains whitespace
+src/consolidation/compression.py:110:1: W293 blank line contains whitespace
+src/consolidation/compression.py:114:80: E501 line too long (87 > 79 characters)
+src/consolidation/compression.py:115:1: W293 blank line contains whitespace
+src/consolidation/compression.py:118:1: W293 blank line contains whitespace
+src/consolidation/compression.py:141:1: W293 blank line contains whitespace
+src/consolidation/compression.py:157:1: W293 blank line contains whitespace
+src/consolidation/compression.py:158:80: E501 line too long (106 > 79 characters)
+src/consolidation/compression.py:162:1: W293 blank line contains whitespace
+src/consolidation/compression.py:165:1: W293 blank line contains whitespace
+src/consolidation/compression.py:174:1: W293 blank line contains whitespace
+src/consolidation/compression.py:178:1: W293 blank line contains whitespace
+src/consolidation/compression.py:182:1: W293 blank line contains whitespace
+src/consolidation/compression.py:193:1: W293 blank line contains whitespace
+src/consolidation/compression.py:196:80: E501 line too long (83 > 79 characters)
+src/consolidation/compression.py:198:1: W293 blank line contains whitespace
+src/consolidation/compression.py:201:80: E501 line too long (84 > 79 characters)
+src/consolidation/compression.py:202:1: W293 blank line contains whitespace
+src/consolidation/compression.py:204:1: W293 blank line contains whitespace
+src/consolidation/compression.py:205:80: E501 line too long (103 > 79 characters)
+src/consolidation/compression.py:208:9: F841 local variable 'all_content' is assigned to but never used
+src/consolidation/compression.py:209:1: W293 blank line contains whitespace
+src/consolidation/compression.py:213:1: W293 blank line contains whitespace
+src/consolidation/compression.py:219:1: W293 blank line contains whitespace
+src/consolidation/compression.py:224:1: W293 blank line contains whitespace
+src/consolidation/compression.py:227:80: E501 line too long (82 > 79 characters)
+src/consolidation/compression.py:232:80: E501 line too long (81 > 79 characters)
+src/consolidation/compression.py:235:1: W293 blank line contains whitespace
+src/consolidation/compression.py:238:1: W293 blank line contains whitespace
+src/consolidation/compression.py:241:1: W293 blank line contains whitespace
+src/consolidation/compression.py:246:1: W293 blank line contains whitespace
+src/consolidation/compression.py:247:80: E501 line too long (84 > 79 characters)
+src/consolidation/compression.py:251:1: W293 blank line contains whitespace
+src/consolidation/compression.py:253:1: W293 blank line contains whitespace
+src/consolidation/compression.py:256:80: E501 line too long (102 > 79 characters)
+src/consolidation/compression.py:257:1: W293 blank line contains whitespace
+src/consolidation/compression.py:265:1: W293 blank line contains whitespace
+src/consolidation/compression.py:271:1: W293 blank line contains whitespace
+src/consolidation/compression.py:273:1: W293 blank line contains whitespace
+src/consolidation/compression.py:277:1: W293 blank line contains whitespace
+src/consolidation/compression.py:279:1: W293 blank line contains whitespace
+src/consolidation/compression.py:284:1: W293 blank line contains whitespace
+src/consolidation/compression.py:291:1: W293 blank line contains whitespace
+src/consolidation/compression.py:293:1: W293 blank line contains whitespace
+src/consolidation/compression.py:294:80: E501 line too long (81 > 79 characters)
+src/consolidation/compression.py:297:1: W293 blank line contains whitespace
+src/consolidation/compression.py:303:1: W293 blank line contains whitespace
+src/consolidation/compression.py:311:1: W293 blank line contains whitespace
+src/consolidation/compression.py:316:1: W293 blank line contains whitespace
+src/consolidation/compression.py:331:1: W293 blank line contains whitespace
+src/consolidation/compression.py:337:80: E501 line too long (81 > 79 characters)
+src/consolidation/compression.py:340:1: W293 blank line contains whitespace
+src/consolidation/compression.py:346:1: W293 blank line contains whitespace
+src/consolidation/compression.py:349:1: W293 blank line contains whitespace
+src/consolidation/compression.py:352:1: W293 blank line contains whitespace
+src/consolidation/compression.py:354:80: E501 line too long (85 > 79 characters)
+src/consolidation/compression.py:357:1: W293 blank line contains whitespace
+src/consolidation/compression.py:359:1: W293 blank line contains whitespace
+src/consolidation/compression.py:365:1: W293 blank line contains whitespace
+src/consolidation/compression.py:373:1: W293 blank line contains whitespace
+src/consolidation/compression.py:377:1: W293 blank line contains whitespace
+src/consolidation/compression.py:387:1: W293 blank line contains whitespace
+src/consolidation/compression.py:389:1: W293 blank line contains whitespace
+src/consolidation/compression.py:397:1: W293 blank line contains whitespace
+src/consolidation/compression.py:401:1: W293 blank line contains whitespace
+src/consolidation/compression.py:403:80: E501 line too long (102 > 79 characters)
+src/consolidation/compression.py:404:1: W293 blank line contains whitespace
+src/consolidation/compression.py:407:1: W293 blank line contains whitespace
+src/consolidation/compression.py:410:1: W293 blank line contains whitespace
+src/consolidation/compression.py:412:80: E501 line too long (88 > 79 characters)
+src/consolidation/compression.py:413:1: W293 blank line contains whitespace
+src/consolidation/compression.py:416:1: W293 blank line contains whitespace
+src/consolidation/compression.py:417:80: E501 line too long (103 > 79 characters)
+src/consolidation/compression.py:419:1: W293 blank line contains whitespace
+src/consolidation/compression.py:427:10: W292 no newline at end of file
+src/consolidation/consolidator.py:17:1: F401 'asyncio' imported but unused
+src/consolidation/consolidator.py:18:1: F401 'typing.Optional' imported but unused
+src/consolidation/consolidator.py:23:80: E501 line too long (91 > 79 characters)
+src/consolidation/consolidator.py:33:1: E302 expected 2 blank lines, found 1
+src/consolidation/consolidator.py:35:80: E501 line too long (103 > 79 characters)
+src/consolidation/consolidator.py:42:1: E302 expected 2 blank lines, found 1
+src/consolidation/consolidator.py:45:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:52:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:57:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:64:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:67:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:79:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:80:80: E501 line too long (84 > 79 characters)
+src/consolidation/consolidator.py:83:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:87:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:98:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:101:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:103:80: E501 line too long (83 > 79 characters)
+src/consolidation/consolidator.py:105:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:107:80: E501 line too long (92 > 79 characters)
+src/consolidation/consolidator.py:109:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:110:80: E501 line too long (101 > 79 characters)
+src/consolidation/consolidator.py:111:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:114:80: E501 line too long (90 > 79 characters)
+src/consolidation/consolidator.py:115:80: E501 line too long (95 > 79 characters)
+src/consolidation/consolidator.py:116:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:119:80: E501 line too long (101 > 79 characters)
+src/consolidation/consolidator.py:123:80: E501 line too long (126 > 79 characters)
+src/consolidation/consolidator.py:124:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:127:80: E501 line too long (90 > 79 characters)
+src/consolidation/consolidator.py:134:80: E501 line too long (143 > 79 characters)
+src/consolidation/consolidator.py:135:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:138:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:143:80: E501 line too long (95 > 79 characters)
+src/consolidation/consolidator.py:145:80: E501 line too long (141 > 79 characters)
+src/consolidation/consolidator.py:146:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:149:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:152:80: E501 line too long (101 > 79 characters)
+src/consolidation/consolidator.py:156:48: W291 trailing whitespace
+src/consolidation/consolidator.py:157:53: W291 trailing whitespace
+src/consolidation/consolidator.py:160:80: E501 line too long (124 > 79 characters)
+src/consolidation/consolidator.py:161:80: E501 line too long (140 > 79 characters)
+src/consolidation/consolidator.py:162:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:165:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:168:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:171:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:174:80: E501 line too long (94 > 79 characters)
+src/consolidation/consolidator.py:175:80: E501 line too long (95 > 79 characters)
+src/consolidation/consolidator.py:178:80: E501 line too long (80 > 79 characters)
+src/consolidation/consolidator.py:179:80: E501 line too long (95 > 79 characters)
+src/consolidation/consolidator.py:182:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:183:80: E501 line too long (91 > 79 characters)
+src/consolidation/consolidator.py:186:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:195:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:198:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:204:80: E501 line too long (90 > 79 characters)
+src/consolidation/consolidator.py:208:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:211:80: E501 line too long (84 > 79 characters)
+src/consolidation/consolidator.py:214:40: W291 trailing whitespace
+src/consolidation/consolidator.py:215:80: E501 line too long (93 > 79 characters)
+src/consolidation/consolidator.py:217:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:219:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:220:80: E501 line too long (96 > 79 characters)
+src/consolidation/consolidator.py:225:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:233:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:236:80: E501 line too long (101 > 79 characters)
+src/consolidation/consolidator.py:238:80: E501 line too long (108 > 79 characters)
+src/consolidation/consolidator.py:240:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:242:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:249:80: E501 line too long (86 > 79 characters)
+src/consolidation/consolidator.py:251:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:258:80: E501 line too long (90 > 79 characters)
+src/consolidation/consolidator.py:260:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:267:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:269:80: E501 line too long (101 > 79 characters)
+src/consolidation/consolidator.py:271:80: E501 line too long (83 > 79 characters)
+src/consolidation/consolidator.py:275:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:277:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:281:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:289:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:290:80: E501 line too long (153 > 79 characters)
+src/consolidation/consolidator.py:291:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:295:80: E501 line too long (84 > 79 characters)
+src/consolidation/consolidator.py:296:80: E501 line too long (81 > 79 characters)
+src/consolidation/consolidator.py:309:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:312:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:318:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:320:80: E501 line too long (83 > 79 characters)
+src/consolidation/consolidator.py:321:80: E501 line too long (85 > 79 characters)
+src/consolidation/consolidator.py:323:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:329:80: E501 line too long (83 > 79 characters)
+src/consolidation/consolidator.py:334:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:340:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:341:80: E501 line too long (89 > 79 characters)
+src/consolidation/consolidator.py:342:80: E501 line too long (96 > 79 characters)
+src/consolidation/consolidator.py:343:80: E501 line too long (85 > 79 characters)
+src/consolidation/consolidator.py:344:80: E501 line too long (91 > 79 characters)
+src/consolidation/consolidator.py:345:80: E501 line too long (87 > 79 characters)
+src/consolidation/consolidator.py:346:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:349:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:350:80: E501 line too long (102 > 79 characters)
+src/consolidation/consolidator.py:354:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:360:80: E501 line too long (95 > 79 characters)
+src/consolidation/consolidator.py:363:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:372:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:375:80: E501 line too long (101 > 79 characters)
+src/consolidation/consolidator.py:379:80: E501 line too long (104 > 79 characters)
+src/consolidation/consolidator.py:380:80: E501 line too long (96 > 79 characters)
+src/consolidation/consolidator.py:383:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:385:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:389:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:393:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:397:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:398:80: E501 line too long (80 > 79 characters)
+src/consolidation/consolidator.py:401:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:405:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:406:80: E501 line too long (91 > 79 characters)
+src/consolidation/consolidator.py:407:80: E501 line too long (82 > 79 characters)
+src/consolidation/consolidator.py:410:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:417:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:423:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:426:80: E501 line too long (80 > 79 characters)
+src/consolidation/consolidator.py:428:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:430:80: E501 line too long (88 > 79 characters)
+src/consolidation/consolidator.py:433:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:436:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:438:80: E501 line too long (93 > 79 characters)
+src/consolidation/consolidator.py:439:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:441:80: E501 line too long (98 > 79 characters)
+src/consolidation/consolidator.py:442:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:444:80: E501 line too long (82 > 79 characters)
+src/consolidation/consolidator.py:445:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:448:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:450:80: E501 line too long (105 > 79 characters)
+src/consolidation/consolidator.py:456:80: E501 line too long (84 > 79 characters)
+src/consolidation/consolidator.py:458:1: W293 blank line contains whitespace
+src/consolidation/consolidator.py:464:14: W292 no newline at end of file
+src/consolidation/decay.py:18:1: F401 'typing.Optional' imported but unused
+src/consolidation/decay.py:25:1: E302 expected 2 blank lines, found 1
+src/consolidation/decay.py:36:1: E302 expected 2 blank lines, found 1
+src/consolidation/decay.py:39:1: W293 blank line contains whitespace
+src/consolidation/decay.py:42:29: W291 trailing whitespace
+src/consolidation/decay.py:46:1: W293 blank line contains whitespace
+src/consolidation/decay.py:50:1: W293 blank line contains whitespace
+src/consolidation/decay.py:51:80: E501 line too long (86 > 79 characters)
+src/consolidation/decay.py:55:1: W293 blank line contains whitespace
+src/consolidation/decay.py:57:80: E501 line too long (94 > 79 characters)
+src/consolidation/decay.py:58:80: E501 line too long (92 > 79 characters)
+src/consolidation/decay.py:59:1: W293 blank line contains whitespace
+src/consolidation/decay.py:66:1: W293 blank line contains whitespace
+src/consolidation/decay.py:67:80: E501 line too long (83 > 79 characters)
+src/consolidation/decay.py:69:1: W293 blank line contains whitespace
+src/consolidation/decay.py:79:1: W293 blank line contains whitespace
+src/consolidation/decay.py:89:1: W293 blank line contains whitespace
+src/consolidation/decay.py:92:1: W293 blank line contains whitespace
+src/consolidation/decay.py:96:1: W293 blank line contains whitespace
+src/consolidation/decay.py:99:1: W293 blank line contains whitespace
+src/consolidation/decay.py:102:80: E501 line too long (83 > 79 characters)
+src/consolidation/decay.py:103:1: W293 blank line contains whitespace
+src/consolidation/decay.py:105:80: E501 line too long (90 > 79 characters)
+src/consolidation/decay.py:106:1: W293 blank line contains whitespace
+src/consolidation/decay.py:108:80: E501 line too long (86 > 79 characters)
+src/consolidation/decay.py:109:1: W293 blank line contains whitespace
+src/consolidation/decay.py:112:80: E501 line too long (95 > 79 characters)
+src/consolidation/decay.py:113:1: W293 blank line contains whitespace
+src/consolidation/decay.py:129:1: W293 blank line contains whitespace
+src/consolidation/decay.py:133:1: W293 blank line contains whitespace
+src/consolidation/decay.py:145:80: E501 line too long (96 > 79 characters)
+src/consolidation/decay.py:146:1: W293 blank line contains whitespace
+src/consolidation/decay.py:159:1: W293 blank line contains whitespace
+src/consolidation/decay.py:164:1: W293 blank line contains whitespace
+src/consolidation/decay.py:166:1: W293 blank line contains whitespace
+src/consolidation/decay.py:175:1: W293 blank line contains whitespace
+src/consolidation/decay.py:178:48: W291 trailing whitespace
+src/consolidation/decay.py:183:1: W293 blank line contains whitespace
+src/consolidation/decay.py:190:1: W293 blank line contains whitespace
+src/consolidation/decay.py:192:1: W293 blank line contains whitespace
+src/consolidation/decay.py:201:1: W293 blank line contains whitespace
+src/consolidation/decay.py:209:1: W293 blank line contains whitespace
+src/consolidation/decay.py:212:38: W291 trailing whitespace
+src/consolidation/decay.py:217:1: W293 blank line contains whitespace
+src/consolidation/decay.py:232:22: W292 no newline at end of file
+src/consolidation/forgetting.py:19:1: F401 'shutil' imported but unused
+src/consolidation/forgetting.py:20:1: F401 'typing.Tuple' imported but unused
+src/consolidation/forgetting.py:30:1: E302 expected 2 blank lines, found 1
+src/consolidation/forgetting.py:39:1: E302 expected 2 blank lines, found 1
+src/consolidation/forgetting.py:48:1: E302 expected 2 blank lines, found 1
+src/consolidation/forgetting.py:51:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:52:71: W291 trailing whitespace
+src/consolidation/forgetting.py:55:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:60:80: E501 line too long (82 > 79 characters)
+src/consolidation/forgetting.py:61:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:65:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:68:67: W291 trailing whitespace
+src/consolidation/forgetting.py:70:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:71:80: E501 line too long (96 > 79 characters)
+src/consolidation/forgetting.py:73:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:74:80: E501 line too long (128 > 79 characters)
+src/consolidation/forgetting.py:78:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:81:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:85:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:90:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:94:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:100:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:106:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:109:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:120:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:125:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:130:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:135:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:140:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:145:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:151:80: E501 line too long (84 > 79 characters)
+src/consolidation/forgetting.py:153:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:162:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:167:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:173:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:176:80: E501 line too long (90 > 79 characters)
+src/consolidation/forgetting.py:179:80: E501 line too long (88 > 79 characters)
+src/consolidation/forgetting.py:180:80: E501 line too long (118 > 79 characters)
+src/consolidation/forgetting.py:182:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:191:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:193:80: E501 line too long (91 > 79 characters)
+src/consolidation/forgetting.py:194:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:197:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:201:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:205:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:210:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:212:80: E501 line too long (96 > 79 characters)
+src/consolidation/forgetting.py:214:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:220:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:225:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:227:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:228:80: E501 line too long (91 > 79 characters)
+src/consolidation/forgetting.py:231:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:235:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:239:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:241:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:245:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:251:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:255:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:259:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:262:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:264:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:265:80: E501 line too long (102 > 79 characters)
+src/consolidation/forgetting.py:268:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:271:80: E501 line too long (98 > 79 characters)
+src/consolidation/forgetting.py:274:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:278:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:282:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:284:80: E501 line too long (98 > 79 characters)
+src/consolidation/forgetting.py:292:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:293:80: E501 line too long (88 > 79 characters)
+src/consolidation/forgetting.py:296:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:301:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:307:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:309:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:328:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:332:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:335:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:347:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:348:80: E501 line too long (89 > 79 characters)
+src/consolidation/forgetting.py:352:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:355:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:357:80: E501 line too long (81 > 79 characters)
+src/consolidation/forgetting.py:368:80: E501 line too long (85 > 79 characters)
+src/consolidation/forgetting.py:376:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:380:80: E501 line too long (90 > 79 characters)
+src/consolidation/forgetting.py:381:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:384:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:387:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:396:80: E501 line too long (85 > 79 characters)
+src/consolidation/forgetting.py:400:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:401:80: E501 line too long (87 > 79 characters)
+src/consolidation/forgetting.py:404:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:408:80: E501 line too long (86 > 79 characters)
+src/consolidation/forgetting.py:409:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:418:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:421:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:432:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:435:80: E501 line too long (80 > 79 characters)
+src/consolidation/forgetting.py:437:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:442:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:446:80: E501 line too long (84 > 79 characters)
+src/consolidation/forgetting.py:447:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:452:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:456:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:458:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:462:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:465:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:468:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:471:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:474:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:478:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:480:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:481:80: E501 line too long (92 > 79 characters)
+src/consolidation/forgetting.py:482:80: E501 line too long (80 > 79 characters)
+src/consolidation/forgetting.py:484:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:494:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:498:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:507:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:509:80: E501 line too long (81 > 79 characters)
+src/consolidation/forgetting.py:512:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:514:80: E501 line too long (90 > 79 characters)
+src/consolidation/forgetting.py:515:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:517:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:528:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:534:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:537:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:546:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:553:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:557:80: E501 line too long (98 > 79 characters)
+src/consolidation/forgetting.py:559:80: E501 line too long (98 > 79 characters)
+src/consolidation/forgetting.py:561:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:564:1: W293 blank line contains whitespace
+src/consolidation/forgetting.py:565:21: W292 no newline at end of file
+src/consolidation/health.py:1:32: W291 trailing whitespace
+src/consolidation/health.py:17:1: F401 'asyncio' imported but unused
+src/consolidation/health.py:62:1: W293 blank line contains whitespace
+src/consolidation/health.py:66:1: W293 blank line contains whitespace
+src/consolidation/health.py:71:1: W293 blank line contains whitespace
+src/consolidation/health.py:80:1: W293 blank line contains whitespace
+src/consolidation/health.py:84:1: W293 blank line contains whitespace
+src/consolidation/health.py:89:1: W293 blank line contains whitespace
+src/consolidation/health.py:101:1: W293 blank line contains whitespace
+src/consolidation/health.py:106:37: W291 trailing whitespace
+src/consolidation/health.py:112:1: W293 blank line contains whitespace
+src/consolidation/health.py:114:1: W293 blank line contains whitespace
+src/consolidation/health.py:116:80: E501 line too long (80 > 79 characters)
+src/consolidation/health.py:118:1: W293 blank line contains whitespace
+src/consolidation/health.py:120:80: E501 line too long (90 > 79 characters)
+src/consolidation/health.py:123:80: E501 line too long (108 > 79 characters)
+src/consolidation/health.py:125:80: E501 line too long (106 > 79 characters)
+src/consolidation/health.py:127:1: W293 blank line contains whitespace
+src/consolidation/health.py:135:1: W293 blank line contains whitespace
+src/consolidation/health.py:137:80: E501 line too long (82 > 79 characters)
+src/consolidation/health.py:145:1: W293 blank line contains whitespace
+src/consolidation/health.py:147:80: E501 line too long (85 > 79 characters)
+src/consolidation/health.py:148:1: W293 blank line contains whitespace
+src/consolidation/health.py:150:1: W293 blank line contains whitespace
+src/consolidation/health.py:152:1: W293 blank line contains whitespace
+src/consolidation/health.py:164:1: W293 blank line contains whitespace
+src/consolidation/health.py:169:57: W291 trailing whitespace
+src/consolidation/health.py:171:13: E129 visually indented line with same indent as next logical line
+src/consolidation/health.py:173:1: W293 blank line contains whitespace
+src/consolidation/health.py:181:1: W293 blank line contains whitespace
+src/consolidation/health.py:196:1: W293 blank line contains whitespace
+src/consolidation/health.py:200:1: W293 blank line contains whitespace
+src/consolidation/health.py:202:1: W293 blank line contains whitespace
+src/consolidation/health.py:212:1: W293 blank line contains whitespace
+src/consolidation/health.py:222:80: W291 trailing whitespace
+src/consolidation/health.py:223:43: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:223:80: E501 line too long (85 > 79 characters)
+src/consolidation/health.py:224:43: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:224:80: E501 line too long (118 > 79 characters)
+src/consolidation/health.py:227:1: W293 blank line contains whitespace
+src/consolidation/health.py:230:71: W291 trailing whitespace
+src/consolidation/health.py:231:34: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:232:34: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:232:80: E501 line too long (109 > 79 characters)
+src/consolidation/health.py:233:1: W293 blank line contains whitespace
+src/consolidation/health.py:245:1: W293 blank line contains whitespace
+src/consolidation/health.py:255:80: E501 line too long (83 > 79 characters)
+src/consolidation/health.py:255:84: W291 trailing whitespace
+src/consolidation/health.py:256:47: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:256:80: E501 line too long (90 > 79 characters)
+src/consolidation/health.py:257:47: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:257:80: E501 line too long (122 > 79 characters)
+src/consolidation/health.py:260:1: W293 blank line contains whitespace
+src/consolidation/health.py:270:80: W291 trailing whitespace
+src/consolidation/health.py:271:43: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:271:80: E501 line too long (87 > 79 characters)
+src/consolidation/health.py:272:43: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:272:80: E501 line too long (118 > 79 characters)
+src/consolidation/health.py:275:1: W293 blank line contains whitespace
+src/consolidation/health.py:285:80: E501 line too long (86 > 79 characters)
+src/consolidation/health.py:285:87: W291 trailing whitespace
+src/consolidation/health.py:286:50: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:286:80: E501 line too long (93 > 79 characters)
+src/consolidation/health.py:287:50: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:287:80: E501 line too long (125 > 79 characters)
+src/consolidation/health.py:290:1: W293 blank line contains whitespace
+src/consolidation/health.py:304:1: W293 blank line contains whitespace
+src/consolidation/health.py:310:49: W291 trailing whitespace
+src/consolidation/health.py:319:1: W293 blank line contains whitespace
+src/consolidation/health.py:323:1: W293 blank line contains whitespace
+src/consolidation/health.py:325:59: W291 trailing whitespace
+src/consolidation/health.py:326:28: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:326:80: E501 line too long (103 > 79 characters)
+src/consolidation/health.py:327:1: W293 blank line contains whitespace
+src/consolidation/health.py:329:80: E501 line too long (111 > 79 characters)
+src/consolidation/health.py:330:1: W293 blank line contains whitespace
+src/consolidation/health.py:335:80: E501 line too long (138 > 79 characters)
+src/consolidation/health.py:336:1: W293 blank line contains whitespace
+src/consolidation/health.py:338:80: E501 line too long (108 > 79 characters)
+src/consolidation/health.py:340:80: E501 line too long (93 > 79 characters)
+src/consolidation/health.py:341:1: W293 blank line contains whitespace
+src/consolidation/health.py:346:80: E501 line too long (112 > 79 characters)
+src/consolidation/health.py:347:1: W293 blank line contains whitespace
+src/consolidation/health.py:349:1: W293 blank line contains whitespace
+src/consolidation/health.py:350:80: E501 line too long (82 > 79 characters)
+src/consolidation/health.py:350:83: W291 trailing whitespace
+src/consolidation/health.py:351:40: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:351:79: W291 trailing whitespace
+src/consolidation/health.py:352:40: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:361:80: E501 line too long (87 > 79 characters)
+src/consolidation/health.py:363:1: W293 blank line contains whitespace
+src/consolidation/health.py:365:1: W293 blank line contains whitespace
+src/consolidation/health.py:368:80: E501 line too long (91 > 79 characters)
+src/consolidation/health.py:369:1: W293 blank line contains whitespace
+src/consolidation/health.py:372:1: W293 blank line contains whitespace
+src/consolidation/health.py:377:80: E501 line too long (86 > 79 characters)
+src/consolidation/health.py:378:80: E501 line too long (81 > 79 characters)
+src/consolidation/health.py:380:1: W293 blank line contains whitespace
+src/consolidation/health.py:381:80: E501 line too long (93 > 79 characters)
+src/consolidation/health.py:382:59: W291 trailing whitespace
+src/consolidation/health.py:391:1: W293 blank line contains whitespace
+src/consolidation/health.py:393:1: W293 blank line contains whitespace
+src/consolidation/health.py:397:1: W293 blank line contains whitespace
+src/consolidation/health.py:403:1: W293 blank line contains whitespace
+src/consolidation/health.py:409:1: W293 blank line contains whitespace
+src/consolidation/health.py:411:1: W293 blank line contains whitespace
+src/consolidation/health.py:416:1: W293 blank line contains whitespace
+src/consolidation/health.py:418:80: E501 line too long (93 > 79 characters)
+src/consolidation/health.py:419:1: W293 blank line contains whitespace
+src/consolidation/health.py:422:1: W293 blank line contains whitespace
+src/consolidation/health.py:426:1: W293 blank line contains whitespace
+src/consolidation/health.py:430:80: E501 line too long (91 > 79 characters)
+src/consolidation/health.py:431:80: E501 line too long (90 > 79 characters)
+src/consolidation/health.py:433:1: W293 blank line contains whitespace
+src/consolidation/health.py:435:80: E501 line too long (89 > 79 characters)
+src/consolidation/health.py:436:1: W293 blank line contains whitespace
+src/consolidation/health.py:440:80: E501 line too long (89 > 79 characters)
+src/consolidation/health.py:443:1: W293 blank line contains whitespace
+src/consolidation/health.py:447:80: E501 line too long (86 > 79 characters)
+src/consolidation/health.py:448:1: W293 blank line contains whitespace
+src/consolidation/health.py:452:80: E501 line too long (90 > 79 characters)
+src/consolidation/health.py:455:1: W293 blank line contains whitespace
+src/consolidation/health.py:458:80: E501 line too long (95 > 79 characters)
+src/consolidation/health.py:460:1: W293 blank line contains whitespace
+src/consolidation/health.py:467:1: W293 blank line contains whitespace
+src/consolidation/health.py:468:80: E501 line too long (85 > 79 characters)
+src/consolidation/health.py:472:1: W293 blank line contains whitespace
+src/consolidation/health.py:474:1: W293 blank line contains whitespace
+src/consolidation/health.py:476:80: E501 line too long (94 > 79 characters)
+src/consolidation/health.py:483:1: W293 blank line contains whitespace
+src/consolidation/health.py:492:1: W293 blank line contains whitespace
+src/consolidation/health.py:493:80: E501 line too long (82 > 79 characters)
+src/consolidation/health.py:495:80: E501 line too long (93 > 79 characters)
+src/consolidation/health.py:496:1: W293 blank line contains whitespace
+src/consolidation/health.py:503:1: W293 blank line contains whitespace
+src/consolidation/health.py:505:1: W293 blank line contains whitespace
+src/consolidation/health.py:509:1: W293 blank line contains whitespace
+src/consolidation/health.py:510:80: E501 line too long (90 > 79 characters)
+src/consolidation/health.py:511:1: W293 blank line contains whitespace
+src/consolidation/health.py:520:1: W293 blank line contains whitespace
+src/consolidation/health.py:524:1: W293 blank line contains whitespace
+src/consolidation/health.py:529:80: W291 trailing whitespace
+src/consolidation/health.py:530:38: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:531:80: E501 line too long (96 > 79 characters)
+src/consolidation/health.py:532:64: W291 trailing whitespace
+src/consolidation/health.py:533:35: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:533:80: E501 line too long (104 > 79 characters)
+src/consolidation/health.py:535:64: W291 trailing whitespace
+src/consolidation/health.py:536:33: E128 continuation line under-indented for visual indent
+src/consolidation/health.py:536:80: E501 line too long (108 > 79 characters)
+src/consolidation/health.py:537:10: W292 no newline at end of file
+src/consolidation/postgres_consolidator.py:3:1: F401 'typing.Tuple' imported but unused
+src/consolidation/postgres_consolidator.py:7:1: E302 expected 2 blank lines, found 1
+src/consolidation/postgres_consolidator.py:14:34: E128 continuation line under-indented for visual indent
+src/consolidation/postgres_consolidator.py:30:80: E501 line too long (95 > 79 characters)
+src/consolidation/postgres_consolidator.py:31:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:35:80: E501 line too long (91 > 79 characters)
+src/consolidation/postgres_consolidator.py:44:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:59:80: E501 line too long (102 > 79 characters)
+src/consolidation/postgres_consolidator.py:74:80: E501 line too long (94 > 79 characters)
+src/consolidation/postgres_consolidator.py:82:58: W291 trailing whitespace
+src/consolidation/postgres_consolidator.py:86:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:110:21: E722 do not use bare 'except'
+src/consolidation/postgres_consolidator.py:114:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:122:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:128:80: E501 line too long (88 > 79 characters)
+src/consolidation/postgres_consolidator.py:169:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:173:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:178:13: E722 do not use bare 'except'
+src/consolidation/postgres_consolidator.py:183:13: E722 do not use bare 'except'
+src/consolidation/postgres_consolidator.py:185:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:189:13: E722 do not use bare 'except'
+src/consolidation/postgres_consolidator.py:194:13: E722 do not use bare 'except'
+src/consolidation/postgres_consolidator.py:196:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:200:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:217:80: E501 line too long (94 > 79 characters)
+src/consolidation/postgres_consolidator.py:228:80: E501 line too long (83 > 79 characters)
+src/consolidation/postgres_consolidator.py:233:80: E501 line too long (84 > 79 characters)
+src/consolidation/postgres_consolidator.py:254:80: E501 line too long (84 > 79 characters)
+src/consolidation/postgres_consolidator.py:269:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:293:80: E501 line too long (107 > 79 characters)
+src/consolidation/postgres_consolidator.py:303:80: E501 line too long (127 > 79 characters)
+src/consolidation/postgres_consolidator.py:310:80: E501 line too long (109 > 79 characters)
+src/consolidation/postgres_consolidator.py:317:80: E501 line too long (85 > 79 characters)
+src/consolidation/postgres_consolidator.py:324:80: E501 line too long (87 > 79 characters)
+src/consolidation/postgres_consolidator.py:332:80: E501 line too long (91 > 79 characters)
+src/consolidation/postgres_consolidator.py:335:21: E128 continuation line under-indented for visual indent
+src/consolidation/postgres_consolidator.py:336:21: E128 continuation line under-indented for visual indent
+src/consolidation/postgres_consolidator.py:337:21: E128 continuation line under-indented for visual indent
+src/consolidation/postgres_consolidator.py:338:21: E128 continuation line under-indented for visual indent
+src/consolidation/postgres_consolidator.py:341:80: E501 line too long (87 > 79 characters)
+src/consolidation/postgres_consolidator.py:342:1: W293 blank line contains whitespace
+src/consolidation/postgres_consolidator.py:347:30: W292 no newline at end of file
+src/consolidation/scheduler.py:17:1: F401 'asyncio' imported but unused
+src/consolidation/scheduler.py:19:1: F401 'typing.Callable' imported but unused
+src/consolidation/scheduler.py:19:1: F401 'typing.Awaitable' imported but unused
+src/consolidation/scheduler.py:20:1: F401 'datetime.timedelta' imported but unused
+src/consolidation/scheduler.py:34:1: F401 'consolidation.base.ConsolidationConfig' imported but unused
+src/consolidation/scheduler.py:36:1: E302 expected 2 blank lines, found 1
+src/consolidation/scheduler.py:39:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:40:80: E501 line too long (86 > 79 characters)
+src/consolidation/scheduler.py:43:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:45:14: W291 trailing whitespace
+src/consolidation/scheduler.py:54:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:63:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:71:80: E501 line too long (82 > 79 characters)
+src/consolidation/scheduler.py:72:80: E501 line too long (85 > 79 characters)
+src/consolidation/scheduler.py:75:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:77:80: E501 line too long (88 > 79 characters)
+src/consolidation/scheduler.py:78:80: E501 line too long (82 > 79 characters)
+src/consolidation/scheduler.py:82:80: E501 line too long (100 > 79 characters)
+src/consolidation/scheduler.py:84:80: E501 line too long (86 > 79 characters)
+src/consolidation/scheduler.py:85:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:90:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:94:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:98:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:102:80: E501 line too long (92 > 79 characters)
+src/consolidation/scheduler.py:103:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:105:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:109:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:114:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:122:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:126:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:129:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:131:80: E501 line too long (85 > 79 characters)
+src/consolidation/scheduler.py:133:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:146:80: E501 line too long (91 > 79 characters)
+src/consolidation/scheduler.py:147:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:149:80: E501 line too long (83 > 79 characters)
+src/consolidation/scheduler.py:150:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:158:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:163:80: E501 line too long (88 > 79 characters)
+src/consolidation/scheduler.py:164:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:166:60: W291 trailing whitespace
+src/consolidation/scheduler.py:169:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:173:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:176:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:181:80: E501 line too long (89 > 79 characters)
+src/consolidation/scheduler.py:182:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:186:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:192:80: E501 line too long (91 > 79 characters)
+src/consolidation/scheduler.py:193:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:196:80: E501 line too long (82 > 79 characters)
+src/consolidation/scheduler.py:197:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:200:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:202:80: E501 line too long (87 > 79 characters)
+src/consolidation/scheduler.py:203:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:208:80: E501 line too long (88 > 79 characters)
+src/consolidation/scheduler.py:209:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:213:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:217:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:218:80: E501 line too long (82 > 79 characters)
+src/consolidation/scheduler.py:219:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:223:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:225:80: E501 line too long (103 > 79 characters)
+src/consolidation/scheduler.py:227:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:232:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:236:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:240:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:254:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:256:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:258:80: E501 line too long (90 > 79 characters)
+src/consolidation/scheduler.py:260:80: E501 line too long (91 > 79 characters)
+src/consolidation/scheduler.py:267:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:271:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:285:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:287:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:290:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:294:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:298:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:303:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:307:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:308:80: E501 line too long (93 > 79 characters)
+src/consolidation/scheduler.py:313:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:321:80: E501 line too long (106 > 79 characters)
+src/consolidation/scheduler.py:322:80: E501 line too long (82 > 79 characters)
+src/consolidation/scheduler.py:323:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:332:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:333:80: E501 line too long (82 > 79 characters)
+src/consolidation/scheduler.py:335:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:337:80: E501 line too long (84 > 79 characters)
+src/consolidation/scheduler.py:339:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:347:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:350:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:355:80: E501 line too long (94 > 79 characters)
+src/consolidation/scheduler.py:358:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:365:80: E501 line too long (96 > 79 characters)
+src/consolidation/scheduler.py:369:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:370:80: E501 line too long (81 > 79 characters)
+src/consolidation/scheduler.py:374:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:377:80: E501 line too long (119 > 79 characters)
+src/consolidation/scheduler.py:378:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:382:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:385:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:388:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:391:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:395:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:396:80: E501 line too long (84 > 79 characters)
+src/consolidation/scheduler.py:400:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:409:80: E501 line too long (89 > 79 characters)
+src/consolidation/scheduler.py:416:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:418:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:420:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:424:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:425:80: E501 line too long (85 > 79 characters)
+src/consolidation/scheduler.py:429:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:438:80: E501 line too long (89 > 79 characters)
+src/consolidation/scheduler.py:445:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:447:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:449:1: W293 blank line contains whitespace
+src/consolidation/scheduler.py:452:25: W292 no newline at end of file
+src/context_formatter.py:9:1: F401 'typing.Optional' imported but unused
+src/context_formatter.py:12:1: E302 expected 2 blank lines, found 1
+src/context_formatter.py:23:1: E305 expected 2 blank lines after class or function definition, found 1
+src/context_formatter.py:35:1: E302 expected 2 blank lines, found 1
+src/context_formatter.py:41:5: F841 local variable 'preserve_structure' is assigned to but never used
+src/context_formatter.py:54:80: E501 line too long (176 > 79 characters)
+src/context_formatter.py:56:80: E501 line too long (83 > 79 characters)
+src/context_formatter.py:57:80: E501 line too long (177 > 79 characters)
+src/context_formatter.py:60:80: E501 line too long (162 > 79 characters)
+src/context_formatter.py:63:80: E501 line too long (165 > 79 characters)
+src/context_formatter.py:66:80: E501 line too long (145 > 79 characters)
+src/context_formatter.py:67:80: E501 line too long (141 > 79 characters)
+src/context_formatter.py:72:9: F841 local variable 'lang' is assigned to but never used
+src/context_formatter.py:77:80: E501 line too long (88 > 79 characters)
+src/context_formatter.py:80:80: E501 line too long (81 > 79 characters)
+src/context_formatter.py:84:80: E501 line too long (166 > 79 characters)
+src/context_formatter.py:85:80: E501 line too long (160 > 79 characters)
+src/context_formatter.py:87:80: E501 line too long (83 > 79 characters)
+src/context_formatter.py:88:80: E501 line too long (137 > 79 characters)
+src/context_formatter.py:92:80: E501 line too long (170 > 79 characters)
+src/context_formatter.py:95:80: E501 line too long (171 > 79 characters)
+src/context_formatter.py:98:80: E501 line too long (151 > 79 characters)
+src/context_formatter.py:101:80: E501 line too long (159 > 79 characters)
+src/context_formatter.py:104:80: E501 line too long (148 > 79 characters)
+src/context_formatter.py:111:1: E302 expected 2 blank lines, found 1
+src/context_formatter.py:112:28: E128 continuation line under-indented for visual indent
+src/context_formatter.py:113:28: E128 continuation line under-indented for visual indent
+src/context_formatter.py:120:5: F841 local variable 'max_content_length_cli' is assigned to but never used
+src/context_formatter.py:121:80: E501 line too long (84 > 79 characters)
+src/context_formatter.py:125:80: E501 line too long (98 > 79 characters)
+src/context_formatter.py:131:80: E501 line too long (92 > 79 characters)
+src/context_formatter.py:133:80: E501 line too long (109 > 79 characters)
+src/context_formatter.py:136:80: E501 line too long (103 > 79 characters)
+src/context_formatter.py:140:80: E501 line too long (88 > 79 characters)
+src/context_formatter.py:144:80: E501 line too long (90 > 79 characters)
+src/context_formatter.py:145:80: E501 line too long (111 > 79 characters)
+src/context_formatter.py:167:80: E501 line too long (95 > 79 characters)
+src/context_formatter.py:168:80: E501 line too long (95 > 79 characters)
+src/context_formatter.py:169:80: E501 line too long (87 > 79 characters)
+src/context_formatter.py:198:80: E501 line too long (85 > 79 characters)
+src/context_formatter.py:202:80: E501 line too long (89 > 79 characters)
+src/context_formatter.py:211:80: E501 line too long (122 > 79 characters)
+src/context_formatter.py:215:1: E302 expected 2 blank lines, found 1
+src/context_formatter.py:216:32: E128 continuation line under-indented for visual indent
+src/context_formatter.py:217:32: E128 continuation line under-indented for visual indent
+src/context_formatter.py:228:1: E302 expected 2 blank lines, found 1
+src/context_formatter.py:229:33: E128 continuation line under-indented for visual indent
+src/context_formatter.py:230:33: E128 continuation line under-indented for visual indent
+src/context_formatter.py:279:1: E302 expected 2 blank lines, found 1
+src/context_formatter.py:303:5: E722 do not use bare 'except'
+src/context_formatter.py:307:1: E305 expected 2 blank lines after class or function definition, found 1
+src/context_formatter.py:313:2: W292 no newline at end of file
+src/database_error_handling.py:7:1: F401 'typing.Optional' imported but unused
+src/database_error_handling.py:7:1: F401 'typing.List' imported but unused
+src/database_error_handling.py:10:1: F401 'psycopg2.sql' imported but unused
+src/database_error_handling.py:14:53: W291 trailing whitespace
+src/database_error_handling.py:17:1: F401 'error_handlers.retry_on_error' imported but unused
+src/database_error_handling.py:17:1: F401 'error_handlers.RetryConfig' imported but unused
+src/database_error_handling.py:17:1: F401 'error_handlers.error_context' imported but unused
+src/database_error_handling.py:24:1: W293 blank line contains whitespace
+src/database_error_handling.py:38:1: W293 blank line contains whitespace
+src/database_error_handling.py:47:1: W293 blank line contains whitespace
+src/database_error_handling.py:53:1: W293 blank line contains whitespace
+src/database_error_handling.py:55:80: E501 line too long (113 > 79 characters)
+src/database_error_handling.py:59:1: W293 blank line contains whitespace
+src/database_error_handling.py:67:80: E501 line too long (84 > 79 characters)
+src/database_error_handling.py:74:80: E501 line too long (84 > 79 characters)
+src/database_error_handling.py:76:1: W293 blank line contains whitespace
+src/database_error_handling.py:82:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:84:1: W293 blank line contains whitespace
+src/database_error_handling.py:89:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:91:1: W293 blank line contains whitespace
+src/database_error_handling.py:96:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:98:1: W293 blank line contains whitespace
+src/database_error_handling.py:102:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:104:1: W293 blank line contains whitespace
+src/database_error_handling.py:108:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:110:1: W293 blank line contains whitespace
+src/database_error_handling.py:116:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:118:1: W293 blank line contains whitespace
+src/database_error_handling.py:124:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:126:1: W293 blank line contains whitespace
+src/database_error_handling.py:133:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:135:1: W293 blank line contains whitespace
+src/database_error_handling.py:142:1: W293 blank line contains whitespace
+src/database_error_handling.py:144:80: E501 line too long (87 > 79 characters)
+src/database_error_handling.py:146:1: W293 blank line contains whitespace
+src/database_error_handling.py:158:80: E501 line too long (80 > 79 characters)
+src/database_error_handling.py:161:1: W293 blank line contains whitespace
+src/database_error_handling.py:170:1: W293 blank line contains whitespace
+src/database_error_handling.py:182:1: W293 blank line contains whitespace
+src/database_error_handling.py:184:1: W293 blank line contains whitespace
+src/database_error_handling.py:188:1: W293 blank line contains whitespace
+src/database_error_handling.py:190:80: E501 line too long (99 > 79 characters)
+src/database_error_handling.py:191:1: W293 blank line contains whitespace
+src/database_error_handling.py:196:1: W293 blank line contains whitespace
+src/database_error_handling.py:198:80: E501 line too long (86 > 79 characters)
+src/database_error_handling.py:199:1: W293 blank line contains whitespace
+src/database_error_handling.py:202:1: W293 blank line contains whitespace
+src/database_error_handling.py:203:80: E501 line too long (104 > 79 characters)
+src/database_error_handling.py:205:1: W293 blank line contains whitespace
+src/database_error_handling.py:210:1: W293 blank line contains whitespace
+src/database_error_handling.py:212:80: E501 line too long (117 > 79 characters)
+src/database_error_handling.py:213:1: W293 blank line contains whitespace
+src/database_error_handling.py:221:1: W293 blank line contains whitespace
+src/database_error_handling.py:238:1: W293 blank line contains whitespace
+src/database_error_handling.py:249:1: W293 blank line contains whitespace
+src/database_error_handling.py:255:1: W293 blank line contains whitespace
+src/database_error_handling.py:259:1: W293 blank line contains whitespace
+src/database_error_handling.py:262:80: E501 line too long (123 > 79 characters)
+src/database_error_handling.py:264:1: W293 blank line contains whitespace
+src/database_error_handling.py:266:80: E501 line too long (85 > 79 characters)
+src/database_error_handling.py:267:1: W293 blank line contains whitespace
+src/database_error_handling.py:269:80: E501 line too long (125 > 79 characters)
+src/database_error_handling.py:273:1: W293 blank line contains whitespace
+src/database_error_handling.py:277:1: W293 blank line contains whitespace
+src/database_error_handling.py:284:1: W293 blank line contains whitespace
+src/database_error_handling.py:294:1: W293 blank line contains whitespace
+src/database_error_handling.py:300:1: W293 blank line contains whitespace
+src/database_error_handling.py:307:1: W293 blank line contains whitespace
+src/database_error_handling.py:311:80: E501 line too long (100 > 79 characters)
+src/database_error_handling.py:314:1: W293 blank line contains whitespace
+src/database_error_handling.py:317:1: W293 blank line contains whitespace
+src/database_error_handling.py:320:80: E501 line too long (110 > 79 characters)
+src/database_error_handling.py:321:1: W293 blank line contains whitespace
+src/database_error_handling.py:330:80: E501 line too long (81 > 79 characters)
+src/database_error_handling.py:334:1: W293 blank line contains whitespace
+src/database_error_handling.py:342:1: W293 blank line contains whitespace
+src/database_error_handling.py:367:1: W293 blank line contains whitespace
+src/database_error_handling.py:376:1: W293 blank line contains whitespace
+src/error_handlers.py:7:1: F401 'typing.List' imported but unused
+src/error_handlers.py:11:1: F401 'exceptions.DatabaseError' imported but unused
+src/error_handlers.py:11:1: F401 'exceptions.SecurityError' imported but unused
+src/error_handlers.py:11:1: F401 'exceptions.EmbeddingError' imported but unused
+src/error_handlers.py:11:1: F401 'exceptions.ConsolidationError' imported but unused
+src/error_handlers.py:11:1: F401 'exceptions.RateLimitError' imported but unused
+src/error_handlers.py:11:1: F401 'exceptions.InsufficientDataError' imported but unused
+src/error_handlers.py:11:1: F401 'exceptions.ResourceExhaustedError' imported but unused
+src/error_handlers.py:11:1: F401 'exceptions.is_retryable_error' imported but unused
+src/error_handlers.py:23:1: W293 blank line contains whitespace
+src/error_handlers.py:24:23: W291 trailing whitespace
+src/error_handlers.py:44:1: W293 blank line contains whitespace
+src/error_handlers.py:52:1: W293 blank line contains whitespace
+src/error_handlers.py:55:1: W293 blank line contains whitespace
+src/error_handlers.py:60:1: W293 blank line contains whitespace
+src/error_handlers.py:66:1: W293 blank line contains whitespace
+src/error_handlers.py:72:1: W293 blank line contains whitespace
+src/error_handlers.py:77:1: W293 blank line contains whitespace
+src/error_handlers.py:79:1: W293 blank line contains whitespace
+src/error_handlers.py:83:1: W293 blank line contains whitespace
+src/error_handlers.py:85:80: E501 line too long (82 > 79 characters)
+src/error_handlers.py:89:1: W293 blank line contains whitespace
+src/error_handlers.py:93:1: W293 blank line contains whitespace
+src/error_handlers.py:97:1: W293 blank line contains whitespace
+src/error_handlers.py:103:1: W293 blank line contains whitespace
+src/error_handlers.py:109:1: W293 blank line contains whitespace
+src/error_handlers.py:114:1: W293 blank line contains whitespace
+src/error_handlers.py:116:1: W293 blank line contains whitespace
+src/error_handlers.py:120:1: W293 blank line contains whitespace
+src/error_handlers.py:122:80: E501 line too long (82 > 79 characters)
+src/error_handlers.py:126:1: W293 blank line contains whitespace
+src/error_handlers.py:130:1: W293 blank line contains whitespace
+src/error_handlers.py:136:1: W293 blank line contains whitespace
+src/error_handlers.py:144:80: E501 line too long (82 > 79 characters)
+src/error_handlers.py:148:1: W293 blank line contains whitespace
+src/error_handlers.py:162:1: W293 blank line contains whitespace
+src/error_handlers.py:170:80: E501 line too long (81 > 79 characters)
+src/error_handlers.py:171:1: W293 blank line contains whitespace
+src/error_handlers.py:178:1: W293 blank line contains whitespace
+src/error_handlers.py:184:1: W293 blank line contains whitespace
+src/error_handlers.py:187:80: E501 line too long (88 > 79 characters)
+src/error_handlers.py:189:1: W293 blank line contains whitespace
+src/error_handlers.py:196:80: E501 line too long (81 > 79 characters)
+src/error_handlers.py:197:1: W293 blank line contains whitespace
+src/error_handlers.py:204:1: W293 blank line contains whitespace
+src/error_handlers.py:210:1: W293 blank line contains whitespace
+src/error_handlers.py:213:80: E501 line too long (88 > 79 characters)
+src/error_handlers.py:215:1: W293 blank line contains whitespace
+src/error_handlers.py:221:1: W293 blank line contains whitespace
+src/error_handlers.py:228:1: W293 blank line contains whitespace
+src/error_handlers.py:240:1: W293 blank line contains whitespace
+src/error_handlers.py:249:80: E501 line too long (83 > 79 characters)
+src/error_handlers.py:253:1: W293 blank line contains whitespace
+src/error_handlers.py:255:1: W293 blank line contains whitespace
+src/error_handlers.py:264:1: W293 blank line contains whitespace
+src/error_handlers.py:279:1: W293 blank line contains whitespace
+src/error_handlers.py:292:1: W293 blank line contains whitespace
+src/error_handlers.py:293:23: W291 trailing whitespace
+src/error_handlers.py:300:1: W293 blank line contains whitespace
+src/error_handlers.py:304:1: W293 blank line contains whitespace
+src/error_handlers.py:315:1: W293 blank line contains whitespace
+src/error_handlers.py:323:1: W293 blank line contains whitespace
+src/error_handlers.py:328:1: W293 blank line contains whitespace
+src/error_handlers.py:333:1: W293 blank line contains whitespace
+src/error_handlers.py:347:80: E501 line too long (85 > 79 characters)
+src/error_handlers.py:348:1: W293 blank line contains whitespace
+src/error_handlers.py:353:1: W293 blank line contains whitespace
+src/error_handlers.py:357:16: F821 undefined name 'self'
+src/error_handlers.py:358:34: F821 undefined name 'self'
+src/error_handlers.py:358:59: F821 undefined name 'self'
+src/error_handlers.py:358:80: E501 line too long (80 > 79 characters)
+src/error_handlers.py:359:21: F821 undefined name 'self'
+src/error_handlers.py:365:1: W293 blank line contains whitespace
+src/error_handlers.py:373:1: W293 blank line contains whitespace
+src/error_handlers.py:379:1: W293 blank line contains whitespace
+src/error_handlers.py:385:1: W293 blank line contains whitespace
+src/error_handlers.py:387:80: E501 line too long (80 > 79 characters)
+src/error_handlers.py:394:80: E501 line too long (94 > 79 characters)
+src/error_handlers.py:399:1: W293 blank line contains whitespace
+src/error_handlers.py:409:80: E501 line too long (90 > 79 characters)
+src/error_handlers.py:413:1: W293 blank line contains whitespace
+src/error_handlers.py:423:80: E501 line too long (99 > 79 characters)
+src/exceptions.py:4:1: F401 'typing.Optional' imported but unused
+src/exceptions.py:4:1: F401 'typing.List' imported but unused
+src/exceptions.py:12:1: W293 blank line contains whitespace
+src/exceptions.py:13:80: E501 line too long (93 > 79 characters)
+src/exceptions.py:19:1: W293 blank line contains whitespace
+src/exceptions.py:23:1: W293 blank line contains whitespace
+src/exceptions.py:35:1: W293 blank line contains whitespace
+src/exceptions.py:36:80: E501 line too long (89 > 79 characters)
+src/exceptions.py:47:1: W293 blank line contains whitespace
+src/exceptions.py:48:80: E501 line too long (83 > 79 characters)
+src/exceptions.py:59:1: W293 blank line contains whitespace
+src/exceptions.py:60:80: E501 line too long (85 > 79 characters)
+src/exceptions.py:73:1: W293 blank line contains whitespace
+src/exceptions.py:74:80: E501 line too long (95 > 79 characters)
+src/exceptions.py:85:1: W293 blank line contains whitespace
+src/exceptions.py:86:80: E501 line too long (94 > 79 characters)
+src/exceptions.py:97:1: W293 blank line contains whitespace
+src/exceptions.py:98:80: E501 line too long (90 > 79 characters)
+src/exceptions.py:109:1: W293 blank line contains whitespace
+src/exceptions.py:110:80: E501 line too long (89 > 79 characters)
+src/exceptions.py:121:1: W293 blank line contains whitespace
+src/exceptions.py:131:1: W293 blank line contains whitespace
+src/exceptions.py:132:80: E501 line too long (93 > 79 characters)
+src/exceptions.py:143:1: W293 blank line contains whitespace
+src/exceptions.py:144:80: E501 line too long (93 > 79 characters)
+src/exceptions.py:155:1: W293 blank line contains whitespace
+src/exceptions.py:156:80: E501 line too long (92 > 79 characters)
+src/exceptions.py:167:1: W293 blank line contains whitespace
+src/exceptions.py:168:80: E501 line too long (120 > 79 characters)
+src/exceptions.py:208:1: W293 blank line contains whitespace
+src/exceptions.py:221:1: W293 blank line contains whitespace
+src/health_check.py:8:1: F401 'datetime.timedelta' imported but unused
+src/health_check.py:36:1: W293 blank line contains whitespace
+src/health_check.py:40:1: W293 blank line contains whitespace
+src/health_check.py:45:80: E501 line too long (80 > 79 characters)
+src/health_check.py:47:1: W293 blank line contains whitespace
+src/health_check.py:75:1: W293 blank line contains whitespace
+src/health_check.py:83:1: W293 blank line contains whitespace
+src/health_check.py:87:1: W293 blank line contains whitespace
+src/health_check.py:90:9: F401 'psycopg2' imported but unused
+src/health_check.py:91:1: W293 blank line contains whitespace
+src/health_check.py:97:21: F841 local variable 'result' is assigned to but never used
+src/health_check.py:98:1: W293 blank line contains whitespace
+src/health_check.py:101:80: E501 line too long (83 > 79 characters)
+src/health_check.py:104:1: W293 blank line contains whitespace
+src/health_check.py:107:62: W291 trailing whitespace
+src/health_check.py:111:1: W293 blank line contains whitespace
+src/health_check.py:114:62: W291 trailing whitespace
+src/health_check.py:115:80: E501 line too long (93 > 79 characters)
+src/health_check.py:118:1: W293 blank line contains whitespace
+src/health_check.py:133:1: W293 blank line contains whitespace
+src/health_check.py:137:1: W293 blank line contains whitespace
+src/health_check.py:142:80: E501 line too long (81 > 79 characters)
+src/health_check.py:143:1: W293 blank line contains whitespace
+src/health_check.py:146:80: E501 line too long (85 > 79 characters)
+src/health_check.py:147:80: E501 line too long (86 > 79 characters)
+src/health_check.py:156:1: W293 blank line contains whitespace
+src/health_check.py:160:1: W293 blank line contains whitespace
+src/health_check.py:166:1: W293 blank line contains whitespace
+src/health_check.py:173:1: W293 blank line contains whitespace
+src/health_check.py:175:80: E501 line too long (101 > 79 characters)
+src/health_check.py:176:1: W293 blank line contains whitespace
+src/health_check.py:179:1: W293 blank line contains whitespace
+src/health_check.py:182:80: E501 line too long (86 > 79 characters)
+src/health_check.py:183:13: E722 do not use bare 'except'
+src/health_check.py:185:1: W293 blank line contains whitespace
+src/health_check.py:200:1: W293 blank line contains whitespace
+src/health_check.py:204:1: W293 blank line contains whitespace
+src/health_check.py:209:80: E501 line too long (96 > 79 characters)
+src/health_check.py:214:1: W293 blank line contains whitespace
+src/health_check.py:218:1: W293 blank line contains whitespace
+src/health_check.py:221:80: E501 line too long (103 > 79 characters)
+src/health_check.py:231:1: W293 blank line contains whitespace
+src/health_check.py:238:1: W293 blank line contains whitespace
+src/health_check.py:240:1: W293 blank line contains whitespace
+src/health_check.py:246:1: W293 blank line contains whitespace
+src/health_check.py:248:80: E501 line too long (95 > 79 characters)
+src/health_check.py:249:80: E501 line too long (88 > 79 characters)
+src/health_check.py:250:1: W293 blank line contains whitespace
+src/health_check.py:253:1: W293 blank line contains whitespace
+src/health_check.py:256:1: W293 blank line contains whitespace
+src/health_check.py:260:1: W293 blank line contains whitespace
+src/health_check.py:264:1: W293 blank line contains whitespace
+src/health_check.py:279:1: W293 blank line contains whitespace
+src/health_check.py:282:1: W293 blank line contains whitespace
+src/health_check.py:285:1: W293 blank line contains whitespace
+src/health_check.py:290:1: W293 blank line contains whitespace
+src/health_check.py:294:80: E501 line too long (94 > 79 characters)
+src/health_check.py:296:1: W293 blank line contains whitespace
+src/health_check.py:301:1: W293 blank line contains whitespace
+src/health_check.py:303:80: E501 line too long (96 > 79 characters)
+src/health_check.py:306:1: W293 blank line contains whitespace
+src/health_check.py:308:1: W293 blank line contains whitespace
+src/health_check.py:312:1: W293 blank line contains whitespace
+src/health_check.py:315:80: E501 line too long (93 > 79 characters)
+src/health_check.py:327:80: E501 line too long (97 > 79 characters)
+src/health_check.py:328:80: E501 line too long (99 > 79 characters)
+src/health_check.py:329:80: E501 line too long (100 > 79 characters)
+src/health_check.py:332:1: W293 blank line contains whitespace
+src/health_check.py:335:80: E501 line too long (89 > 79 characters)
+src/health_check.py:342:80: E501 line too long (87 > 79 characters)
+src/health_check.py:358:1: W293 blank line contains whitespace
+src/ingestion/base.py:12:1: F401 'typing.Optional' imported but unused
+src/ingestion/base.py:106:80: E501 line too long (101 > 79 characters)
+src/ingestion/base.py:162:10: W292 no newline at end of file
+src/ingestion/chunker.py:10:1: F401 'typing.Optional' imported but unused
+src/ingestion/chunker.py:56:80: E501 line too long (105 > 79 characters)
+src/ingestion/chunker.py:92:80: E501 line too long (81 > 79 characters)
+src/ingestion/chunker.py:107:80: E501 line too long (82 > 79 characters)
+src/ingestion/chunker.py:108:17: E129 visually indented line with same indent as next logical line
+src/ingestion/chunker.py:142:80: E501 line too long (81 > 79 characters)
+src/ingestion/chunker.py:143:17: E129 visually indented line with same indent as next logical line
+src/ingestion/chunker.py:179:80: E501 line too long (94 > 79 characters)
+src/ingestion/chunker.py:214:37: W292 no newline at end of file
+src/ingestion/cli.py:11:1: F401 'typing.List' imported but unused
+src/ingestion/cli.py:16:1: E402 module level import not at top of file
+src/ingestion/cli.py:17:1: E402 module level import not at top of file
+src/ingestion/cli.py:18:1: E402 module level import not at top of file
+src/ingestion/cli.py:19:1: F401 'src.ingestion.registry.get_supported_extensions' imported but unused
+src/ingestion/cli.py:19:1: E402 module level import not at top of file
+src/ingestion/cli.py:26:80: E501 line too long (98 > 79 characters)
+src/ingestion/cli.py:28:80: E501 line too long (90 > 79 characters)
+src/ingestion/cli.py:29:80: E501 line too long (99 > 79 characters)
+src/ingestion/cli.py:30:80: E501 line too long (96 > 79 characters)
+src/ingestion/cli.py:31:80: E501 line too long (101 > 79 characters)
+src/ingestion/cli.py:32:80: E501 line too long (86 > 79 characters)
+src/ingestion/cli.py:38:80: E501 line too long (88 > 79 characters)
+src/ingestion/cli.py:44:80: E501 line too long (84 > 79 characters)
+src/ingestion/cli.py:64:15: F541 f-string is missing placeholders
+src/ingestion/cli.py:92:15: F541 f-string is missing placeholders
+src/ingestion/cli.py:102:80: E501 line too long (111 > 79 characters)
+src/ingestion/cli.py:112:34: W292 no newline at end of file
+src/ingestion/loaders.py:7:1: F401 'typing.List' imported but unused
+src/ingestion/loaders.py:7:1: F401 'typing.Dict' imported but unused
+src/ingestion/loaders.py:7:1: F401 'typing.Any' imported but unused
+src/ingestion/loaders.py:13:1: W293 blank line contains whitespace
+src/ingestion/loaders.py:25:80: E501 line too long (94 > 79 characters)
+src/ingestion/loaders.py:30:1: W293 blank line contains whitespace
+src/ingestion/loaders.py:39:1: W293 blank line contains whitespace
+src/ingestion/loaders.py:42:1: W293 blank line contains whitespace
+src/ingestion/loaders.py:59:1: W293 blank line contains whitespace
+src/ingestion/loaders.py:62:1: W293 blank line contains whitespace
+src/ingestion/manager.py:7:1: F401 'asyncio' imported but unused
+src/ingestion/manager.py:11:1: F401 'typing.Dict' imported but unused
+src/ingestion/manager.py:11:1: F401 'typing.Any' imported but unused
+src/ingestion/manager.py:11:1: F401 'typing.Optional' imported but unused
+src/ingestion/manager.py:11:1: F401 'typing.AsyncGenerator' imported but unused
+src/ingestion/manager.py:14:1: F401 '.base.DocumentLoader' imported but unused
+src/ingestion/manager.py:14:1: F401 '.base.DocumentChunk' imported but unused
+src/ingestion/manager.py:22:1: E402 module level import not at top of file
+src/ingestion/manager.py:23:1: F401 'ollama_embeddings.OllamaEmbeddings' imported but unused
+src/ingestion/manager.py:23:1: E402 module level import not at top of file
+src/ingestion/manager.py:40:80: E501 line too long (81 > 79 characters)
+src/ingestion/manager.py:88:80: E501 line too long (80 > 79 characters)
+src/ingestion/manager.py:110:80: E501 line too long (90 > 79 characters)
+src/ingestion/manager.py:113:80: E501 line too long (85 > 79 characters)
+src/ingestion/manager.py:129:80: E501 line too long (123 > 79 characters)
+src/ingestion/manager.py:170:80: E501 line too long (88 > 79 characters)
+src/ingestion/manager.py:172:80: E501 line too long (88 > 79 characters)
+src/ingestion/manager.py:232:21: F841 local variable 'memory_id' is assigned to but never used
+src/ingestion/manager.py:240:80: E501 line too long (85 > 79 characters)
+src/ingestion/manager.py:269:14: W292 no newline at end of file
+src/ingestion/registry.py:15:80: E501 line too long (85 > 79 characters)
+src/ingestion/registry.py:18:1: W293 blank line contains whitespace
+src/ingestion/registry.py:29:1: W293 blank line contains whitespace
+src/ingestion/registry.py:32:1: W293 blank line contains whitespace
+src/ingestion/registry.py:43:1: W293 blank line contains whitespace
+src/ingestion/registry.py:46:1: W293 blank line contains whitespace
+src/ingestion/registry.py:56:1: W293 blank line contains whitespace
+src/ingestion/registry.py:68:1: W293 blank line contains whitespace
+src/ingestion/registry.py:73:1: W293 blank line contains whitespace
+src/ingestion/registry.py:80:1: W293 blank line contains whitespace
+src/ingestion/registry.py:87:1: W293 blank line contains whitespace
+src/ingestion/registry.py:91:1: W293 blank line contains whitespace
+src/ingestion/registry.py:94:1: W293 blank line contains whitespace
+src/ingestion/registry.py:98:1: W293 blank line contains whitespace
+src/logging_config.py:14:1: W293 blank line contains whitespace
+src/logging_config.py:15:23: W291 trailing whitespace
+src/logging_config.py:20:1: W293 blank line contains whitespace
+src/logging_config.py:25:1: W293 blank line contains whitespace
+src/logging_config.py:28:1: W293 blank line contains whitespace
+src/logging_config.py:30:1: W293 blank line contains whitespace
+src/logging_config.py:35:80: E501 line too long (93 > 79 characters)
+src/logging_config.py:38:1: W293 blank line contains whitespace
+src/logging_config.py:43:1: W293 blank line contains whitespace
+src/logging_config.py:48:1: W293 blank line contains whitespace
+src/logging_config.py:57:1: W293 blank line contains whitespace
+src/logging_config.py:66:1: W293 blank line contains whitespace
+src/logging_config.py:75:1: W293 blank line contains whitespace
+src/logging_config.py:82:1: W293 blank line contains whitespace
+src/logging_config.py:88:1: W293 blank line contains whitespace
+src/logging_config.py:91:1: W293 blank line contains whitespace
+src/logging_config.py:97:1: W293 blank line contains whitespace
+src/logging_config.py:101:1: W293 blank line contains whitespace
+src/logging_config.py:105:1: W293 blank line contains whitespace
+src/logging_config.py:109:1: W293 blank line contains whitespace
+src/logging_config.py:113:1: W293 blank line contains whitespace
+src/logging_config.py:114:80: E501 line too long (85 > 79 characters)
+src/logging_config.py:121:1: W293 blank line contains whitespace
+src/logging_config.py:122:80: E501 line too long (89 > 79 characters)
+src/logging_config.py:129:1: W293 blank line contains whitespace
+src/logging_config.py:130:80: E501 line too long (100 > 79 characters)
+src/logging_config.py:137:1: W293 blank line contains whitespace
+src/logging_config.py:145:1: W293 blank line contains whitespace
+src/logging_config.py:157:1: W293 blank line contains whitespace
+src/logging_config.py:162:1: W293 blank line contains whitespace
+src/logging_config.py:166:1: W293 blank line contains whitespace
+src/logging_config.py:179:80: E501 line too long (97 > 79 characters)
+src/memory_scorer.py:3:80: E501 line too long (91 > 79 characters)
+src/memory_scorer.py:4:80: E501 line too long (80 > 79 characters)
+src/memory_scorer.py:9:1: F401 'typing.Optional' imported but unused
+src/memory_scorer.py:11:1: E302 expected 2 blank lines, found 1
+src/memory_scorer.py:21:80: E501 line too long (84 > 79 characters)
+src/memory_scorer.py:37:5: E722 do not use bare 'except'
+src/memory_scorer.py:41:1: E302 expected 2 blank lines, found 1
+src/memory_scorer.py:41:80: E501 line too long (104 > 79 characters)
+src/memory_scorer.py:84:80: E501 line too long (85 > 79 characters)
+src/memory_scorer.py:88:80: E501 line too long (90 > 79 characters)
+src/memory_scorer.py:93:80: E501 line too long (83 > 79 characters)
+src/memory_scorer.py:103:80: E501 line too long (96 > 79 characters)
+src/memory_scorer.py:107:5: E722 do not use bare 'except'
+src/memory_scorer.py:111:1: E302 expected 2 blank lines, found 1
+src/memory_scorer.py:142:80: E501 line too long (99 > 79 characters)
+src/memory_scorer.py:157:5: E722 do not use bare 'except'
+src/memory_scorer.py:161:1: E302 expected 2 blank lines, found 1
+src/memory_scorer.py:184:5: E722 do not use bare 'except'
+src/memory_scorer.py:187:1: E302 expected 2 blank lines, found 1
+src/memory_scorer.py:187:80: E501 line too long (109 > 79 characters)
+src/memory_scorer.py:221:80: E501 line too long (82 > 79 characters)
+src/memory_scorer.py:235:5: E722 do not use bare 'except'
+src/memory_scorer.py:238:1: E302 expected 2 blank lines, found 1
+src/memory_scorer.py:239:27: E128 continuation line under-indented for visual indent
+src/memory_scorer.py:240:27: E128 continuation line under-indented for visual indent
+src/memory_scorer.py:240:80: E501 line too long (80 > 79 characters)
+src/memory_scorer.py:264:80: E501 line too long (85 > 79 characters)
+src/memory_scorer.py:266:80: E501 line too long (116 > 79 characters)
+src/memory_scorer.py:331:80: E501 line too long (134 > 79 characters)
+src/memory_scorer.py:332:80: E501 line too long (84 > 79 characters)
+src/memory_scorer.py:337:1: E305 expected 2 blank lines after class or function definition, found 1
+src/memory_scorer.py:344:2: W292 no newline at end of file
+src/models/__init__.py:17:42: W292 no newline at end of file
+src/models/memory.py:22:80: E501 line too long (85 > 79 characters)
+src/models/memory.py:31:1: E302 expected 2 blank lines, found 1
+src/models/memory.py:40:1: W293 blank line contains whitespace
+src/models/memory.py:47:1: W293 blank line contains whitespace
+src/models/memory.py:61:80: E501 line too long (107 > 79 characters)
+src/models/memory.py:68:1: W293 blank line contains whitespace
+src/models/memory.py:70:80: E501 line too long (85 > 79 characters)
+src/models/memory.py:84:80: E501 line too long (91 > 79 characters)
+src/models/memory.py:93:80: E501 line too long (91 > 79 characters)
+src/models/memory.py:94:17: E722 do not use bare 'except'
+src/models/memory.py:106:80: E501 line too long (107 > 79 characters)
+src/models/memory.py:110:80: E501 line too long (102 > 79 characters)
+src/models/memory.py:111:80: E501 line too long (114 > 79 characters)
+src/models/memory.py:112:80: E501 line too long (111 > 79 characters)
+src/models/memory.py:113:80: E501 line too long (81 > 79 characters)
+src/models/memory.py:116:80: E501 line too long (98 > 79 characters)
+src/models/memory.py:117:80: E501 line too long (109 > 79 characters)
+src/models/memory.py:125:80: E501 line too long (87 > 79 characters)
+src/models/memory.py:145:80: E501 line too long (107 > 79 characters)
+src/models/memory.py:149:80: E501 line too long (102 > 79 characters)
+src/models/memory.py:150:80: E501 line too long (114 > 79 characters)
+src/models/memory.py:151:80: E501 line too long (125 > 79 characters)
+src/models/memory.py:152:80: E501 line too long (81 > 79 characters)
+src/models/memory.py:155:80: E501 line too long (98 > 79 characters)
+src/models/memory.py:156:80: E501 line too long (123 > 79 characters)
+src/models/memory.py:164:80: E501 line too long (95 > 79 characters)
+src/models/memory.py:181:1: W293 blank line contains whitespace
+src/models/memory.py:200:1: W293 blank line contains whitespace
+src/models/memory.py:207:80: E501 line too long (92 > 79 characters)
+src/models/memory.py:219:80: E501 line too long (98 > 79 characters)
+src/models/memory.py:221:80: E501 line too long (82 > 79 characters)
+src/models/memory.py:222:1: W293 blank line contains whitespace
+src/models/memory.py:229:1: W293 blank line contains whitespace
+src/models/memory.py:236:1: W293 blank line contains whitespace
+src/models/memory.py:239:1: W293 blank line contains whitespace
+src/models/memory.py:242:42: W291 trailing whitespace
+src/models/memory.py:249:1: W293 blank line contains whitespace
+src/models/memory.py:264:1: E302 expected 2 blank lines, found 1
+src/models/memory.py:266:80: E501 line too long (86 > 79 characters)
+src/models/memory.py:270:1: W293 blank line contains whitespace
+src/models/memory.py:275:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:5:1: E302 expected 2 blank lines, found 1
+src/ollama_embeddings.py:7:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:8:80: E501 line too long (107 > 79 characters)
+src/ollama_embeddings.py:8:108: W291 trailing whitespace
+src/ollama_embeddings.py:14:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:17:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:21:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:28:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:33:46: W291 trailing whitespace
+src/ollama_embeddings.py:41:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:44:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:49:80: E501 line too long (82 > 79 characters)
+src/ollama_embeddings.py:50:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:57:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:59:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:64:1: W293 blank line contains whitespace
+src/ollama_embeddings.py:67:60: W292 no newline at end of file
+src/postgres_memory_api.py:7:1: F401 'numpy as np' imported but unused
+src/postgres_memory_api.py:8:1: F401 'typing.Union' imported but unused
+src/postgres_memory_api.py:13:1: F401 'exceptions.ConnectionError' imported but unused
+src/postgres_memory_api.py:13:1: F401 'exceptions.TimeoutError' imported but unused
+src/postgres_memory_api.py:13:1: F401 'exceptions.DatabaseError' imported but unused
+src/postgres_memory_api.py:13:1: F401 'exceptions.ConsolidationError' imported but unused
+src/postgres_memory_api.py:13:1: F401 'exceptions.ServiceUnavailableError' imported but unused
+src/postgres_memory_api.py:13:1: F401 'exceptions.InsufficientDataError' imported but unused
+src/postgres_memory_api.py:13:1: F401 'exceptions.ResourceExhaustedError' imported but unused
+src/postgres_memory_api.py:18:1: F401 'error_handlers.retry_on_error' imported but unused
+src/postgres_memory_api.py:18:1: F401 'error_handlers.RetryConfig' imported but unused
+src/postgres_memory_api.py:22:1: F401 'database_error_handling.DatabaseErrorHandler' imported but unused
+src/postgres_memory_api.py:39:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_api.py:42:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:44:80: E501 line too long (91 > 79 characters)
+src/postgres_memory_api.py:45:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:52:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:55:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:64:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:70:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:71:80: E501 line too long (101 > 79 characters)
+src/postgres_memory_api.py:73:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:75:80: E501 line too long (80 > 79 characters)
+src/postgres_memory_api.py:77:1: E305 expected 2 blank lines after class or function definition, found 0
+src/postgres_memory_api.py:80:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_api.py:83:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:92:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:97:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_api.py:98:80: E501 line too long (91 > 79 characters)
+src/postgres_memory_api.py:100:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:106:80: E501 line too long (89 > 79 characters)
+src/postgres_memory_api.py:112:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:115:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:119:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:124:80: E501 line too long (84 > 79 characters)
+src/postgres_memory_api.py:126:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:134:80: E501 line too long (121 > 79 characters)
+src/postgres_memory_api.py:140:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:141:80: E501 line too long (87 > 79 characters)
+src/postgres_memory_api.py:144:80: E501 line too long (92 > 79 characters)
+src/postgres_memory_api.py:145:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:147:80: E501 line too long (100 > 79 characters)
+src/postgres_memory_api.py:148:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:150:80: E501 line too long (117 > 79 characters)
+src/postgres_memory_api.py:151:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:153:80: E501 line too long (96 > 79 characters)
+src/postgres_memory_api.py:154:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:156:80: E501 line too long (88 > 79 characters)
+src/postgres_memory_api.py:157:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:164:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:167:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:170:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:183:80: E501 line too long (135 > 79 characters)
+src/postgres_memory_api.py:198:80: E501 line too long (86 > 79 characters)
+src/postgres_memory_api.py:207:80: E501 line too long (81 > 79 characters)
+src/postgres_memory_api.py:209:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:210:80: E501 line too long (114 > 79 characters)
+src/postgres_memory_api.py:211:80: E501 line too long (89 > 79 characters)
+src/postgres_memory_api.py:221:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:224:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:225:80: E501 line too long (84 > 79 characters)
+src/postgres_memory_api.py:231:80: E501 line too long (102 > 79 characters)
+src/postgres_memory_api.py:233:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_api.py:236:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_api.py:237:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_api.py:238:80: E501 line too long (104 > 79 characters)
+src/postgres_memory_api.py:241:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_api.py:243:80: E501 line too long (96 > 79 characters)
+src/postgres_memory_api.py:245:80: E501 line too long (92 > 79 characters)
+src/postgres_memory_api.py:256:80: E501 line too long (99 > 79 characters)
+src/postgres_memory_api.py:259:80: E501 line too long (98 > 79 characters)
+src/postgres_memory_api.py:263:80: E501 line too long (88 > 79 characters)
+src/postgres_memory_api.py:266:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:271:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:276:80: E501 line too long (91 > 79 characters)
+src/postgres_memory_api.py:280:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:283:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:286:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:295:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:298:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:301:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:309:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:312:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:314:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:315:80: E501 line too long (126 > 79 characters)
+src/postgres_memory_api.py:318:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:322:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:324:80: E501 line too long (107 > 79 characters)
+src/postgres_memory_api.py:325:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:328:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:332:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:339:80: E501 line too long (85 > 79 characters)
+src/postgres_memory_api.py:342:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:345:38: W291 trailing whitespace
+src/postgres_memory_api.py:346:80: E501 line too long (103 > 79 characters)
+src/postgres_memory_api.py:349:80: E501 line too long (101 > 79 characters)
+src/postgres_memory_api.py:352:38: W291 trailing whitespace
+src/postgres_memory_api.py:356:80: E501 line too long (90 > 79 characters)
+src/postgres_memory_api.py:357:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:363:80: E501 line too long (85 > 79 characters)
+src/postgres_memory_api.py:366:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:369:38: W291 trailing whitespace
+src/postgres_memory_api.py:370:80: E501 line too long (88 > 79 characters)
+src/postgres_memory_api.py:373:80: E501 line too long (85 > 79 characters)
+src/postgres_memory_api.py:376:38: W291 trailing whitespace
+src/postgres_memory_api.py:381:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:385:34: W291 trailing whitespace
+src/postgres_memory_api.py:390:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:394:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_api.py:397:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:402:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:406:66: W291 trailing whitespace
+src/postgres_memory_api.py:407:58: W291 trailing whitespace
+src/postgres_memory_api.py:411:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:413:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_api.py:415:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:419:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:421:80: E501 line too long (90 > 79 characters)
+src/postgres_memory_api.py:423:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:425:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_api.py:427:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:429:80: E501 line too long (88 > 79 characters)
+src/postgres_memory_api.py:431:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:438:38: W291 trailing whitespace
+src/postgres_memory_api.py:439:51: W291 trailing whitespace
+src/postgres_memory_api.py:440:50: W291 trailing whitespace
+src/postgres_memory_api.py:444:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:450:80: E501 line too long (90 > 79 characters)
+src/postgres_memory_api.py:452:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:461:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:465:66: W291 trailing whitespace
+src/postgres_memory_api.py:466:58: W291 trailing whitespace
+src/postgres_memory_api.py:470:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:478:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:482:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:488:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:491:47: W291 trailing whitespace
+src/postgres_memory_api.py:495:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:499:80: E501 line too long (93 > 79 characters)
+src/postgres_memory_api.py:508:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:514:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_api.py:515:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:518:80: E501 line too long (89 > 79 characters)
+src/postgres_memory_api.py:519:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:521:80: E501 line too long (88 > 79 characters)
+src/postgres_memory_api.py:522:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:524:80: E501 line too long (220 > 79 characters)
+src/postgres_memory_api.py:525:80: E501 line too long (97 > 79 characters)
+src/postgres_memory_api.py:526:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:528:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:534:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:535:80: E501 line too long (100 > 79 characters)
+src/postgres_memory_api.py:539:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:541:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:545:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:549:80: E501 line too long (117 > 79 characters)
+src/postgres_memory_api.py:552:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:556:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:571:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:574:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:581:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:583:80: E501 line too long (87 > 79 characters)
+src/postgres_memory_api.py:589:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:592:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:598:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:605:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:611:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:623:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:625:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:629:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:630:80: E501 line too long (104 > 79 characters)
+src/postgres_memory_api.py:632:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:634:80: E501 line too long (85 > 79 characters)
+src/postgres_memory_api.py:638:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:640:1: W293 blank line contains whitespace
+src/postgres_memory_api.py:644:80: E501 line too long (91 > 79 characters)
+src/postgres_memory_api.py:650:59: W292 no newline at end of file
+src/postgres_memory_server.py:18:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_server.py:19:80: E501 line too long (105 > 79 characters)
+src/postgres_memory_server.py:28:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:37:80: E501 line too long (127 > 79 characters)
+src/postgres_memory_server.py:39:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_server.py:46:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:47:61: W291 trailing whitespace
+src/postgres_memory_server.py:48:80: E501 line too long (90 > 79 characters)
+src/postgres_memory_server.py:51:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:52:80: E501 line too long (102 > 79 characters)
+src/postgres_memory_server.py:53:80: E501 line too long (106 > 79 characters)
+src/postgres_memory_server.py:54:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:56:80: E501 line too long (91 > 79 characters)
+src/postgres_memory_server.py:56:92: W291 trailing whitespace
+src/postgres_memory_server.py:58:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_server.py:59:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_server.py:60:80: E501 line too long (84 > 79 characters)
+src/postgres_memory_server.py:61:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:62:80: E501 line too long (98 > 79 characters)
+src/postgres_memory_server.py:63:80: E501 line too long (92 > 79 characters)
+src/postgres_memory_server.py:67:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:70:43: W291 trailing whitespace
+src/postgres_memory_server.py:73:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:76:80: E501 line too long (81 > 79 characters)
+src/postgres_memory_server.py:77:80: E501 line too long (85 > 79 characters)
+src/postgres_memory_server.py:78:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:80:80: E501 line too long (86 > 79 characters)
+src/postgres_memory_server.py:81:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:83:80: E501 line too long (89 > 79 characters)
+src/postgres_memory_server.py:84:80: E501 line too long (80 > 79 characters)
+src/postgres_memory_server.py:91:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:95:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:96:65: W291 trailing whitespace
+src/postgres_memory_server.py:97:80: E501 line too long (92 > 79 characters)
+src/postgres_memory_server.py:100:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:101:80: E501 line too long (90 > 79 characters)
+src/postgres_memory_server.py:104:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:106:80: E501 line too long (90 > 79 characters)
+src/postgres_memory_server.py:108:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:109:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_server.py:110:80: E501 line too long (84 > 79 characters)
+src/postgres_memory_server.py:111:80: E501 line too long (90 > 79 characters)
+src/postgres_memory_server.py:112:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:115:65: W291 trailing whitespace
+src/postgres_memory_server.py:117:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:120:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:122:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_server.py:123:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:125:80: E501 line too long (95 > 79 characters)
+src/postgres_memory_server.py:131:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:135:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:136:80: E501 line too long (92 > 79 characters)
+src/postgres_memory_server.py:139:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:141:80: E501 line too long (85 > 79 characters)
+src/postgres_memory_server.py:143:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:145:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:152:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:154:80: E501 line too long (80 > 79 characters)
+src/postgres_memory_server.py:155:63: W291 trailing whitespace
+src/postgres_memory_server.py:158:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:160:80: E501 line too long (97 > 79 characters)
+src/postgres_memory_server.py:162:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:167:80: E501 line too long (87 > 79 characters)
+src/postgres_memory_server.py:169:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:178:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:179:62: W291 trailing whitespace
+src/postgres_memory_server.py:180:20: E128 continuation line under-indented for visual indent
+src/postgres_memory_server.py:183:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:187:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:194:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:200:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:202:80: E501 line too long (89 > 79 characters)
+src/postgres_memory_server.py:203:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:207:51: W291 trailing whitespace
+src/postgres_memory_server.py:211:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:214:80: E501 line too long (80 > 79 characters)
+src/postgres_memory_server.py:218:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:224:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:227:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:232:80: E501 line too long (89 > 79 characters)
+src/postgres_memory_server.py:233:80: E501 line too long (106 > 79 characters)
+src/postgres_memory_server.py:236:80: E501 line too long (93 > 79 characters)
+src/postgres_memory_server.py:239:80: E501 line too long (86 > 79 characters)
+src/postgres_memory_server.py:248:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:252:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:253:80: E501 line too long (97 > 79 characters)
+src/postgres_memory_server.py:254:80: E501 line too long (91 > 79 characters)
+src/postgres_memory_server.py:256:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:258:80: E501 line too long (93 > 79 characters)
+src/postgres_memory_server.py:259:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:262:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:271:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:275:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:276:80: E501 line too long (81 > 79 characters)
+src/postgres_memory_server.py:277:80: E501 line too long (81 > 79 characters)
+src/postgres_memory_server.py:278:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:280:80: E501 line too long (86 > 79 characters)
+src/postgres_memory_server.py:281:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_server.py:283:80: E501 line too long (92 > 79 characters)
+src/postgres_memory_server.py:284:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:286:80: E501 line too long (101 > 79 characters)
+src/postgres_memory_server.py:287:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:292:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:303:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:310:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:313:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:319:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:323:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:324:80: E501 line too long (87 > 79 characters)
+src/postgres_memory_server.py:326:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:329:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:337:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:339:80: E501 line too long (157 > 79 characters)
+src/postgres_memory_server.py:340:80: E501 line too long (145 > 79 characters)
+src/postgres_memory_server.py:341:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:358:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:361:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:370:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_server.py:380:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:384:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:386:80: E501 line too long (85 > 79 characters)
+src/postgres_memory_server.py:388:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:390:80: E501 line too long (98 > 79 characters)
+src/postgres_memory_server.py:391:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:396:80: E501 line too long (90 > 79 characters)
+src/postgres_memory_server.py:399:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:401:80: E501 line too long (182 > 79 characters)
+src/postgres_memory_server.py:402:80: E501 line too long (182 > 79 characters)
+src/postgres_memory_server.py:403:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:413:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:426:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:429:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:432:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:438:80: E501 line too long (159 > 79 characters)
+src/postgres_memory_server.py:450:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:451:74: W291 trailing whitespace
+src/postgres_memory_server.py:452:34: E128 continuation line under-indented for visual indent
+src/postgres_memory_server.py:452:80: E501 line too long (109 > 79 characters)
+src/postgres_memory_server.py:455:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:456:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_server.py:458:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:461:80: E501 line too long (95 > 79 characters)
+src/postgres_memory_server.py:462:80: E501 line too long (113 > 79 characters)
+src/postgres_memory_server.py:463:80: E501 line too long (111 > 79 characters)
+src/postgres_memory_server.py:464:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:473:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:475:80: E501 line too long (170 > 79 characters)
+src/postgres_memory_server.py:476:80: E501 line too long (192 > 79 characters)
+src/postgres_memory_server.py:477:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:496:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:508:80: E501 line too long (82 > 79 characters)
+src/postgres_memory_server.py:511:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:514:80: E501 line too long (87 > 79 characters)
+src/postgres_memory_server.py:517:80: E501 line too long (85 > 79 characters)
+src/postgres_memory_server.py:518:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:527:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:535:80: E501 line too long (98 > 79 characters)
+src/postgres_memory_server.py:536:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:543:80: E501 line too long (100 > 79 characters)
+src/postgres_memory_server.py:546:80: E501 line too long (102 > 79 characters)
+src/postgres_memory_server.py:556:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:558:20: E128 continuation line under-indented for visual indent
+src/postgres_memory_server.py:558:80: E501 line too long (96 > 79 characters)
+src/postgres_memory_server.py:565:80: E501 line too long (83 > 79 characters)
+src/postgres_memory_server.py:566:80: E501 line too long (88 > 79 characters)
+src/postgres_memory_server.py:580:80: E501 line too long (87 > 79 characters)
+src/postgres_memory_server.py:590:80: E501 line too long (161 > 79 characters)
+src/postgres_memory_server.py:595:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:596:80: E501 line too long (93 > 79 characters)
+src/postgres_memory_server.py:609:80: E501 line too long (86 > 79 characters)
+src/postgres_memory_server.py:610:80: E501 line too long (86 > 79 characters)
+src/postgres_memory_server.py:616:80: E501 line too long (87 > 79 characters)
+src/postgres_memory_server.py:620:80: E501 line too long (89 > 79 characters)
+src/postgres_memory_server.py:622:80: E501 line too long (166 > 79 characters)
+src/postgres_memory_server.py:627:1: E302 expected 2 blank lines, found 1
+src/postgres_memory_server.py:631:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:634:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:638:80: E501 line too long (88 > 79 characters)
+src/postgres_memory_server.py:640:1: W293 blank line contains whitespace
+src/postgres_memory_server.py:641:80: E501 line too long (91 > 79 characters)
+src/postgres_memory_server.py:650:1: E305 expected 2 blank lines after class or function definition, found 1
+src/postgres_memory_server.py:651:42: W292 no newline at end of file
+src/project_detector.py:9:1: F401 'pathlib.Path' imported but unused
+src/project_detector.py:26:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:82:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:93:80: E501 line too long (86 > 79 characters)
+src/project_detector.py:94:80: E501 line too long (90 > 79 characters)
+src/project_detector.py:95:80: E501 line too long (82 > 79 characters)
+src/project_detector.py:98:80: E501 line too long (80 > 79 characters)
+src/project_detector.py:99:80: E501 line too long (89 > 79 characters)
+src/project_detector.py:120:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:120:80: E501 line too long (97 > 79 characters)
+src/project_detector.py:127:80: E501 line too long (80 > 79 characters)
+src/project_detector.py:150:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:150:80: E501 line too long (99 > 79 characters)
+src/project_detector.py:160:80: E501 line too long (89 > 79 characters)
+src/project_detector.py:178:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:178:80: E501 line too long (95 > 79 characters)
+src/project_detector.py:187:80: E501 line too long (89 > 79 characters)
+src/project_detector.py:203:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:203:80: E501 line too long (91 > 79 characters)
+src/project_detector.py:228:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:228:80: E501 line too long (90 > 79 characters)
+src/project_detector.py:234:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:234:80: E501 line too long (91 > 79 characters)
+src/project_detector.py:240:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:298:1: E302 expected 2 blank lines, found 1
+src/project_detector.py:307:80: E501 line too long (165 > 79 characters)
+src/project_detector.py:318:80: E501 line too long (84 > 79 characters)
+src/project_detector.py:319:80: E501 line too long (88 > 79 characters)
+src/project_detector.py:351:27: E128 continuation line under-indented for visual indent
+src/project_detector.py:352:27: E128 continuation line under-indented for visual indent
+src/project_detector.py:354:80: E501 line too long (304 > 79 characters)
+src/project_detector.py:359:80: E501 line too long (116 > 79 characters)
+src/project_detector.py:373:1: E305 expected 2 blank lines after class or function definition, found 1
+src/project_detector.py:377:35: W292 no newline at end of file
+src/python_api.py:5:80: E501 line too long (80 > 79 characters)
+src/python_api.py:11:1: W293 blank line contains whitespace
+src/python_api.py:14:1: W293 blank line contains whitespace
+src/python_api.py:17:1: W293 blank line contains whitespace
+src/python_api.py:20:1: W293 blank line contains whitespace
+src/python_api.py:29:1: F401 'typing.Awaitable' imported but unused
+src/python_api.py:35:1: E402 module level import not at top of file
+src/python_api.py:36:1: E402 module level import not at top of file
+src/python_api.py:37:1: E402 module level import not at top of file
+src/python_api.py:46:1: W293 blank line contains whitespace
+src/python_api.py:51:1: W293 blank line contains whitespace
+src/python_api.py:52:23: W291 trailing whitespace
+src/python_api.py:59:1: W293 blank line contains whitespace
+src/python_api.py:62:80: E501 line too long (96 > 79 characters)
+src/python_api.py:72:1: W293 blank line contains whitespace
+src/python_api.py:74:80: E501 line too long (85 > 79 characters)
+src/python_api.py:75:1: W293 blank line contains whitespace
+src/python_api.py:78:29: W291 trailing whitespace
+src/python_api.py:81:1: W293 blank line contains whitespace
+src/python_api.py:82:39: W291 trailing whitespace
+src/python_api.py:83:33: E128 continuation line under-indented for visual indent
+src/python_api.py:84:33: E128 continuation line under-indented for visual indent
+src/python_api.py:85:33: E128 continuation line under-indented for visual indent
+src/python_api.py:85:80: E501 line too long (96 > 79 characters)
+src/python_api.py:87:80: E501 line too long (88 > 79 characters)
+src/python_api.py:88:80: E501 line too long (105 > 79 characters)
+src/python_api.py:90:1: W293 blank line contains whitespace
+src/python_api.py:104:80: E501 line too long (95 > 79 characters)
+src/python_api.py:109:1: W293 blank line contains whitespace
+src/python_api.py:111:1: W293 blank line contains whitespace
+src/python_api.py:112:20: W291 trailing whitespace
+src/python_api.py:113:28: W291 trailing whitespace
+src/python_api.py:121:1: W293 blank line contains whitespace
+src/python_api.py:129:1: W293 blank line contains whitespace
+src/python_api.py:141:1: W293 blank line contains whitespace
+src/python_api.py:143:1: W293 blank line contains whitespace
+src/python_api.py:144:21: W291 trailing whitespace
+src/python_api.py:145:27: W291 trailing whitespace
+src/python_api.py:150:1: W293 blank line contains whitespace
+src/python_api.py:155:1: W293 blank line contains whitespace
+src/python_api.py:160:1: W293 blank line contains whitespace
+src/python_api.py:161:21: W291 trailing whitespace
+src/python_api.py:169:1: W293 blank line contains whitespace
+src/python_api.py:176:1: W293 blank line contains whitespace
+src/python_api.py:180:80: E501 line too long (82 > 79 characters)
+src/python_api.py:181:1: W293 blank line contains whitespace
+src/python_api.py:185:1: W293 blank line contains whitespace
+src/python_api.py:189:1: W293 blank line contains whitespace
+src/python_api.py:195:80: E501 line too long (98 > 79 characters)
+src/python_api.py:196:1: W293 blank line contains whitespace
+src/python_api.py:200:1: W293 blank line contains whitespace
+src/python_api.py:205:1: W293 blank line contains whitespace
+src/python_api.py:206:30: W291 trailing whitespace
+src/python_api.py:207:24: E128 continuation line under-indented for visual indent
+src/python_api.py:208:24: E128 continuation line under-indented for visual indent
+src/python_api.py:209:24: E128 continuation line under-indented for visual indent
+src/python_api.py:210:24: E128 continuation line under-indented for visual indent
+src/python_api.py:213:1: W293 blank line contains whitespace
+src/python_api.py:219:1: W293 blank line contains whitespace
+src/python_api.py:225:29: W291 trailing whitespace
+src/python_api.py:228:1: W293 blank line contains whitespace
+src/python_api.py:235:1: W293 blank line contains whitespace
+src/python_api.py:243:1: W293 blank line contains whitespace
+src/python_api.py:244:26: W291 trailing whitespace
+src/python_api.py:245:20: E128 continuation line under-indented for visual indent
+src/python_api.py:246:20: E128 continuation line under-indented for visual indent
+src/python_api.py:247:20: E128 continuation line under-indented for visual indent
+src/python_api.py:250:1: W293 blank line contains whitespace
+src/python_api.py:255:1: W293 blank line contains whitespace
+src/python_api.py:261:29: W291 trailing whitespace
+src/python_api.py:264:1: W293 blank line contains whitespace
+src/python_api.py:266:80: E501 line too long (89 > 79 characters)
+src/python_api.py:267:1: W293 blank line contains whitespace
+src/python_api.py:275:1: W293 blank line contains whitespace
+src/python_api.py:276:80: E501 line too long (99 > 79 characters)
+src/python_api.py:279:1: W293 blank line contains whitespace
+src/python_api.py:283:1: W293 blank line contains whitespace
+src/python_api.py:294:1: W293 blank line contains whitespace
+src/python_api.py:298:1: W293 blank line contains whitespace
+src/python_api.py:309:1: W293 blank line contains whitespace
+src/python_api.py:311:80: E501 line too long (95 > 79 characters)
+src/python_api.py:312:1: W293 blank line contains whitespace
+src/python_api.py:319:1: W293 blank line contains whitespace
+src/python_api.py:323:1: W293 blank line contains whitespace
+src/python_api.py:324:23: W291 trailing whitespace
+src/python_api.py:336:1: W293 blank line contains whitespace
+src/python_api.py:338:80: E501 line too long (85 > 79 characters)
+src/python_api.py:339:1: W293 blank line contains whitespace
+src/python_api.py:342:29: W291 trailing whitespace
+src/python_api.py:345:1: W293 blank line contains whitespace
+src/python_api.py:346:39: W291 trailing whitespace
+src/python_api.py:347:33: E128 continuation line under-indented for visual indent
+src/python_api.py:348:33: E128 continuation line under-indented for visual indent
+src/python_api.py:349:33: E128 continuation line under-indented for visual indent
+src/python_api.py:349:80: E501 line too long (96 > 79 characters)
+src/python_api.py:351:80: E501 line too long (88 > 79 characters)
+src/python_api.py:352:80: E501 line too long (105 > 79 characters)
+src/python_api.py:354:1: W293 blank line contains whitespace
+src/python_api.py:368:80: E501 line too long (95 > 79 characters)
+src/python_api.py:373:1: W293 blank line contains whitespace
+src/python_api.py:375:1: W293 blank line contains whitespace
+src/python_api.py:376:26: W291 trailing whitespace
+src/python_api.py:377:20: E128 continuation line under-indented for visual indent
+src/python_api.py:377:33: W291 trailing whitespace
+src/python_api.py:378:20: E128 continuation line under-indented for visual indent
+src/python_api.py:379:20: E128 continuation line under-indented for visual indent
+src/python_api.py:380:20: E128 continuation line under-indented for visual indent
+src/python_api.py:381:20: E128 continuation line under-indented for visual indent
+src/python_api.py:382:20: E128 continuation line under-indented for visual indent
+src/python_api.py:392:1: W293 blank line contains whitespace
+src/python_api.py:396:18: W291 trailing whitespace
+src/python_api.py:397:42: W291 trailing whitespace
+src/python_api.py:398:21: W291 trailing whitespace
+src/python_api.py:399:26: W291 trailing whitespace
+src/python_api.py:402:1: W293 blank line contains whitespace
+src/python_api.py:403:27: W291 trailing whitespace
+src/python_api.py:404:21: E128 continuation line under-indented for visual indent
+src/python_api.py:404:32: W291 trailing whitespace
+src/python_api.py:405:21: E128 continuation line under-indented for visual indent
+src/python_api.py:406:21: E128 continuation line under-indented for visual indent
+src/python_api.py:416:1: W293 blank line contains whitespace
+src/python_api.py:417:27: W291 trailing whitespace
+src/python_api.py:418:21: E128 continuation line under-indented for visual indent
+src/python_api.py:419:21: E128 continuation line under-indented for visual indent
+src/python_api.py:420:21: E128 continuation line under-indented for visual indent
+src/python_api.py:421:21: E128 continuation line under-indented for visual indent
+src/python_api.py:422:21: E128 continuation line under-indented for visual indent
+src/python_api.py:433:1: W293 blank line contains whitespace
+src/python_api.py:438:1: W293 blank line contains whitespace
+src/python_api.py:439:36: W291 trailing whitespace
+src/python_api.py:440:30: E128 continuation line under-indented for visual indent
+src/python_api.py:441:30: E128 continuation line under-indented for visual indent
+src/python_api.py:442:30: E128 continuation line under-indented for visual indent
+src/python_api.py:443:30: E128 continuation line under-indented for visual indent
+src/python_api.py:447:29: W291 trailing whitespace
+src/python_api.py:450:1: W293 blank line contains whitespace
+src/python_api.py:457:1: W293 blank line contains whitespace
+src/python_api.py:465:1: W293 blank line contains whitespace
+src/python_api.py:466:32: W291 trailing whitespace
+src/python_api.py:467:26: E128 continuation line under-indented for visual indent
+src/python_api.py:468:26: E128 continuation line under-indented for visual indent
+src/python_api.py:469:26: E128 continuation line under-indented for visual indent
+src/python_api.py:473:29: W291 trailing whitespace
+src/python_api.py:476:1: W293 blank line contains whitespace
+src/python_api.py:478:80: E501 line too long (82 > 79 characters)
+src/python_api.py:479:1: W293 blank line contains whitespace
+src/python_api.py:487:1: W293 blank line contains whitespace
+src/python_api.py:497:1: W293 blank line contains whitespace
+src/python_api.py:499:80: E501 line too long (95 > 79 characters)
+src/python_api.py:500:1: W293 blank line contains whitespace
+src/python_api.py:511:80: E501 line too long (94 > 79 characters)
+src/python_api.py:517:80: E501 line too long (91 > 79 characters)
+src/python_api.py:524:80: E501 line too long (84 > 79 characters)
+src/python_api.py:530:80: E501 line too long (106 > 79 characters)
+src/python_api.py:536:80: E501 line too long (103 > 79 characters)
+src/python_api.py:548:1: W293 blank line contains whitespace
+src/python_api.py:551:1: W293 blank line contains whitespace
+src/python_api.py:553:80: E501 line too long (93 > 79 characters)
+src/python_api.py:554:80: E501 line too long (96 > 79 characters)
+src/python_api.py:556:1: W293 blank line contains whitespace
+src/python_api.py:560:80: E501 line too long (92 > 79 characters)
+src/python_api.py:561:1: W293 blank line contains whitespace
+src/python_api.py:565:1: W293 blank line contains whitespace
+src/python_api.py:570:1: W293 blank line contains whitespace
+src/python_api.py:573:1: W293 blank line contains whitespace
+src/python_api.py:576:80: E501 line too long (96 > 79 characters)
+src/python_api.py:577:80: E501 line too long (94 > 79 characters)
+src/python_api.py:579:1: W293 blank line contains whitespace
+src/python_api.py:584:80: E501 line too long (92 > 79 characters)
+src/python_api.py:585:1: W293 blank line contains whitespace
+src/python_api.py:588:1: W293 blank line contains whitespace
+src/python_api.py:592:1: W293 blank line contains whitespace
+src/python_api.py:595:1: W293 blank line contains whitespace
+src/security.py:7:1: F401 'typing.Optional' imported but unused
+src/security.py:7:1: F401 'typing.List' imported but unused
+src/security.py:15:1: W293 blank line contains whitespace
+src/security.py:18:80: E501 line too long (83 > 79 characters)
+src/security.py:26:1: W293 blank line contains whitespace
+src/security.py:38:1: W293 blank line contains whitespace
+src/security.py:44:1: W293 blank line contains whitespace
+src/security.py:47:80: E501 line too long (83 > 79 characters)
+src/security.py:48:1: W293 blank line contains whitespace
+src/security.py:51:80: E501 line too long (90 > 79 characters)
+src/security.py:52:1: W293 blank line contains whitespace
+src/security.py:56:1: W293 blank line contains whitespace
+src/security.py:58:1: W293 blank line contains whitespace
+src/security.py:64:1: W293 blank line contains whitespace
+src/security.py:67:1: W293 blank line contains whitespace
+src/security.py:70:1: W293 blank line contains whitespace
+src/security.py:73:1: W293 blank line contains whitespace
+src/security.py:75:1: W293 blank line contains whitespace
+src/security.py:81:1: W293 blank line contains whitespace
+src/security.py:89:1: W293 blank line contains whitespace
+src/security.py:94:1: W293 blank line contains whitespace
+src/security.py:113:1: W293 blank line contains whitespace
+src/security.py:115:1: W293 blank line contains whitespace
+src/security.py:117:1: W293 blank line contains whitespace
+src/security.py:123:1: W293 blank line contains whitespace
+src/security.py:127:80: E501 line too long (82 > 79 characters)
+src/security.py:129:1: W293 blank line contains whitespace
+src/security.py:135:1: W293 blank line contains whitespace
+src/security.py:140:80: E501 line too long (95 > 79 characters)
+src/security.py:142:1: W293 blank line contains whitespace
+src/security.py:148:80: E501 line too long (99 > 79 characters)
+src/security.py:152:1: W293 blank line contains whitespace
+src/security.py:157:1: W293 blank line contains whitespace
+src/security.py:166:1: W293 blank line contains whitespace
+src/security.py:171:1: W293 blank line contains whitespace
+src/security.py:176:1: W293 blank line contains whitespace
+src/security.py:179:51: W291 trailing whitespace
+src/security.py:182:1: W293 blank line contains whitespace
+src/security.py:190:1: W293 blank line contains whitespace
+src/security.py:192:1: W293 blank line contains whitespace
+src/security.py:198:1: W293 blank line contains whitespace
+src/security.py:203:1: W293 blank line contains whitespace
+src/security.py:209:1: W293 blank line contains whitespace
+src/security.py:219:1: W293 blank line contains whitespace
+src/security.py:220:80: E501 line too long (80 > 79 characters)
+src/security.py:223:1: W293 blank line contains whitespace
+src/security.py:227:1: W293 blank line contains whitespace
+src/security.py:230:80: E501 line too long (81 > 79 characters)
+src/security.py:231:1: W293 blank line contains whitespace
+src/security.py:234:80: E501 line too long (87 > 79 characters)
+src/time_parsing.py:4:1: F401 're' imported but unused
+src/time_parsing.py:5:1: F401 'datetime.timedelta' imported but unused
+src/time_parsing.py:6:1: F401 'typing.List' imported but unused
+src/time_parsing.py:6:1: F401 'typing.Dict' imported but unused
+src/time_parsing.py:8:1: E302 expected 2 blank lines, found 1
+src/time_parsing.py:15:80: E501 line too long (106 > 79 characters)
+src/time_parsing.py:17:80: E501 line too long (80 > 79 characters)
+src/time_parsing.py:22:80: E501 line too long (86 > 79 characters)
+src/time_parsing.py:32:1: E302 expected 2 blank lines, found 1
+src/time_parsing.py:32:80: E501 line too long (126 > 79 characters)
+src/time_parsing.py:56:51: W292 no newline at end of file

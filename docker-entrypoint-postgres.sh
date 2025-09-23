@@ -45,4 +45,4 @@ echo "PostgreSQL is ready. Starting MCP server..."
 exec 1>&3
 
 # Start the MCP server
-exec python3 src/postgres_memory_server.py
+exec python3 src/claude_desktop_mcp_server.py

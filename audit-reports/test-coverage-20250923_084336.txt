@@ -1,0 +1,441 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Users/linuxbabe/local-memory-mcp
+plugins: anyio-4.10.0, cov-7.0.0
+collected 17 items
+
+tests/test_postgres_memory_api.py FFFFFFFFFFFFFFFss                      [100%]
+
+=================================== FAILURES ===================================
+________ TestPostgresMemoryAPI.test_cluster_memories_insufficient_data _________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_cluster_memories_insufficient_data>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4452505152'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+_____________ TestPostgresMemoryAPI.test_cluster_memories_success ______________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_cluster_memories_success>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4452889744'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+_______ TestPostgresMemoryAPI.test_consolidate_memories_no_consolidator ________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_consolidate_memories_no_consolidator>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4457658880'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+___________ TestPostgresMemoryAPI.test_consolidate_memories_success ____________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_consolidate_memories_success>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4437614656'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+____________ TestPostgresMemoryAPI.test_init_with_ollama_embeddings ____________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_init_with_ollama_embeddings>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4452834368'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+__________ TestPostgresMemoryAPI.test_init_without_ollama_embeddings ___________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_init_without_ollama_embeddings>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4453607792'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+___________________ TestPostgresMemoryAPI.test_list_domains ____________________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_list_domains>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4452922320'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+____________ TestPostgresMemoryAPI.test_retrieve_memories_fallback _____________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_retrieve_memories_fallback>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4458119904'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+___________ TestPostgresMemoryAPI.test_retrieve_memories_validation ____________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_retrieve_memories_validation>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4452814176'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+_________ TestPostgresMemoryAPI.test_retrieve_memories_with_embeddings _________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_retrieve_memories_with_embeddings>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4453423280'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+_______________ TestPostgresMemoryAPI.test_store_memory_success ________________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_store_memory_success>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4452889840'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+______________ TestPostgresMemoryAPI.test_store_memory_validation ______________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_store_memory_validation>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4452816544'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+______________ TestPostgresMemoryAPI.test_update_memory_not_found ______________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_update_memory_not_found>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4453606256'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+_______________ TestPostgresMemoryAPI.test_update_memory_success _______________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_update_memory_success>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4453423568'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+_____________ TestPostgresMemoryAPI.test_update_memory_validation ______________
+
+self = <tests.test_postgres_memory_api.TestPostgresMemoryAPI testMethod=test_update_memory_validation>
+
+    def setUp(self):
+        """Set up test fixtures"""
+        # Mock database connection
+        self.mock_conn = Mock()
+        self.mock_cursor = Mock()
+>       self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
+
+tests/test_postgres_memory_api.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock name='mock.cursor()' id='4458121632'>, name = '__enter__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __enter__
+
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py:632: AttributeError
+=============================== warnings summary ===============================
+tests/test_postgres_memory_api.py:271
+  /Users/linuxbabe/local-memory-mcp/tests/test_postgres_memory_api.py:271: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests/test_postgres_memory_api.py:278
+  /Users/linuxbabe/local-memory-mcp/tests/test_postgres_memory_api.py:278: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_cluster_memories_insufficient_data
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_cluster_memories_success
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_consolidate_memories_no_consolidator
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_consolidate_memories_success
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_init_with_ollama_embeddings
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_init_without_ollama_embeddings
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_list_domains
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_retrieve_memories_fallback
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_retrieve_memories_validation
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_retrieve_memories_with_embeddings
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_store_memory_success
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_store_memory_validation
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_update_memory_not_found
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_update_memory_success
+FAILED tests/test_postgres_memory_api.py::TestPostgresMemoryAPI::test_update_memory_validation
+================== 15 failed, 2 skipped, 2 warnings in 0.73s ===================

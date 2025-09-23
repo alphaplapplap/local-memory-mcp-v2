@@ -39,7 +39,7 @@ check_ollama() {
     fi
 }
 
-check_bridge_server() {
+check_memory_server() {
     if curl -s http://localhost:8000/api/health >/dev/null 2>&1; then
         echo "running"
     else
@@ -91,8 +91,8 @@ fi
 echo
 
 # Bridge Server
-bridge_status=$(check_bridge_server)
-bridge_pid=$(get_pid "bridge_server")
+memory_status=$(check_memory_server)
+memory_pid=$(get_pid "memory_server")
 echo -e "$(status_icon "$bridge_status") Bridge Server    $bridge_status"
 if [[ "$bridge_status" == "running" ]]; then
     echo "    Port: 8000"

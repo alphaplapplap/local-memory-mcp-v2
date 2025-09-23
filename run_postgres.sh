@@ -25,4 +25,4 @@ if ! python3 -c "import fastmcp, psycopg2, pgvector, requests" >/dev/null 2>&1; 
 fi
 
 # Run the PostgreSQL memory server
-exec python3 src/postgres_memory_server.py
+exec python3 src/claude_desktop_mcp_server.py

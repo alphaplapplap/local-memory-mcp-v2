@@ -161,6 +161,7 @@ class PostgresMemoryAPI:
         content: str,
         metadata: Optional[Dict[str, Any]] = None,
         domain: Optional[str] = None,
+        importance: Optional[int] = None,
     ) -> str:
         """Store a new memory in the specified domain."""
         # Auto-detect domain if not provided
@@ -215,6 +216,10 @@ class PostgresMemoryAPI:
                 "updated_at": timestamp,
             }
         )
+        
+        # Add importance to metadata if provided
+        if importance is not None:
+            metadata["importance"] = importance
 
         # Generate embedding with error handling
         embedding = None

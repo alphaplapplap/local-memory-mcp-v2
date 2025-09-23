@@ -3,8 +3,8 @@
 Command-line interface for document ingestion
 """
 
-import asyncio
 import argparse
+import asyncio
 import logging
 import sys
 from pathlib import Path
@@ -13,29 +13,39 @@ from typing import List
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.postgres_memory_api import PostgresMemoryAPI
-from src.ollama_embeddings import OllamaEmbeddings
 from src.ingestion.manager import DocumentIngestionManager
 from src.ingestion.registry import get_supported_extensions
+from src.ollama_embeddings import OllamaEmbeddings
+from src.postgres_memory_api import PostgresMemoryAPI
 
 logger = logging.getLogger(__name__)
 
 
 async def main():
     """Main CLI entry point."""
-    parser = argparse.ArgumentParser(description="Ingest documents into PostgreSQL memory system")
+    parser = argparse.ArgumentParser(
+        description="Ingest documents into PostgreSQL memory system"
+    )
     parser.add_argument("path", help="File or directory path to ingest")
-    parser.add_argument("--domain", default="documents", help="Memory domain to store in")
-    parser.add_argument("--recursive", action="store_true", help="Process directories recursively")
-    parser.add_argument("--chunk-size", type=int, default=1000, help="Chunk size in characters")
-    parser.add_argument("--chunk-overlap", type=int, default=200, help="Chunk overlap in characters")
+    parser.add_argument(
+        "--domain", default="documents", help="Memory domain to store in"
+    )
+    parser.add_argument(
+        "--recursive", action="store_true", help="Process directories recursively"
+    )
+    parser.add_argument(
+        "--chunk-size", type=int, default=1000, help="Chunk size in characters"
+    )
+    parser.add_argument(
+        "--chunk-overlap", type=int, default=200, help="Chunk overlap in characters"
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     args = parser.parse_args()
 
     # Set up logging
     level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
     # Initialize memory API
     try:
@@ -56,9 +66,7 @@ async def main():
         # Single file
         logger.info(f"Ingesting file: {path}")
         result = await ingestion_manager.ingest_document(
-            path,
-            chunk_size=args.chunk_size,
-            chunk_overlap=args.chunk_overlap
+            path, chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap
         )
 
         print(f"\n📄 File Ingestion Results:")
@@ -80,7 +88,7 @@ async def main():
             path,
             recursive=args.recursive,
             chunk_size=args.chunk_size,
-            chunk_overlap=args.chunk_overlap
+            chunk_overlap=args.chunk_overlap,
         )
 
         # Summary
@@ -99,7 +107,9 @@ async def main():
         if failed_files:
             print(f"   Failed Files: {len(failed_files)}")
             for result in failed_files:
-                print(f"     - {result.source_file}: {result.errors[0] if result.errors else 'Unknown error'}")
+                print(
+                    f"     - {result.source_file}: {result.errors[0] if result.errors else 'Unknown error'}"
+                )
 
     else:
         logger.error(f"Path not found: {path}")

@@ -3,13 +3,14 @@ Adaptive LRU Cache for Local Memory MCP
 High-performance L1 cache with dynamic sizing and memory-aware eviction
 """
 
-import time
-import threading
 import hashlib
-from collections import OrderedDict
-from typing import Any, Optional, Dict, List, Tuple
-import psutil
 import json
+import threading
+import time
+from collections import OrderedDict
+from typing import Any, Dict, List, Optional
+
+import psutil
 
 
 class AdaptiveLRUCache:
@@ -42,18 +43,20 @@ class AdaptiveLRUCache:
         self.memory_pressure_threshold = 0.85  # 85% memory usage
         self.dynamic_resize_enabled = True
 
-    def _get_cache_key(self, query: str, domain: str = "default", limit: int = 10) -> str:
+    def _get_cache_key(
+        self, query: str, domain: str = "default", limit: int = 10
+    ) -> str:
         """Generate cache key from query parameters"""
         key_string = f"{domain}:{query}:{limit}"
-        return hashlib.md5(key_string.encode()).hexdigest()
+        return hashlib.sha256(key_string.encode()).hexdigest()
 
     def _estimate_size(self, value: Any) -> int:
         """Estimate memory size of cached value"""
         try:
             if isinstance(value, (list, dict)):
-                return len(json.dumps(value, separators=(',', ':')))
+                return len(json.dumps(value, separators=(",", ":")))
             elif isinstance(value, str):
-                return len(value.encode('utf-8'))
+                return len(value.encode("utf-8"))
             else:
                 return len(str(value))
         except Exception:
@@ -112,7 +115,9 @@ class AdaptiveLRUCache:
             self.creation_times.pop(key, None)
             self.sizes.pop(key, None)
 
-    def get(self, query: str, domain: str = "default", limit: int = 10) -> Optional[Any]:
+    def get(
+        self, query: str, domain: str = "default", limit: int = 10
+    ) -> Optional[Any]:
         """Get cached value with LRU update"""
         with self.lock:
             key = self._get_cache_key(query, domain, limit)
@@ -136,7 +141,14 @@ class AdaptiveLRUCache:
                 self.misses += 1
                 return None
 
-    def put(self, query: str, value: Any, domain: str = "default", limit: int = 10, ttl: Optional[int] = None):
+    def put(
+        self,
+        query: str,
+        value: Any,
+        domain: str = "default",
+        limit: int = 10,
+        ttl: Optional[int] = None,
+    ):
         """Cache a value with adaptive management"""
         with self.lock:
             key = self._get_cache_key(query, domain, limit)
@@ -206,7 +218,11 @@ class AdaptiveLRUCache:
                 "max_size_mb": self.max_size_bytes / (1024 * 1024),
                 "memory_utilization": self.current_size_bytes / self.max_size_bytes,
                 "memory_pressure": self._check_memory_pressure(),
-                "avg_entry_size_kb": (self.current_size_bytes / len(self.cache) / 1024) if self.cache else 0
+                "avg_entry_size_kb": (
+                    (self.current_size_bytes / len(self.cache) / 1024)
+                    if self.cache
+                    else 0
+                ),
             }
 
     def get_health_status(self) -> Dict[str, Any]:
@@ -235,9 +251,13 @@ class AdaptiveLRUCache:
 
         return {
             "health_score": max(0, health_score),
-            "status": "healthy" if health_score > 0.7 else "degraded" if health_score > 0.4 else "unhealthy",
+            "status": (
+                "healthy"
+                if health_score > 0.7
+                else "degraded" if health_score > 0.4 else "unhealthy"
+            ),
             "issues": issues,
-            "recommendations": self._get_recommendations(stats)
+            "recommendations": self._get_recommendations(stats),
         }
 
     def _get_recommendations(self, stats: Dict[str, Any]) -> List[str]:
@@ -248,7 +268,9 @@ class AdaptiveLRUCache:
             recommendations.append("Consider increasing cache TTL or cache size")
 
         if stats["memory_utilization"] > 0.9:
-            recommendations.append("Consider increasing max cache size or enabling compression")
+            recommendations.append(
+                "Consider increasing max cache size or enabling compression"
+            )
 
         if stats["evictions"] > stats["hits"] * 0.1:
             recommendations.append("High eviction rate - consider larger cache size")

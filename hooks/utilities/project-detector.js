@@ -25,7 +25,7 @@ async function detectLanguage(directory) {
             }
         }
         
-        // Language detection rules
+        // Language detection rules with priority weights
         const languageMap = {
             '.js': 'JavaScript',
             '.ts': 'TypeScript', 
@@ -47,21 +47,46 @@ async function detectLanguage(directory) {
             '.md': 'Documentation'
         };
         
-        // Find most common language extension
+        // Priority weights for language detection (higher = more important)
+        const languagePriority = {
+            '.py': 10,
+            '.js': 8,
+            '.ts': 8,
+            '.rs': 8,
+            '.go': 8,
+            '.java': 8,
+            '.cpp': 7,
+            '.c': 7,
+            '.cs': 7,
+            '.php': 6,
+            '.rb': 6,
+            '.swift': 6,
+            '.kt': 6,
+            '.scala': 6,
+            '.sh': 5,
+            '.md': 2  // Documentation has low priority
+        };
+        
+        // Find primary language using weighted scoring
         let primaryLanguage = 'Unknown';
-        let maxCount = 0;
+        let bestScore = 0;
         
         for (const [ext, count] of extensions.entries()) {
-            if (languageMap[ext] && count > maxCount) {
-                maxCount = count;
-                primaryLanguage = languageMap[ext];
+            if (languageMap[ext]) {
+                const priority = languagePriority[ext] || 1;
+                const score = count * priority; // Weight by both count and priority
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    primaryLanguage = languageMap[ext];
+                }
             }
         }
         
         return {
             primary: primaryLanguage,
             extensions: Object.fromEntries(extensions),
-            confidence: maxCount > 0 ? Math.min(maxCount / 10, 1) : 0
+            confidence: bestScore > 0 ? Math.min(bestScore / 50, 1) : 0
         };
         
     } catch (error) {
@@ -110,8 +135,24 @@ async function detectFramework(directory) {
                 if (content.includes('fastapi')) frameworks.push('FastAPI');
                 if (content.includes('pytest')) tools.push('pytest');
                 if (content.includes('poetry')) tools.push('Poetry');
+                if (content.includes('mcp')) frameworks.push('MCP');
+                if (content.includes('postgresql') || content.includes('asyncpg')) tools.push('PostgreSQL');
+                if (content.includes('ollama')) tools.push('Ollama');
                 
                 return nameMatch ? nameMatch[1] : 'python-project';
+            },
+            'requirements.txt': async () => {
+                tools.push('Python');
+                const content = await fs.readFile(path.join(directory, 'requirements.txt'), 'utf8');
+                
+                if (content.includes('fastapi')) frameworks.push('FastAPI');
+                if (content.includes('flask')) frameworks.push('Flask');
+                if (content.includes('django')) frameworks.push('Django');
+                if (content.includes('asyncpg')) tools.push('PostgreSQL');
+                if (content.includes('ollama')) tools.push('Ollama');
+                if (content.includes('mcp')) frameworks.push('MCP');
+                
+                return 'python-project';
             },
             'Cargo.toml': async () => {
                 tools.push('Cargo');
@@ -123,8 +164,21 @@ async function detectFramework(directory) {
                 if (content.includes('rocket')) frameworks.push('Rocket');
                 if (content.includes('warp')) frameworks.push('Warp');
                 if (content.includes('tokio')) frameworks.push('Tokio');
+                if (content.includes('tauri')) frameworks.push('Tauri');
                 
                 return nameMatch ? nameMatch[1] : 'rust-project';
+            },
+            'tauri.conf.json': async () => {
+                frameworks.push('Tauri');
+                tools.push('Tauri CLI');
+                
+                try {
+                    const config = JSON.parse(await fs.readFile(path.join(directory, 'tauri.conf.json'), 'utf8'));
+                    const appName = config.package?.productName || 'tauri-app';
+                    return appName;
+                } catch (error) {
+                    return 'tauri-app';
+                }
             },
             'go.mod': async () => {
                 tools.push('Go Modules');
@@ -170,6 +224,49 @@ async function detectFramework(directory) {
                 if (result && !projectName) {
                     projectName = result;
                 }
+            }
+        }
+        
+        // Check subdirectories for Tauri projects (common pattern: frontend/src-tauri/)
+        const tauriPaths = [
+            'frontend/src-tauri',
+            'src-tauri', 
+            'tauri',
+            'app/src-tauri'
+        ];
+        
+        for (const tauriPath of tauriPaths) {
+            const tauriDir = path.join(directory, tauriPath);
+            try {
+                const tauriFiles = await fs.readdir(tauriDir);
+                
+                // Check for tauri.conf.json in subdirectory
+                if (tauriFiles.includes('tauri.conf.json')) {
+                    const tauriConfig = path.join(tauriDir, 'tauri.conf.json');
+                    const config = JSON.parse(await fs.readFile(tauriConfig, 'utf8'));
+                    frameworks.push('Tauri');
+                    tools.push('Tauri CLI');
+                    if (!projectName) {
+                        projectName = config.package?.productName || 'tauri-app';
+                    }
+                }
+                
+                // Check for Cargo.toml in subdirectory
+                if (tauriFiles.includes('Cargo.toml')) {
+                    const cargoToml = path.join(tauriDir, 'Cargo.toml');
+                    const content = await fs.readFile(cargoToml, 'utf8');
+                    tools.push('Cargo');
+                    
+                    if (content.includes('tokio')) frameworks.push('Tokio');
+                    if (content.includes('tauri')) frameworks.push('Tauri');
+                    
+                    if (!projectName) {
+                        const nameMatch = content.match(/^name\s*=\s*["']([^"']+)["']/m);
+                        projectName = nameMatch ? nameMatch[1] : 'rust-project';
+                    }
+                }
+            } catch (error) {
+                // Directory doesn't exist or can't be read, continue
             }
         }
         
@@ -256,8 +353,8 @@ async function detectProjectContext(directory = process.cwd()) {
         // Get Git information
         const git = getGitInfo(directory);
         
-        // Determine project name (priority: git repo > config file > directory name)
-        const projectName = framework.projectName || git.repoName || directoryName;
+        // Determine project name (priority: git repo > directory name > config file)
+        const projectName = git.repoName || directoryName || framework.projectName;
         
         // Calculate confidence score
         let confidence = 0.5; // Base confidence
@@ -286,7 +383,61 @@ async function detectProjectContext(directory = process.cwd()) {
         const confidenceColor = context.confidence > 0.8 ? COLORS.GREEN : 
                                context.confidence > 0.6 ? COLORS.YELLOW : COLORS.GRAY;
         
-        console.log(`${COLORS.BLUE}📊 Detection Result${COLORS.RESET} ${COLORS.DIM}→${COLORS.RESET} ${COLORS.BRIGHT}${context.name}${COLORS.RESET} ${COLORS.GRAY}(${context.language})${COLORS.RESET} ${COLORS.DIM}•${COLORS.RESET} ${confidenceColor}${confidencePercent}%${COLORS.RESET}`);
+        // Build technology stack display
+        const techStack = [];
+        
+        // Add primary language
+        if (context.language !== 'Unknown') {
+            techStack.push(context.language);
+        }
+        
+        // Add frameworks
+        if (context.frameworks.length > 0) {
+            techStack.push(...context.frameworks);
+        }
+        
+        // Add additional languages if different from primary
+        if (context.languageDetails && context.languageDetails.extensions) {
+            const additionalLangs = [];
+            for (const [ext, count] of Object.entries(context.languageDetails.extensions)) {
+                const langMap = {
+                    '.js': 'JavaScript',
+                    '.ts': 'TypeScript', 
+                    '.jsx': 'React/JavaScript',
+                    '.tsx': 'React/TypeScript',
+                    '.py': 'Python',
+                    '.rs': 'Rust',
+                    '.go': 'Go',
+                    '.java': 'Java',
+                    '.cpp': 'C++',
+                    '.c': 'C',
+                    '.cs': 'C#',
+                    '.php': 'PHP',
+                    '.rb': 'Ruby',
+                    '.swift': 'Swift',
+                    '.kt': 'Kotlin',
+                    '.scala': 'Scala',
+                    '.sh': 'Shell',
+                    '.md': 'Documentation'
+                };
+                
+                const lang = langMap[ext];
+                if (lang && lang !== context.language && !context.frameworks.includes(lang)) {
+                    additionalLangs.push(lang);
+                }
+            }
+            techStack.push(...additionalLangs);
+        }
+        
+        // Remove duplicates while preserving order
+        const uniqueTechStack = [...new Set(techStack)];
+        
+        // Format technology stack
+        const techDisplay = uniqueTechStack.length > 1 
+            ? `${COLORS.GRAY}(${uniqueTechStack.join(' + ')})${COLORS.RESET}`
+            : `${COLORS.GRAY}(${context.language})${COLORS.RESET}`;
+
+        console.log(`${COLORS.BLUE}📊 Detection Result${COLORS.RESET} ${COLORS.DIM}→${COLORS.RESET} ${COLORS.BRIGHT}${context.name}${COLORS.RESET} ${techDisplay} ${COLORS.DIM}•${COLORS.RESET} ${confidenceColor}${confidencePercent}%${COLORS.RESET}`);
         
         return context;
         

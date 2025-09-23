@@ -9,12 +9,34 @@ const https = require('https');
 const http = require('http');
 const { execSync } = require('child_process');
 
-// Import utilities
-const { detectProjectContext } = require('../utilities/project-detector');
-const { scoreMemoryRelevance } = require('../utilities/memory-scorer');
-const { formatMemoriesForContext } = require('../utilities/context-formatter');
-const { detectContextShift, extractCurrentContext, determineRefreshStrategy } = require('../utilities/context-shift-detector');
-const { analyzeGitContext, buildGitContextQuery } = require('../utilities/git-analyzer');
+// ANSI Colors for console output
+const CONSOLE_COLORS = {
+    RESET: '\x1b[0m',
+    BRIGHT: '\x1b[1m',
+    DIM: '\x1b[2m',
+    CYAN: '\x1b[36m',
+    GREEN: '\x1b[32m',
+    BLUE: '\x1b[34m',
+    YELLOW: '\x1b[33m',
+    GRAY: '\x1b[90m',
+    RED: '\x1b[31m'
+};
+
+// Import utilities with error handling
+let detectProjectContext, scoreMemoryRelevance, formatMemoriesForContext;
+let detectContextShift, extractCurrentContext, determineRefreshStrategy;
+let analyzeGitContext, buildGitContextQuery;
+
+try {
+    ({ detectProjectContext } = require('../utilities/project-detector'));
+    ({ scoreMemoryRelevance } = require('../utilities/memory-scorer'));
+    ({ formatMemoriesForContext } = require('../utilities/context-formatter'));
+    ({ detectContextShift, extractCurrentContext, determineRefreshStrategy } = require('../utilities/context-shift-detector'));
+    ({ analyzeGitContext, buildGitContextQuery } = require('../utilities/git-analyzer'));
+} catch (error) {
+    console.error(`${CONSOLE_COLORS.RED}❌ Import Error${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Failed to load utilities: ${error.message}`);
+    process.exit(1);
+}
 
 /**
  * Check if memory services are running and start them if needed
@@ -22,10 +44,13 @@ const { analyzeGitContext, buildGitContextQuery } = require('../utilities/git-an
 async function ensureMemoryServices() {
     try {
         // Quick check if port 8000 is responding
-        const response = await fetch('http://localhost:8000/', { 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const response = await fetch('http://localhost:8000/', {
             method: 'GET',
-            timeout: 2000 
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
         if (response.ok) {
             return true; // Services are running
         }
@@ -34,10 +59,15 @@ async function ensureMemoryServices() {
         console.log(`${CONSOLE_COLORS.YELLOW}🔄 Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Starting memory services...`);
         
         try {
-            execSync('./start_memory_services.sh', { 
+            const scriptPath = path.join(__dirname, '../../start_memory_services.sh');
+            if (!require('fs').existsSync(scriptPath)) {
+                console.log(`${CONSOLE_COLORS.RED}❌ Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} start_memory_services.sh not found`);
+                return false;
+            }
+            execSync('./start_memory_services.sh', {
                 cwd: path.join(__dirname, '../../'),
                 stdio: 'pipe',
-                timeout: 10000 
+                timeout: 10000
             });
             
             // Wait a moment for services to fully start
@@ -595,19 +625,6 @@ async function queryMemoryService(endpoint, apiKey, query) {
         req.end();
     });
 }
-
-// ANSI Colors for console output
-const CONSOLE_COLORS = {
-    RESET: '\x1b[0m',
-    BRIGHT: '\x1b[1m',
-    DIM: '\x1b[2m',
-    CYAN: '\x1b[36m',
-    GREEN: '\x1b[32m',
-    BLUE: '\x1b[34m',
-    YELLOW: '\x1b[33m',
-    GRAY: '\x1b[90m',
-    RED: '\x1b[31m'
-};
 
 /**
  * Main session start hook function with enhanced visual output
