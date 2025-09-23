@@ -212,7 +212,7 @@ def get_memories(
 
 @server.tool
 def search_memories(
-    query: str, domain: Optional[str] = None, limit: Optional[int] = 5
+    query: str, domain: Optional[str] = None, limit: Optional[int] = 5, time_filter: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Find relevant memories based on query using semantic or text search.
@@ -241,6 +241,11 @@ def search_memories(
 
     - limit (int, optional): Maximum number of results to return (default: 5).
                             Range: 1-20. Higher values may include less relevant results.
+    - time_filter (str, optional): Filter memories by creation time. Examples:
+                                   * "last-week" - memories from last 7 days
+                                   * "last-month" - memories from last 30 days
+                                   * "recent" - memories from last 24 hours
+                                   * "today" - memories created today
 
     Returns:
     List[Dict[str, Any]]: A list of memory objects with search metadata:
@@ -256,7 +261,7 @@ def search_memories(
     - search_memories("recent meetings", "startup", 5)
     - search_memories("machine learning projects", "work", 8)
     """
-    results = memory_api.retrieve_memories(query, limit, domain)
+    results = memory_api.retrieve_memories(query, limit, domain, time_filter)
 
     # Add search information
     for result in results:

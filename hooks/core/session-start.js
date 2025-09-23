@@ -565,7 +565,8 @@ async function queryMemoryService(endpoint, apiKey, query) {
                 arguments: {
                     query: query.semanticQuery || '',
                     limit: query.limit || 10,
-                    domain: query.domain || 'default'
+                    domain: query.domain || 'default',
+                    time_filter: query.time_filter || null
                 }
             }
         });
@@ -831,7 +832,7 @@ async function onSessionStart(context) {
                         {
                             semanticQuery: gitQuery.semanticQuery,
                             limit: Math.min(maxGitMemories - allMemories.length, 3),
-                            timeFilter: 'last-2-weeks' // Focus on recent memories for git context
+                            time_filter: 'last-week' // Focus on recent memories for git context
                         }
                     );
                     

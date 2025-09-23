@@ -262,7 +262,7 @@ class PostgresMemoryAPI:
         return memory_id
 
     def retrieve_memories(
-        self, query: str, limit: int = 5, domain: Optional[str] = None
+        self, query: str, limit: int = 5, domain: Optional[str] = None, time_filter: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Retrieve memories using vector similarity search with text search fallback."""
         # Input validation
@@ -277,6 +277,17 @@ class PostgresMemoryAPI:
 
         domain = domain or self.default_domain
         self._ensure_table_exists(domain)
+
+        # Generate time filter clause if specified
+        time_filter_sql = ""
+        time_filter_param = None
+        if time_filter:
+            if time_filter == "recent" or time_filter == "today":
+                time_filter_sql = " AND created_at >= NOW() - INTERVAL '1 day'"
+            elif time_filter == "last-week":
+                time_filter_sql = " AND created_at >= NOW() - INTERVAL '7 days'"
+            elif time_filter == "last-month":
+                time_filter_sql = " AND created_at >= NOW() - INTERVAL '30 days'"
 
         # Try vector search first if embeddings are available and query is not empty
         if self.ollama_embeddings and query.strip():
@@ -313,11 +324,11 @@ class PostgresMemoryAPI:
                                 SELECT id, content, metadata,
                                        1 - (embedding <=> %s::vector) AS score
                                 FROM {}
-                                WHERE embedding IS NOT NULL
+                                WHERE embedding IS NOT NULL{}
                                 ORDER BY embedding <=> %s::vector
                                 LIMIT %s
                             """
-                            ).format(table_name)
+                            ).format(table_name, sql.SQL(time_filter_sql))
 
                             cursor.execute(
                                 search_query, (query_embedding, query_embedding, limit)
@@ -353,11 +364,11 @@ class PostgresMemoryAPI:
                             """
                             SELECT id, content, metadata, 0.0 as score
                             FROM {}
-                            WHERE {}
+                            WHERE ({}){}
                             ORDER BY updated_at DESC
                             LIMIT %s
                         """
-                        ).format(table_name, sql.SQL(" OR ").join([sql.SQL(condition) for condition in tag_conditions]))
+                        ).format(table_name, sql.SQL(" OR ").join([sql.SQL(condition) for condition in tag_conditions]), sql.SQL(time_filter_sql))
                         
                         cursor.execute(tag_query, tag_params + [limit])
                         results = cursor.fetchall()
@@ -375,11 +386,11 @@ class PostgresMemoryAPI:
                     """
                     SELECT id, content, metadata, 0.0 as score
                     FROM {}
-                    WHERE to_tsvector('english', content) @@ plainto_tsquery('english', %s)
+                    WHERE to_tsvector('english', content) @@ plainto_tsquery('english', %s){}
                     ORDER BY updated_at DESC
                     LIMIT %s
                 """
-                ).format(table_name)
+                ).format(table_name, sql.SQL(time_filter_sql))
 
                 cursor.execute(search_query, (query, limit))
                 results = cursor.fetchall()
@@ -392,11 +403,11 @@ class PostgresMemoryAPI:
                     """
                     SELECT id, content, metadata, 0.0 as score
                     FROM {}
-                    WHERE content ILIKE %s
+                    WHERE content ILIKE %s{}
                     ORDER BY updated_at DESC
                     LIMIT %s
                 """
-                ).format(table_name)
+                ).format(table_name, sql.SQL(time_filter_sql))
 
                 cursor.execute(like_query, (f"%{query}%", limit))
                 results = cursor.fetchall()
@@ -405,14 +416,16 @@ class PostgresMemoryAPI:
                     return [dict(row) for row in results]
 
                 # Last resort: return most recent memories if no search matches
+                where_clause = sql.SQL("WHERE 1=1") + sql.SQL(time_filter_sql) if time_filter_sql else sql.SQL("")
                 fallback_query = sql.SQL(
                     """
                     SELECT id, content, metadata, 0.0 as score
                     FROM {}
+                    {}
                     ORDER BY updated_at DESC
                     LIMIT %s
                 """
-                ).format(table_name)
+                ).format(table_name, where_clause)
 
                 cursor.execute(fallback_query, (limit,))
                 results = cursor.fetchall()
