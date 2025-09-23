@@ -1,0 +1,75 @@
+{
+  "temporal_clusters": {
+    "recent": {
+      "time_window": "last 24 hours",
+      "priority_weight": 1.0,
+      "max_memories": 20,
+      "compression_ratio": 0.0
+    },
+    "short_term": {
+      "time_window": "last week",
+      "priority_weight": 0.8,
+      "max_memories": 50,
+      "compression_ratio": 0.2
+    },
+    "medium_term": {
+      "time_window": "last month",
+      "priority_weight": 0.6,
+      "max_memories": 100,
+      "compression_ratio": 0.4
+    },
+    "long_term": {
+      "time_window": "older than month",
+      "priority_weight": 0.4,
+      "max_memories": 200,
+      "compression_ratio": 0.6
+    }
+  },
+  "semantic_clusters": {
+    "architecture_decisions": {
+      "keywords": [
+        "architecture",
+        "design",
+        "pattern",
+        "structure"
+      ],
+      "importance_multiplier": 1.2,
+      "retention_priority": "high",
+      "compression_resistance": 0.8
+    },
+    "code_implementations": {
+      "keywords": [
+        "code",
+        "function",
+        "class",
+        "implementation"
+      ],
+      "importance_multiplier": 1.0,
+      "retention_priority": "medium",
+      "compression_resistance": 0.6
+    },
+    "debugging_sessions": {
+      "keywords": [
+        "bug",
+        "error",
+        "debug",
+        "fix",
+        "issue"
+      ],
+      "importance_multiplier": 0.9,
+      "retention_priority": "medium",
+      "compression_resistance": 0.4
+    },
+    "project_context": {
+      "keywords": [
+        "project",
+        "goal",
+        "requirement",
+        "specification"
+      ],
+      "importance_multiplier": 1.1,
+      "retention_priority": "high",
+      "compression_resistance": 0.9
+    }
+  }
+}

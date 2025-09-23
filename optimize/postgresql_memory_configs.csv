@@ -1,0 +1,5 @@
+System_RAM_GB,shared_buffers_GB,shared_buffers_pct,work_mem_MB,maintenance_work_mem_GB,max_connections,effective_cache_size_GB,use_case
+8,2,25%,64,1,100,6,Development/Small Production
+16,4,25%,128,2,200,12,Medium Production
+32,8,25%,256,4,300,24,Large Production
+64,16,25%,512,8,400,48,Enterprise/High-Load

@@ -6,7 +6,6 @@
 const fs = require('fs').promises;
 const path = require('path');
 const https = require('https');
-const http = require('http');
 
 // Import utilities
 const { detectProjectContext } = require('../utilities/project-detector');
@@ -27,7 +26,7 @@ async function loadConfig() {
         console.warn('[Memory Hook] Using default configuration:', error.message);
         return {
             memoryService: {
-                endpoint: 'http://localhost:8000',
+                endpoint: 'https://narrowbox.local:8443',
                 apiKey: 'test-key-123',
                 defaultTags: ['claude-code', 'auto-generated'],
                 maxMemoriesPerSession: 8,
@@ -63,7 +62,7 @@ async function queryHealthEndpoint(endpoint, apiKey, options = {}) {
             
             const requestOptions = {
                 hostname: url.hostname,
-                port: url.port || (url.protocol === 'https:' ? 8443 : 8000),
+                port: url.port || 8443,
                 path: url.pathname,
                 method: 'GET',
                 headers: {
@@ -74,8 +73,7 @@ async function queryHealthEndpoint(endpoint, apiKey, options = {}) {
                 rejectUnauthorized: false // For self-signed certificates
             };
             
-            const requestModule = url.protocol === 'https:' ? https : http;
-            const req = requestModule.request(requestOptions, (res) => {
+            const req = https.request(requestOptions, (res) => {
                 let data = '';
                 res.on('data', (chunk) => {
                     data += chunk;
@@ -200,7 +198,7 @@ function detectStorageBackendFallback(config) {
     try {
         // Check environment variable first
         const envBackend = process.env.MCP_MEMORY_STORAGE_BACKEND?.toLowerCase();
-        const endpoint = config.memoryService?.endpoint || 'http://localhost:8000';
+        const endpoint = config.memoryService?.endpoint || 'https://localhost:8443';
         
         // Parse endpoint to determine if local or remote
         const url = new URL(endpoint);
@@ -322,15 +320,14 @@ async function queryMemoryService(endpoint, apiKey, query) {
                 name: 'retrieve_memory',
                 arguments: {
                     query: query.semanticQuery || '',
-                    n_results: query.limit || 10,
-                    domain: query.domain || 'default'
+                    n_results: query.limit || 10
                 }
             }
         });
 
         const options = {
             hostname: url.hostname,
-            port: url.port || (url.protocol === 'https:' ? 8443 : 8000),
+            port: url.port || 8443,
             path: url.pathname,
             method: 'POST',
             headers: {
@@ -341,8 +338,7 @@ async function queryMemoryService(endpoint, apiKey, query) {
             rejectUnauthorized: false // For self-signed certificates
         };
 
-        const requestModule = url.protocol === 'https:' ? https : http;
-        const req = requestModule.request(options, (res) => {
+        const req = https.request(options, (res) => {
             let data = '';
             res.on('data', (chunk) => {
                 data += chunk;
@@ -355,7 +351,13 @@ async function queryMemoryService(endpoint, apiKey, query) {
                         let textData = response.result.content[0].text;
                         
                         try {
-                            // textData should already be valid JSON from bridge server
+                            // Convert Python dict format to JSON format safely
+                            textData = textData
+                                .replace(/'/g, '"')  // Replace single quotes with double quotes
+                                .replace(/True/g, 'true')  // Convert Python True to JSON true
+                                .replace(/False/g, 'false')  // Convert Python False to JSON false
+                                .replace(/None/g, 'null');  // Convert Python None to JSON null
+                            
                             const memories = JSON.parse(textData);
                             resolve(memories.results || memories.memories || []);
                         } catch (conversionError) {
@@ -833,7 +835,7 @@ async function onSessionStart(context) {
             if (context.injectSystemMessage) {
                 await context.injectSystemMessage(contextMessage);
                 if (!cleanMode) {
-                    console.log(`${CONSOLE_COLORS.GREEN}✅ Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Context injected ${CONSOLE_COLORS.GRAY}(${topMemories.length} memories)${CONSOLE_COLORS.RESET}`);
+                    console.log(`${CONSOLE_COLORS.GREEN}✅ Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Context injected ${CONSOLE_COLORS.GRAY}(${maxMemories} memories)${CONSOLE_COLORS.RESET}`);
                 }
             } else if (verbose && !cleanMode) {
                 // Fallback: log context for manual copying with styling
@@ -845,13 +847,8 @@ async function onSessionStart(context) {
                 console.log(cleanedMessage);
                 console.log(`${CONSOLE_COLORS.CYAN}╰──────────────────────────────────────────╯${CONSOLE_COLORS.RESET}\n`);
             }
-        } else {
-            if (verbose && !cleanMode) {
-                console.log(`${CONSOLE_COLORS.YELLOW}📭 Memory Search${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.GRAY}No relevant memories found${CONSOLE_COLORS.RESET}`);
-            }
-            if (verbose && showMemoryDetails && !cleanMode) {
-                console.log(`${CONSOLE_COLORS.GRAY}🔍 Debug${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Collected ${allMemories.length} memories total across all phases`);
-            }
+        } else if (verbose && showMemoryDetails && !cleanMode) {
+            console.log(`${CONSOLE_COLORS.YELLOW}📭 Memory Search${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.GRAY}No relevant memories found${CONSOLE_COLORS.RESET}`);
         }
         
     } catch (error) {

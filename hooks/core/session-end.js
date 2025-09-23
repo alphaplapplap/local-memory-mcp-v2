@@ -6,6 +6,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const https = require('https');
+const http = require('http');
 
 // Import utilities
 const { detectProjectContext } = require('../utilities/project-detector');
@@ -23,7 +24,7 @@ async function loadConfig() {
         console.warn('[Memory Hook] Using default configuration:', error.message);
         return {
             memoryService: {
-                endpoint: 'https://narrowbox.local:8443',
+                endpoint: 'http://localhost:8000',
                 apiKey: 'test-key-123',
                 defaultTags: ['claude-code', 'auto-generated'],
                 enableSessionConsolidation: true
@@ -248,7 +249,7 @@ async function storeSessionMemory(endpoint, apiKey, content, projectContext, ana
 
         const options = {
             hostname: url.hostname,
-            port: url.port || 8443,
+            port: url.port || (url.protocol === 'https:' ? 8443 : 8000),
             path: url.pathname,
             method: 'POST',
             headers: {
@@ -259,7 +260,9 @@ async function storeSessionMemory(endpoint, apiKey, content, projectContext, ana
             rejectUnauthorized: false // For self-signed certificates
         };
 
-        const req = https.request(options, (res) => {
+        // Use http or https based on URL protocol
+        const requestModule = url.protocol === 'https:' ? https : http;
+        const req = requestModule.request(options, (res) => {
             let data = '';
             res.on('data', (chunk) => {
                 data += chunk;

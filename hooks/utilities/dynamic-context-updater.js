@@ -55,10 +55,10 @@ class DynamicContextUpdater {
     /**
      * Process conversation update and potentially inject new context
      * @param {string} conversationText - Current conversation content
-     * @param {object} config - PostgreSQL and memory system configuration
+     * @param {object} memoryServiceConfig - Memory service configuration
      * @param {function} contextInjector - Function to inject context into conversation
      */
-    async processConversationUpdate(conversationText, config, contextInjector) {
+    async processConversationUpdate(conversationText, memoryServiceConfig, contextInjector) {
         try {
             // Check rate limiting
             if (!this.shouldProcessUpdate()) {
@@ -74,7 +74,7 @@ class DynamicContextUpdater {
                 this.debounceTimer = setTimeout(async () => {
                     const result = await this.performContextUpdate(
                         conversationText,
-                        config,
+                        memoryServiceConfig,
                         contextInjector
                     );
                     resolve(result);
@@ -90,7 +90,7 @@ class DynamicContextUpdater {
     /**
      * Perform the actual context update
      */
-    async performContextUpdate(conversationText, config, contextInjector) {
+    async performContextUpdate(conversationText, memoryServiceConfig, contextInjector) {
         console.log('[Dynamic Context] Processing conversation update...');
 
         // Analyze current conversation
@@ -122,8 +122,8 @@ class DynamicContextUpdater {
             return { processed: false, reason: 'no_actionable_queries' };
         }
 
-        // Retrieve memories from PostgreSQL
-        const memories = await this.retrieveRelevantMemories(queries, config);
+        // Retrieve memories from memory service
+        const memories = await this.retrieveRelevantMemories(queries, memoryServiceConfig);
         
         if (memories.length === 0) {
             this.lastAnalysis = currentAnalysis;
@@ -256,16 +256,20 @@ class DynamicContextUpdater {
     }
 
     /**
-     * Retrieve memories from PostgreSQL for multiple queries
+     * Retrieve memories from memory service for multiple queries
      */
-    async retrieveRelevantMemories(queries, config) {
+    async retrieveRelevantMemories(queries, memoryServiceConfig) {
         const allMemories = [];
+        
+        // Import the query function from topic-change hook
+        const { queryMemoryService } = require('../core/topic-change');
 
         for (const queryObj of queries) {
             try {
-                const memories = await this.queryPostgreSQLMemories(
+                const memories = await this.queryMemoryService(
+                    memoryServiceConfig.endpoint,
+                    memoryServiceConfig.apiKey,
                     queryObj.query,
-                    config,
                     {
                         limit: queryObj.limit,
                         excludeHashes: Array.from(this.loadedMemoryHashes)
@@ -288,105 +292,97 @@ class DynamicContextUpdater {
     }
 
     /**
-     * Query PostgreSQL memories directly
+     * Simplified memory service query (extracted from topic-change.js pattern)
      */
-    async queryPostgreSQLMemories(query, config, options = {}) {
-        const { spawn } = require('child_process');
-
-        return new Promise((resolve) => {
+    async queryMemoryService(endpoint, apiKey, query, options = {}) {
+        const https = require('https');
+        
+        return new Promise((resolve, reject) => {
             const { limit = 3, excludeHashes = [] } = options;
 
-            const searchScript = `
-import psycopg2
-import json
-import sys
-
-try:
-    conn = psycopg2.connect(
-        host='${config.postgres.host}',
-        port=${config.postgres.port},
-        database='${config.postgres.database}',
-        user='${config.postgres.user}',
-        password='${config.postgres.password}'
-    )
-    cursor = conn.cursor()
-
-    search_query = '${query.replace(/'/g, "''")}'  # Escape single quotes
-
-    # Search in default domain
-    cursor.execute('''
-        SELECT id, content, metadata, created_at, updated_at
-        FROM default_memories
-        WHERE to_tsvector('english', content) @@ plainto_tsquery('english', %s)
-        ORDER BY updated_at DESC
-        LIMIT %s
-    ''', (search_query, ${limit}))
-
-    results = []
-    for row in cursor.fetchall():
-        metadata = {}
-        if row[2]:
-            try:
-                if isinstance(row[2], str):
-                    metadata = json.loads(row[2])
-                else:
-                    metadata = row[2]
-            except:
-                metadata = {}
-
-        results.append({
-            'id': row[0],
-            'content': row[1],
-            'metadata': metadata,
-            'created_at': row[3].isoformat() if row[3] else None,
-            'updated_at': row[4].isoformat() if row[4] else None
-        })
-
-    conn.close()
-    print(json.dumps(results))
-
-except Exception as e:
-    print(json.dumps({'error': str(e)}))
-`;
-
-            const python = spawn('python3', ['-c', searchScript]);
-            let output = '';
-
-            python.stdout.on('data', (data) => {
-                output += data.toString();
-            });
-
-            python.on('close', (code) => {
-                try {
-                    const result = JSON.parse(output.trim());
-                    if (result.error) {
-                        console.error('[Dynamic Context] PostgreSQL query error:', result.error);
-                        resolve([]);
-                    } else {
-                        // Filter out excluded hashes
-                        const filteredMemories = result.filter(memory =>
-                            !excludeHashes.includes(memory.content_hash)
-                        );
-                        resolve(filteredMemories);
-                    }
-                } catch (e) {
-                    console.error('[Dynamic Context] Failed to parse PostgreSQL response:', e.message);
-                    resolve([]);
+            const postData = JSON.stringify({
+                jsonrpc: '2.0',
+                id: Date.now(),
+                method: 'tools/call',
+                params: {
+                    name: 'retrieve_memory',
+                    arguments: { query: query, limit: limit }
                 }
             });
 
-            python.on('error', (error) => {
-                console.error('[Dynamic Context] PostgreSQL query failed:', error.message);
+            const url = new URL('/mcp', endpoint);
+            const requestOptions = {
+                hostname: url.hostname,
+                port: url.port,
+                path: url.pathname,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Length': Buffer.byteLength(postData)
+                },
+                rejectUnauthorized: false,
+                timeout: 5000
+            };
+
+            const req = https.request(requestOptions, (res) => {
+                let data = '';
+                res.on('data', (chunk) => { data += chunk; });
+                res.on('end', () => {
+                    try {
+                        const response = JSON.parse(data);
+                        if (response.error) {
+                            console.error('[Dynamic Context] Memory service error:', response.error);
+                            resolve([]);
+                            return;
+                        }
+
+                        const memories = this.parseMemoryResults(response.result);
+                        const filteredMemories = memories.filter(memory => 
+                            !excludeHashes.includes(memory.content_hash)
+                        );
+                        
+                        resolve(filteredMemories);
+                    } catch (parseError) {
+                        console.error('[Dynamic Context] Failed to parse memory response:', parseError.message);
+                        resolve([]);
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                console.error('[Dynamic Context] Memory service request failed:', error.message);
                 resolve([]);
             });
 
-            setTimeout(() => {
-                python.kill();
+            req.on('timeout', () => {
+                req.destroy();
                 resolve([]);
-            }, config.postgres.timeout || 5000);
+            });
+
+            req.write(postData);
+            req.end();
         });
     }
 
+    /**
+     * Parse memory results from MCP response
+     */
+    parseMemoryResults(result) {
+        try {
+            if (result && result.content && result.content[0] && result.content[0].text) {
+                const text = result.content[0].text;
+                const resultsMatch = text.match(/'results':\s*(\[[\s\S]*?\])/);
+                if (resultsMatch) {
+                    return eval(resultsMatch[1]) || [];
+                }
+            }
+            return [];
+        } catch (error) {
+            console.error('[Dynamic Context] Error parsing memory results:', error.message);
+            return [];
+        }
+    }
 
     /**
      * Score memories with enhanced conversation context

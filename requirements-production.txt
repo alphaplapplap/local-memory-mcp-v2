@@ -1,0 +1,40 @@
+# Production requirements for local-memory-mcp
+# Core dependencies
+psycopg2-binary>=2.9.0
+python-dotenv>=1.0.0
+numpy>=1.24.0
+requests>=2.28.0
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+
+# Security dependencies
+cryptography>=3.4.8
+bcrypt>=4.0.0
+
+# Monitoring and logging
+structlog>=22.0.0
+prometheus-client>=0.15.0
+
+# Performance monitoring
+psutil>=5.9.0
+
+# Database optimization
+asyncpg>=0.28.0
+
+# API framework (if needed)
+fastapi>=0.95.0
+uvicorn>=0.20.0
+
+# Development tools
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0
+pre-commit>=2.20.0
+
+# Documentation
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.0.0

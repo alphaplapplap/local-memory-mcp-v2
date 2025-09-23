@@ -22,9 +22,11 @@ from collections import Counter
 import re
 
 try:
-    from sklearn.cluster import DBSCAN
-    from sklearn.cluster import AgglomerativeClustering
-    from sklearn.metrics import silhouette_score
+    from sklearn.cluster import DBSCAN, AgglomerativeClustering, OPTICS
+    from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
+    from sklearn.neighbors import NearestNeighbors
+    from scipy.spatial.distance import pdist, squareform
+    import scipy.cluster.hierarchy as hierarchy
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -61,8 +63,36 @@ class SemanticClusteringEngine(ConsolidationBase):
             self.logger.warning(f"Only {len(memories_with_embeddings)} memories have embeddings, need at least {self.min_cluster_size}")
             return []
         
-        # Extract embeddings matrix
-        embeddings = np.array([m.embedding for m in memories_with_embeddings])
+        # Extract embeddings matrix and ensure they are numeric
+        embedding_list = []
+        for m in memories_with_embeddings:
+            if m.embedding is not None:
+                # Convert string embeddings to list if needed
+                if isinstance(m.embedding, str):
+                    try:
+                        # Handle pgvector string format like '[0.1,0.2,0.3]'
+                        embedding = eval(m.embedding)  # Safe for numeric lists
+                        if not isinstance(embedding, list):
+                            raise ValueError("Not a list")
+                        embedding = [float(x) for x in embedding]
+                    except (ValueError, AttributeError, SyntaxError):
+                        self.logger.warning(f"Failed to parse embedding string: {m.embedding[:50]}...")
+                        continue
+                elif isinstance(m.embedding, list):
+                    embedding = [float(x) for x in m.embedding]
+                else:
+                    self.logger.warning(f"Unknown embedding type: {type(m.embedding)}")
+                    continue
+                
+                embedding_list.append(embedding)
+            else:
+                self.logger.warning(f"Memory {m.content_hash} has no embedding")
+        
+        if not embedding_list:
+            self.logger.warning("No valid embeddings found")
+            return []
+        
+        embeddings = np.array(embedding_list)
         
         # Perform clustering
         if self.algorithm == 'dbscan':
@@ -82,21 +112,94 @@ class SemanticClusteringEngine(ConsolidationBase):
         return valid_clusters
     
     async def _dbscan_clustering(self, embeddings: np.ndarray) -> np.ndarray:
-        """Perform DBSCAN clustering on embeddings."""
+        """Perform DBSCAN clustering with automatic eps optimization."""
         if not SKLEARN_AVAILABLE:
             return await self._simple_clustering(embeddings)
-        
-        # Adaptive epsilon based on data size and dimensionality
+
         n_samples, n_features = embeddings.shape
-        eps = 0.5 - (n_samples / 10000) * 0.1  # Decrease eps for larger datasets
-        eps = max(0.2, min(0.7, eps))  # Clamp between 0.2 and 0.7
-        
-        min_samples = max(2, self.min_cluster_size // 2)
-        
+
+        # Automatically determine optimal eps using k-distance graph
+        eps = await self._find_optimal_eps(embeddings)
+
+        # Adaptive min_samples based on data characteristics
+        # Rule of thumb: min_samples = 2 * dimensions for high-dim data
+        # But practical minimum based on cluster size preference
+        min_samples = max(
+            2,
+            min(
+                self.min_cluster_size // 2,
+                int(np.log(n_samples)) + 1  # Logarithmic scaling with data size
+            )
+        )
+
         clustering = DBSCAN(eps=eps, min_samples=min_samples, metric='cosine')
         labels = clustering.fit_predict(embeddings)
-        
-        self.logger.debug(f"DBSCAN: eps={eps}, min_samples={min_samples}, found {len(set(labels))} clusters")
+
+        # Try OPTICS as fallback if DBSCAN produces too many outliers
+        outlier_ratio = np.sum(labels == -1) / n_samples
+        if outlier_ratio > 0.5 and n_samples > 10:  # More than 50% outliers
+            self.logger.info(f"DBSCAN produced {outlier_ratio:.1%} outliers, trying OPTICS")
+            labels = await self._optics_clustering(embeddings)
+
+        self.logger.debug(f"DBSCAN: eps={eps:.3f}, min_samples={min_samples}, "
+                         f"found {len(set(labels)) - (1 if -1 in labels else 0)} clusters, "
+                         f"{np.sum(labels == -1)} outliers")
+        return labels
+
+    async def _find_optimal_eps(self, embeddings: np.ndarray) -> float:
+        """Find optimal eps parameter using k-distance graph method."""
+        n_samples = embeddings.shape[0]
+
+        # Use k = min_samples for k-distance
+        k = min(self.min_cluster_size, n_samples - 1)
+
+        # Compute k-nearest neighbors
+        nbrs = NearestNeighbors(n_neighbors=k + 1, metric='cosine')
+        nbrs.fit(embeddings)
+        distances, indices = nbrs.kneighbors(embeddings)
+
+        # Get k-th nearest neighbor distances (excluding self)
+        k_distances = distances[:, k]
+        k_distances = np.sort(k_distances)
+
+        # Find elbow point in k-distance graph
+        # Using simple method: point of maximum curvature
+        if len(k_distances) > 3:
+            # Calculate second derivative to find elbow
+            grad1 = np.gradient(k_distances)
+            grad2 = np.gradient(grad1)
+
+            # Find point of maximum change (elbow)
+            elbow_idx = np.argmax(np.abs(grad2[len(grad2)//4:3*len(grad2)//4])) + len(grad2)//4
+            optimal_eps = k_distances[elbow_idx]
+        else:
+            # Fallback to percentile-based method
+            optimal_eps = np.percentile(k_distances, 90)
+
+        # Clamp to reasonable range for cosine distance
+        optimal_eps = max(0.1, min(0.8, optimal_eps))
+
+        self.logger.debug(f"Optimal eps determined: {optimal_eps:.3f} (k={k})")
+        return optimal_eps
+
+    async def _optics_clustering(self, embeddings: np.ndarray) -> np.ndarray:
+        """Perform OPTICS clustering as a more robust alternative to DBSCAN."""
+        if not SKLEARN_AVAILABLE:
+            return await self._simple_clustering(embeddings)
+
+        n_samples = embeddings.shape[0]
+        min_samples = max(2, min(self.min_cluster_size // 2, int(np.log(n_samples)) + 1))
+
+        clustering = OPTICS(
+            min_samples=min_samples,
+            metric='cosine',
+            cluster_method='dbscan',
+            eps=0.5  # Maximum epsilon to consider
+        )
+        labels = clustering.fit_predict(embeddings)
+
+        self.logger.debug(f"OPTICS: min_samples={min_samples}, "
+                         f"found {len(set(labels)) - (1 if -1 in labels else 0)} clusters")
         return labels
     
     async def _hierarchical_clustering(self, embeddings: np.ndarray) -> np.ndarray:
@@ -124,7 +227,7 @@ class SemanticClusteringEngine(ConsolidationBase):
         labels = np.full(n_samples, -1)  # Start with all as noise
         current_cluster = 0
         
-        similarity_threshold = 0.7  # Threshold for grouping
+        similarity_threshold = 0.5  # Threshold for grouping (lowered to allow more clustering)
         
         for i in range(n_samples):
             if labels[i] != -1:  # Already assigned
@@ -165,25 +268,56 @@ class SemanticClusteringEngine(ConsolidationBase):
         labels: np.ndarray,
         embeddings: np.ndarray
     ) -> List[MemoryCluster]:
-        """Create MemoryCluster objects from clustering results."""
+        """Create MemoryCluster objects from clustering results with quality metrics."""
         clusters = []
         unique_labels = set(labels)
-        
+
+        # Calculate overall clustering quality metrics if sklearn is available
+        quality_metrics = {}
+        if SKLEARN_AVAILABLE and len(unique_labels) > 1:
+            valid_indices = labels != -1
+            if np.sum(valid_indices) > 1:
+                try:
+                    # Silhouette score: -1 to 1, higher is better
+                    quality_metrics['silhouette'] = float(silhouette_score(
+                        embeddings[valid_indices],
+                        labels[valid_indices],
+                        metric='cosine'
+                    ))
+
+                    # Davies-Bouldin index: lower is better
+                    quality_metrics['davies_bouldin'] = float(davies_bouldin_score(
+                        embeddings[valid_indices],
+                        labels[valid_indices]
+                    ))
+
+                    # Calinski-Harabasz score: higher is better
+                    quality_metrics['calinski_harabasz'] = float(calinski_harabasz_score(
+                        embeddings[valid_indices],
+                        labels[valid_indices]
+                    ))
+
+                    self.logger.info(f"Clustering quality - Silhouette: {quality_metrics['silhouette']:.3f}, "
+                                   f"Davies-Bouldin: {quality_metrics['davies_bouldin']:.3f}, "
+                                   f"Calinski-Harabasz: {quality_metrics['calinski_harabasz']:.1f}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to calculate quality metrics: {e}")
+
         for label in unique_labels:
             if label == -1:  # Skip noise points
                 continue
-            
+
             # Get memories in this cluster
             cluster_indices = np.where(labels == label)[0]
             cluster_memories = [memories[i] for i in cluster_indices]
             cluster_embeddings = embeddings[cluster_indices]
-            
+
             if len(cluster_memories) < self.min_cluster_size:
                 continue
-            
+
             # Calculate centroid embedding
             centroid = np.mean(cluster_embeddings, axis=0)
-            
+
             # Calculate coherence score (average cosine similarity to centroid)
             coherence_scores = []
             for embedding in cluster_embeddings:
@@ -191,8 +325,25 @@ class SemanticClusteringEngine(ConsolidationBase):
                     np.linalg.norm(embedding) * np.linalg.norm(centroid)
                 )
                 coherence_scores.append(similarity)
-            
+
             coherence_score = np.mean(coherence_scores)
+
+            # Calculate within-cluster silhouette score if available
+            cluster_quality = coherence_score
+            if SKLEARN_AVAILABLE and len(cluster_embeddings) > 2:
+                try:
+                    # Create sub-labels for within-cluster analysis
+                    sub_labels = np.zeros(len(cluster_embeddings))
+                    cluster_silhouette = float(np.mean([
+                        np.dot(cluster_embeddings[i], cluster_embeddings[j]) / (
+                            np.linalg.norm(cluster_embeddings[i]) * np.linalg.norm(cluster_embeddings[j])
+                        )
+                        for i in range(len(cluster_embeddings))
+                        for j in range(i + 1, len(cluster_embeddings))
+                    ])) if len(cluster_embeddings) > 1 else 1.0
+                    cluster_quality = (coherence_score + cluster_silhouette) / 2
+                except Exception:
+                    pass  # Use coherence_score as fallback
             
             # Extract theme keywords
             theme_keywords = await self._extract_theme_keywords(cluster_memories)
@@ -209,7 +360,9 @@ class SemanticClusteringEngine(ConsolidationBase):
                     'algorithm': self.algorithm,
                     'cluster_size': len(cluster_memories),
                     'average_memory_age': self._calculate_average_age(cluster_memories),
-                    'tag_distribution': self._analyze_tag_distribution(cluster_memories)
+                    'tag_distribution': self._analyze_tag_distribution(cluster_memories),
+                    'cluster_quality': cluster_quality,
+                    'global_metrics': quality_metrics if quality_metrics else None
                 }
             )
             

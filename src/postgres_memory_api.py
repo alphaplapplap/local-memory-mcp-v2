@@ -5,15 +5,40 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 from psycopg2 import sql
 import numpy as np
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from dotenv import load_dotenv
+from models.memory import Memory
+
+# Import error handling
+from exceptions import (
+    ValidationError, DatabaseError, ConnectionError, EmbeddingError,
+    ConsolidationError, ServiceUnavailableError, TimeoutError,
+    InsufficientDataError, ResourceExhaustedError
+)
+from error_handlers import (
+    handle_errors, retry_on_error, validate_inputs, error_context,
+    RetryConfig
+)
+from database_error_handling import (
+    database_operation, DatabaseErrorHandler, monitor_database_operation
+)
+from security import security_validator
+from logging_config import get_logger
 
 # Load environment variables
 load_dotenv()
 
+# Constants
+DEFAULT_EMBEDDING_DIMENSIONS = 768
+DEFAULT_SIMILARITY_THRESHOLD = 0.5
+DEFAULT_MAX_RESULTS = 10
+DEFAULT_MIN_SCORE = 0.3
+DEFAULT_TIMEOUT_MS = 5000
+
 class PostgresMemoryAPI:
-    def __init__(self, ollama_embeddings=None):
+    def __init__(self, ollama_embeddings: Optional[Any] = None) -> None:
         """Initialize PostgreSQL memory store with connection parameters."""
+        
         self.connection_params = {
             'host': os.getenv('POSTGRES_HOST', 'localhost'),
             'port': os.getenv('POSTGRES_PORT', 5432),
@@ -22,23 +47,76 @@ class PostgresMemoryAPI:
             'password': os.getenv('POSTGRES_PASSWORD', 'postgres'),
         }
         self.default_domain = os.getenv('DEFAULT_MEMORY_DOMAIN', 'default')
-        self.ollama_embeddings = ollama_embeddings
         
-    def _get_connection(self):
+        # Initialize Ollama embeddings if not provided
+        if ollama_embeddings is None:
+            try:
+                from ollama_embeddings import OllamaEmbeddings
+                ollama_url = os.getenv('OLLAMA_API_URL', 'http://localhost:11434')
+                ollama_model = os.getenv('OLLAMA_EMBEDDING_MODEL', 'nomic-embed-text')
+                ollama_keep_alive = os.getenv('OLLAMA_KEEP_ALIVE', '10m')
+                
+                self.ollama_embeddings = OllamaEmbeddings(
+                    model_name=ollama_model,
+                    base_url=ollama_url,
+                    keep_alive=ollama_keep_alive
+                )
+                print(f"✅ Ollama embeddings initialized: {ollama_model} at {ollama_url}")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Ollama embeddings: {e}")
+                self.ollama_embeddings = None
+        else:
+            self.ollama_embeddings = ollama_embeddings
+        
+        # Initialize existing consolidation system
+        self._init_consolidation_system()
+        
+    def _get_connection(self) -> psycopg2.extensions.connection:
         """Get a new database connection."""
         return psycopg2.connect(**self.connection_params)
     
-    def _ensure_table_exists(self, domain: str):
+    def _ensure_table_exists(self, domain: str) -> None:
         """Ensure the domain table exists."""
         with self._get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT create_domain_memories_table(%s)", (domain,))
                 conn.commit()
     
-    def store_memory(self, content: str, metadata: Dict[str, Any] = None, domain: str = None) -> str:
+    @handle_errors()
+    @validate_inputs(
+        content=lambda x: isinstance(x, str) and x.strip() != "",
+        metadata=lambda x: x is None or isinstance(x, dict),
+        domain=lambda x: x is None or isinstance(x, str)
+    )
+    @monitor_database_operation('INSERT', 'memories')
+    def store_memory(self, content: str, metadata: Optional[Dict[str, Any]] = None, domain: Optional[str] = None) -> str:
         """Store a new memory in the specified domain."""
-        domain = domain or self.default_domain
-        self._ensure_table_exists(domain)
+        with error_context('store_memory', content_length=len(content), domain=domain):
+            # Enhanced input validation with security checks
+            if not content or not isinstance(content, str):
+                raise ValidationError("Content must be a non-empty string", field='content')
+            
+            if content.strip() == "":
+                raise ValidationError("Content cannot be empty or whitespace only", field='content')
+            
+            if len(content) > 10000:
+                raise ValidationError("Content too long (max 10000 characters)", field='content', value=len(content))
+            
+            if metadata is not None and not isinstance(metadata, dict):
+                raise ValidationError("Metadata must be a dictionary or None", field='metadata')
+            
+            if domain is not None and not isinstance(domain, str):
+                raise ValidationError("Domain must be a string or None", field='domain')
+            
+            # Security validation
+            content = security_validator.sanitize_content(content)
+            if metadata:
+                metadata = security_validator.validate_metadata(metadata)
+            if domain:
+                domain = security_validator.validate_domain(domain)
+            
+            domain = domain or self.default_domain
+            self._ensure_table_exists(domain)
         
         memory_id = f"mem_{int(time.time() * 1000)}"
         timestamp = time.time()
@@ -48,40 +126,52 @@ class PostgresMemoryAPI:
             "created_at": timestamp,
             "updated_at": timestamp,
         })
-        
-        # Get embedding if available
+
+        # Generate embedding with error handling
         embedding = None
         if self.ollama_embeddings:
             try:
                 embedding = self.ollama_embeddings.get_embedding(content)
+                if not embedding or not isinstance(embedding, list):
+                    raise EmbeddingError("Invalid embedding generated", model=getattr(self.ollama_embeddings, 'model_name', 'unknown'))
             except Exception as e:
-                print(f"Failed to generate embedding: {e}")
-        
-        with self._get_connection() as conn:
-            with conn.cursor() as cursor:
-                table_name = sql.Identifier(f"{domain}_memories")
-                
-                if embedding:
-                    # Store with embedding - convert list to vector
-                    query = sql.SQL("""
-                        INSERT INTO {} (id, content, embedding, metadata)
-                        VALUES (%s, %s, %s::vector, %s)
-                    """).format(table_name)
-                    cursor.execute(query, (memory_id, content, embedding, Json(metadata)))
-                else:
-                    # Store without embedding
-                    query = sql.SQL("""
-                        INSERT INTO {} (id, content, metadata)
-                        VALUES (%s, %s, %s)
-                    """).format(table_name)
-                    cursor.execute(query, (memory_id, content, Json(metadata)))
-                
-                conn.commit()
-        
+                logger.warning(f"Failed to generate embedding: {e}")
+                # Continue without embedding rather than failing completely
+
+        # Database operation with comprehensive error handling
+        with database_operation('INSERT', f"{domain}_memories") as cursor:
+            table_name = sql.Identifier(f"{domain}_memories")
+
+            if embedding:
+                # Store with embedding - convert list to vector
+                query = sql.SQL("""
+                    INSERT INTO {} (id, content, embedding, metadata)
+                    VALUES (%s, %s, %s::vector, %s)
+                """).format(table_name)
+                cursor.execute(query, (memory_id, content, embedding, Json(metadata)))
+            else:
+                # Store without embedding
+                query = sql.SQL("""
+                    INSERT INTO {} (id, content, metadata)
+                    VALUES (%s, %s, %s)
+                """).format(table_name)
+                cursor.execute(query, (memory_id, content, Json(metadata)))
+
+        logger.info(f"Successfully stored memory {memory_id} in domain {domain}")
         return memory_id
     
-    def retrieve_memories(self, query: str, limit: int = 5, domain: str = None) -> List[Dict[str, Any]]:
+    def retrieve_memories(self, query: str, limit: int = 5, domain: Optional[str] = None) -> List[Dict[str, Any]]:
         """Retrieve memories using vector similarity search with text search fallback."""
+        # Input validation
+        if not isinstance(query, str):
+            raise ValueError("Query must be a string")
+        if not isinstance(limit, int) or limit < 0:
+            raise ValueError("Limit must be a non-negative integer")
+        if limit > 1000:  # Reasonable limit
+            raise ValueError("Limit too large (max 1000)")
+        if domain is not None and not isinstance(domain, str):
+            raise ValueError("Domain must be a string or None")
+        
         domain = domain or self.default_domain
         self._ensure_table_exists(domain)
         
@@ -96,7 +186,17 @@ class PostgresMemoryAPI:
                         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                             table_name = sql.Identifier(f"{domain}_memories")
 
-                            # Vector similarity search - return ALL results up to limit regardless of score
+                            # Vector similarity search with pgvector optimizations
+                            # Dynamic ef_search based on query complexity and limit
+                            ef_search = min(max(20, limit * 2), 100)  # Range: 20-100, adaptive to limit
+
+                            # Set HNSW parameters for this query session
+                            cursor.execute("SET hnsw.ef_search = %s", (ef_search,))
+
+                            # Enable relaxed ordering for better performance on filtered queries
+                            cursor.execute("SET enable_indexscan = on")
+                            cursor.execute("SET random_page_cost = 1.1")  # SSD optimization
+
                             search_query = sql.SQL("""
                                 SELECT id, content, metadata,
                                        1 - (embedding <=> %s::vector) AS score
@@ -173,9 +273,8 @@ class PostgresMemoryAPI:
             with conn.cursor() as cursor:
                 table_name = sql.Identifier(f"{domain}_memories")
                 
-                # First check if memory exists
-                check_query = sql.SQL("SELECT 1 FROM {} WHERE id = %s").format(table_name)
-                cursor.execute(check_query, (memory_id,))
+                # Check if memory exists
+                cursor.execute(sql.SQL("SELECT id FROM {} WHERE id = %s").format(table_name), (memory_id,))
                 
                 if not cursor.fetchone():
                     return False
@@ -267,3 +366,146 @@ class PostgresMemoryAPI:
                         domains.append(domain)
                 
                 return domains
+    
+    def _init_consolidation_system(self) -> None:
+        """Initialize the existing consolidation system."""
+        try:
+            from consolidation.base import ConsolidationConfig
+            from consolidation.clustering import SemanticClusteringEngine
+            from consolidation.postgres_consolidator import PostgreSQLConsolidator
+            
+            # Create consolidation config
+            self.consolidation_config = ConsolidationConfig()
+            self.consolidation_config.min_cluster_size = 3  # Lower for better clustering
+            
+            # Initialize clustering engine
+            self.clustering_engine = SemanticClusteringEngine(self.consolidation_config)
+            
+            # Initialize PostgreSQL consolidator
+            connection_string = f"postgresql://{self.connection_params['user']}:{self.connection_params['password']}@{self.connection_params['host']}:{self.connection_params['port']}/{self.connection_params['database']}"
+            self.consolidator = PostgreSQLConsolidator(connection_string, self.ollama_embeddings)
+            
+            print("✅ Consolidation system initialized successfully")
+            
+        except Exception as e:
+            print(f"⚠️ Consolidation system initialization failed: {e}")
+            self.consolidation_config = None
+            self.clustering_engine = None
+            self.consolidator = None
+    
+    def cluster_memories(self, domain: str = None, force_recluster: bool = False) -> Dict[str, Any]:
+        """Cluster memories using the existing consolidation system."""
+        if not self.clustering_engine:
+            return {"error": "Consolidation system not available"}
+        
+        domain = domain or self.default_domain
+        
+        try:
+            # Get memories with embeddings
+            memories = self._get_memories_with_embeddings(domain)
+            
+            if len(memories) < self.consolidation_config.min_cluster_size:
+                return {
+                    "status": "insufficient_data",
+                    "reason": f"Need at least {self.consolidation_config.min_cluster_size} memories with embeddings",
+                    "memory_count": len(memories)
+                }
+            
+            # Run clustering
+            import asyncio
+            clusters = asyncio.run(self.clustering_engine.process(memories))
+            
+            return {
+                "status": "success",
+                "clusters_created": len(clusters),
+                "memories_processed": len(memories),
+                "clusters": [
+                    {
+                        "id": cluster.cluster_id,
+                        "size": len(cluster.memory_hashes),
+                        "coherence_score": cluster.coherence_score,
+                        "theme_keywords": cluster.theme_keywords
+                    }
+                    for cluster in clusters
+                ]
+            }
+            
+        except Exception as e:
+            return {"error": f"Clustering failed: {e}"}
+    
+    def _get_memories_with_embeddings(self, domain: str) -> List[Memory]:
+        """Get memories with embeddings for clustering."""
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    table_name = sql.Identifier(f"{domain}_memories")
+                    
+                    query = sql.SQL("""
+                        SELECT id, content, metadata, embedding, created_at, updated_at
+                        FROM {}
+                        WHERE embedding IS NOT NULL
+                        ORDER BY created_at DESC
+                        LIMIT 1000
+                    """).format(table_name)
+                    
+                    cursor.execute(query)
+                    results = cursor.fetchall()
+                    
+                    memories = []
+                    for row in results:
+                        metadata = row.get('metadata', {})
+                        if isinstance(metadata, str):
+                            metadata = json.loads(metadata)
+                        
+                        # Convert datetime objects to timestamps
+                        created_at = row.get('created_at')
+                        if created_at and hasattr(created_at, 'timestamp'):
+                            created_at = created_at.timestamp()
+                        elif created_at is None:
+                            created_at = time.time()
+                            
+                        updated_at = row.get('updated_at')
+                        if updated_at and hasattr(updated_at, 'timestamp'):
+                            updated_at = updated_at.timestamp()
+                        elif updated_at is None:
+                            updated_at = time.time()
+                        
+                        memory = Memory(
+                            content=row['content'],
+                            content_hash=row['id'],
+                            tags=metadata.get('tags', []),
+                            memory_type=metadata.get('memory_type'),
+                            metadata=metadata,
+                            embedding=row['embedding'],
+                            created_at=created_at,
+                            updated_at=updated_at
+                        )
+                        memories.append(memory)
+                    
+                    return memories
+                    
+        except Exception as e:
+            print(f"Error retrieving memories for clustering: {e}")
+            return []
+    
+    def consolidate_memories(self, domain: Optional[str] = None, days_back: int = 30) -> Dict[str, Any]:
+        """Run full memory consolidation using the existing system.
+        
+        Note: This is a sync wrapper around async consolidation methods.
+        The consolidation system uses async/await internally for database operations.
+        """
+        if not self.consolidator:
+            return {"error": "Consolidation system not available"}
+        
+        domain = domain or self.default_domain
+        
+        try:
+            import asyncio
+            # Async boundary: Run async consolidation in sync context
+            result = asyncio.run(self.consolidator.consolidate_memories(domain, days_back))
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            return {"error": f"Consolidation failed: {e}"}

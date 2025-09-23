@@ -16,8 +16,11 @@ from .chunker import TextChunker, ChunkingStrategy
 from .registry import get_loader_for_file, is_supported_file
 
 # Import your existing memory API
-from ..postgres_memory_api import PostgresMemoryAPI
-from ..ollama_embeddings import OllamaEmbeddings
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from postgres_memory_api import PostgresMemoryAPI
+from ollama_embeddings import OllamaEmbeddings
 
 logger = logging.getLogger(__name__)
 

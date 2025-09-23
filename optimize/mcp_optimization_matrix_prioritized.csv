@@ -1,0 +1,9 @@
+component,optimization,current_setting,optimized_setting,expected_improvement,implementation_effort,risk_level,monitoring_metric,priority_score
+PostgreSQL Memory,Increase shared_buffers,25% RAM,30-35% RAM,15-25% query performance,Low,Low,Buffer cache hit ratio,18
+PostgreSQL Memory,Optimize work_mem for vectors,Default formula,256-512MB for vector ops,20-40% complex query speed,Medium,Medium,Temp file usage,12
+pgvector HNSW,Tune ef_search parameter,40 (default),Dynamic 20-100,10-30% search speed,Low,Low,Query latency vs recall,18
+pgvector Index,Implement iterative scanning,Not enabled,relaxed_order mode,2-9x filtered query speed,Low,Low,Filtered search performance,27
+L1 Cache,Increase cache size,Basic LRU,512MB adaptive LRU,40-60% response time,Medium,Low,L1 cache hit ratio,18
+Redis L2 Cache,Optimize data structures,Standard Redis,Compressed vectors + smart TTL,30-50% memory efficiency,High,Medium,Memory usage + hit ratio,4
+Context Management,Proactive session mgmt,Reactive compression,Predictive consolidation,80-90% compression avoidance,High,Medium,Compression events,8
+Memory Clustering,Semantic organization,Time-based only,Temporal + semantic clusters,25-40% context relevance,High,Low,Memory relevance scores,9
