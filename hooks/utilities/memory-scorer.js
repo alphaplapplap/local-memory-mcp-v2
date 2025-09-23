@@ -427,7 +427,23 @@ function scoreMemoryRelevance(memories, projectContext, options = {}) {
         if (verbose) {
             console.log('[Memory Scorer] Top scored memories:');
             sortedMemories.slice(0, 3).forEach((memory, index) => {
-                console.log(`  ${index + 1}. Score: ${memory.relevanceScore.toFixed(3)} - ${memory.content.substring(0, 60)}...`);
+                // Create a simple clean preview without markdown headers
+                let cleanPreview = memory.content || 'No content available';
+                
+                // Remove markdown headers and clean up the content
+                cleanPreview = cleanPreview
+                    .replace(/^#+\s+.*$/gm, '') // Remove markdown headers
+                    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold formatting
+                    .replace(/\*([^*]+)\*/g, '$1') // Remove italic formatting
+                    .replace(/\n+/g, ' ') // Replace newlines with spaces
+                    .trim();
+                
+                // Truncate to reasonable length
+                if (cleanPreview.length > 80) {
+                    cleanPreview = cleanPreview.substring(0, 80) + '...';
+                }
+                
+                console.log(`  ${index + 1}. Score: ${memory.relevanceScore.toFixed(3)} - ${cleanPreview}`);
             });
         }
         

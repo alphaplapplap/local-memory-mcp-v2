@@ -7,6 +7,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const { execSync } = require('child_process');
 
 // Import utilities
 const { detectProjectContext } = require('../utilities/project-detector');
@@ -14,6 +15,42 @@ const { scoreMemoryRelevance } = require('../utilities/memory-scorer');
 const { formatMemoriesForContext } = require('../utilities/context-formatter');
 const { detectContextShift, extractCurrentContext, determineRefreshStrategy } = require('../utilities/context-shift-detector');
 const { analyzeGitContext, buildGitContextQuery } = require('../utilities/git-analyzer');
+
+/**
+ * Check if memory services are running and start them if needed
+ */
+async function ensureMemoryServices() {
+    try {
+        // Quick check if port 8000 is responding
+        const response = await fetch('http://localhost:8000/', { 
+            method: 'GET',
+            timeout: 2000 
+        });
+        if (response.ok) {
+            return true; // Services are running
+        }
+    } catch (error) {
+        // Services not running, start them
+        console.log(`${CONSOLE_COLORS.YELLOW}🔄 Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Starting memory services...`);
+        
+        try {
+            execSync('./start_memory_services.sh', { 
+                cwd: path.join(__dirname, '../../'),
+                stdio: 'pipe',
+                timeout: 10000 
+            });
+            
+            // Wait a moment for services to fully start
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log(`${CONSOLE_COLORS.GREEN}✅ Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Services started successfully`);
+            return true;
+        } catch (startError) {
+            console.log(`${CONSOLE_COLORS.RED}❌ Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Failed to start services: ${startError.message}`);
+            return false;
+        }
+    }
+    return false;
+}
 
 /**
  * Load hook configuration
@@ -309,6 +346,181 @@ function detectStorageBackendFallback(config) {
 }
 
 /**
+ * Detect storage backend configuration (fallback method)
+ */
+function detectStorageBackendFallback(config) {
+    try {
+        // Check environment variable first
+        const envBackend = process.env.MCP_MEMORY_STORAGE_BACKEND?.toLowerCase();
+        const endpoint = config.memoryService?.endpoint || 'https://localhost:8443';
+        
+        // Parse endpoint to determine if local or remote
+        const url = new URL(endpoint);
+        const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.local');
+        
+        let storageInfo = {
+            backend: 'unknown',
+            type: 'unknown',
+            location: endpoint,
+            description: 'Unknown Storage',
+            icon: '💾',
+            health: { status: 'unknown', totalMemories: 0 }
+        };
+        
+        if (envBackend) {
+            switch (envBackend) {
+                case 'sqlite_vec':
+                    storageInfo = {
+                        backend: 'sqlite_vec',
+                        type: 'local',
+                        location: process.env.MCP_MEMORY_SQLITE_PATH || '~/.mcp-memory/memories.db',
+                        description: 'SQLite-vec (Config)',
+                        icon: '🪶',
+                        health: { status: 'unknown', totalMemories: 0 }
+                    };
+                    break;
+                    
+                case 'chromadb':
+                case 'chroma':
+                    const chromaHost = process.env.MCP_MEMORY_CHROMADB_HOST;
+                    const chromaPath = process.env.MCP_MEMORY_CHROMA_PATH;
+                    
+                    if (chromaHost) {
+                        // Remote ChromaDB
+                        const chromaPort = process.env.MCP_MEMORY_CHROMADB_PORT || '8000';
+                        const ssl = process.env.MCP_MEMORY_CHROMADB_SSL === 'true';
+                        const protocol = ssl ? 'https' : 'http';
+                        storageInfo = {
+                            backend: 'chromadb',
+                            type: 'remote',
+                            location: `${protocol}://${chromaHost}:${chromaPort}`,
+                            description: 'ChromaDB (Remote Config)',
+                            icon: '🌐',
+                            health: { status: 'unknown', totalMemories: 0 }
+                        };
+                    } else {
+                        // Local ChromaDB
+                        storageInfo = {
+                            backend: 'chromadb',
+                            type: 'local',
+                            location: chromaPath || '~/.mcp-memory/chroma',
+                            description: 'ChromaDB (Config)',
+                            icon: '📦',
+                            health: { status: 'unknown', totalMemories: 0 }
+                        };
+                    }
+                    break;
+                    
+                case 'cloudflare':
+                    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+                    storageInfo = {
+                        backend: 'cloudflare',
+                        type: 'cloud',
+                        location: accountId ? `Account: ${accountId.substring(0, 8)}...` : 'Cloudflare Workers',
+                        description: 'Cloudflare Vector (Config)',
+                        icon: '☁️',
+                        health: { status: 'unknown', totalMemories: 0 }
+                    };
+                    break;
+            }
+        } else {
+            // Fallback: infer from endpoint
+            if (isLocal) {
+                storageInfo = {
+                    backend: 'local_service',
+                    type: 'local',
+                    location: endpoint,
+                    description: 'Local MCP Service',
+                    icon: '💾',
+                    health: { status: 'unknown', totalMemories: 0 }
+                };
+            } else {
+                storageInfo = {
+                    backend: 'remote_service',
+                    type: 'remote',
+                    location: endpoint,
+                    description: 'Remote MCP Service',
+                    icon: '🌐',
+                    health: { status: 'unknown', totalMemories: 0 }
+                };
+            }
+        }
+        
+        return storageInfo;
+        
+    } catch (error) {
+        return {
+            backend: 'unknown',
+            type: 'unknown',
+            location: 'Configuration Error',
+            description: 'Unknown Storage',
+            icon: '❓',
+            health: { status: 'error', totalMemories: 0 }
+        };
+    }
+}
+
+/**
+ * Create domain if it doesn't exist and switch to it
+ */
+async function ensureProjectDomain(endpoint, apiKey, domainName) {
+    return new Promise((resolve) => {
+        const url = new URL('/mcp', endpoint);
+        const postData = JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'tools/call',
+            params: {
+                name: 'create_domain',
+                arguments: {
+                    domain_name: domainName
+                }
+            }
+        });
+
+        const options = {
+            hostname: url.hostname,
+            port: url.port || (url.protocol === 'https:' ? 8443 : 8000),
+            path: url.pathname,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData),
+                'Authorization': `Bearer ${apiKey}`
+            },
+            rejectUnauthorized: false
+        };
+
+        const requestModule = url.protocol === 'https:' ? https : http;
+        const req = requestModule.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            res.on('end', () => {
+                try {
+                    const response = JSON.parse(data);
+                    // Domain creation returns true/false, we don't need to check the result
+                    // as the domain will be created automatically when we store memories
+                    resolve(true);
+                } catch (parseError) {
+                    console.warn('[Memory Hook] Domain creation parse error:', parseError.message);
+                    resolve(true); // Continue anyway
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            console.warn('[Memory Hook] Domain creation network error:', error.message);
+            resolve(true); // Continue anyway
+        });
+
+        req.write(postData);
+        req.end();
+    });
+}
+
+/**
  * Query memory service for relevant memories
  */
 async function queryMemoryService(endpoint, apiKey, query) {
@@ -319,10 +531,10 @@ async function queryMemoryService(endpoint, apiKey, query) {
             id: 1,
             method: 'tools/call',
             params: {
-                name: 'retrieve_memory',
+                name: 'search_memories',
                 arguments: {
                     query: query.semanticQuery || '',
-                    n_results: query.limit || 10,
+                    limit: query.limit || 10,
                     domain: query.domain || 'default'
                 }
             }
@@ -355,8 +567,9 @@ async function queryMemoryService(endpoint, apiKey, query) {
                         let textData = response.result.content[0].text;
                         
                         try {
-                            // textData should already be valid JSON from bridge server
-                            const memories = JSON.parse(textData);
+                            // Fix NaN values in JSON before parsing
+                            const fixedTextData = textData.replace(/:\s*NaN\s*([,}])/g, ': null$1');
+                            const memories = JSON.parse(fixedTextData);
                             resolve(memories.results || memories.memories || []);
                         } catch (conversionError) {
                             console.warn('[Memory Hook] Could not parse memory response:', conversionError.message);
@@ -401,11 +614,17 @@ const CONSOLE_COLORS = {
  */
 async function onSessionStart(context) {
     try {
+        // Ensure memory services are running first
+        const servicesReady = await ensureMemoryServices();
+        if (!servicesReady) {
+            console.log(`${CONSOLE_COLORS.RED}⚠️ Memory Hook${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Memory services unavailable, continuing without memory features`);
+        }
+        
         // Load configuration first to check verbosity settings
         const config = await loadConfig();
         const verbose = config.output?.verbose !== false; // Default to true
         const cleanMode = config.output?.cleanMode === true; // Default to false
-        const showMemoryDetails = config.output?.showMemoryDetails === true;
+        const showMemoryDetails = config.output?.showMemoryDetails === true || process.env.DEBUG_MEMORY_HOOK === 'true';
         const showProjectDetails = config.output?.showProjectDetails !== false; // Default to true
         
         if (verbose && !cleanMode) {
@@ -443,6 +662,22 @@ async function onSessionStart(context) {
         if (verbose && showProjectDetails && !cleanMode) {
             console.log(`${CONSOLE_COLORS.BLUE}📂 Project${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.BRIGHT}${projectContext.name}${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.GRAY}(${projectContext.language})${CONSOLE_COLORS.RESET}`);
         }
+        
+        // Initialize memory collection array early
+        const allMemories = [];
+        
+        // Auto-create and switch to project domain
+        const projectDomain = projectContext.name.toLowerCase()
+            .replace(/[^a-z0-9_-]/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '');
+        
+        if (verbose && showMemoryDetails && !cleanMode) {
+            console.log(`${CONSOLE_COLORS.CYAN}🔄 Domain${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Switching to domain: ${CONSOLE_COLORS.BRIGHT}${projectDomain}${CONSOLE_COLORS.RESET}`);
+        }
+        
+        // Ensure the project domain exists
+        await ensureProjectDomain(config.memoryService.endpoint, config.memoryService.apiKey, projectDomain);
         
         // Detect storage backend and show source info
         const showStorageSource = config.memoryService?.showStorageSource !== false; // Default to true
@@ -540,12 +775,19 @@ async function onSessionStart(context) {
                         console.log(`${CONSOLE_COLORS.CYAN}🔑 Keywords${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.YELLOW}${topKeywords}${CONSOLE_COLORS.RESET}`);
                     }
                 }
+                
+                // Show Git Query results right after Git Context
+                if (showMemoryDetails && allMemories.length > 0) {
+                    const gitMemories = allMemories.filter(m => m._gitContextType);
+                    if (gitMemories.length > 0) {
+                        console.log(`${CONSOLE_COLORS.GREEN}📋 Git Query${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} [recent-development] found ${gitMemories.length} memories`);
+                    }
+                }
             }
         }
         
         // Multi-phase memory retrieval for better recency prioritization
-        const allMemories = [];
-        const maxMemories = config.memoryService.maxMemoriesPerSession;
+        const maxMemories = config.memoryService?.maxMemoriesPerSession || 8;
         const recentFirstMode = config.memoryService.recentFirstMode !== false; // Default to true
         const recentRatio = config.memoryService.recentMemoryRatio || 0.6;
         const recentTimeWindow = config.memoryService.recentTimeWindow || 'last-week';
@@ -595,9 +837,7 @@ async function onSessionStart(context) {
                         
                         allMemories.push(...newGitMemories);
                         
-                        if (verbose && showMemoryDetails && !cleanMode && newGitMemories.length > 0) {
-                            console.log(`${CONSOLE_COLORS.GREEN}  📋 Git Query${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} [${gitQuery.type}] found ${newGitMemories.length} memories`);
-                        }
+                        // Git Query output moved to be grouped with Git Context above
                     }
                 }
             }
@@ -755,6 +995,14 @@ async function onSessionStart(context) {
         // Use the collected memories from all phases
         const memories = allMemories.slice(0, maxMemories);
         
+        // Debug output
+        if (verbose && showMemoryDetails && !cleanMode) {
+            console.log(`${CONSOLE_COLORS.GRAY}🔍 Debug${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} Collected ${allMemories.length} memories, using ${memories.length} memories`);
+            if (memories.length > 0) {
+                console.log(`${CONSOLE_COLORS.GRAY}🔍 Debug${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} First memory: ${memories[0].content.substring(0, 50)}...`);
+            }
+        }
+        
         if (memories.length > 0) {
             // Analyze memory recency for better reporting
             const now = new Date();
@@ -798,19 +1046,19 @@ async function onSessionStart(context) {
                     extractCurrentContext(context.conversationState || {}, context.workingDirectory),
                     context.previousContext
                 )) : {
-                    maxMemories: config.memoryService.maxMemoriesPerSession,
+                    maxMemories: maxMemories,
                     includeScore: false,
                     message: '🧠 Loading relevant memory context...'
                 };
             
             // Take top scored memories based on strategy
-            const maxMemories = Math.min(strategy.maxMemories || config.memoryService.maxMemoriesPerSession, scoredMemories.length);
-            const topMemories = scoredMemories.slice(0, maxMemories);
+            const selectedMaxMemories = Math.min(strategy.maxMemories || maxMemories, scoredMemories.length);
+            const topMemories = scoredMemories.slice(0, selectedMaxMemories);
             
             // Show actual memory processing info (moved from deduplication)
             if (verbose && showMemoryDetails && !cleanMode) {
                 const totalCollected = allMemories.length;
-                const actualUsed = Math.min(maxMemories, scoredMemories.length);
+                const actualUsed = selectedMaxMemories;
                 if (totalCollected > actualUsed) {
                     console.log(`[Context Formatter] Selected ${actualUsed} from ${totalCollected} collected memories`);
                 }
@@ -820,13 +1068,13 @@ async function onSessionStart(context) {
             // Format memories for context injection with strategy-based options
             const contextMessage = formatMemoriesForContext(topMemories, projectContext, {
                 includeScore: strategy.includeScore || false,
-                groupByCategory: maxMemories > 3,
-                maxMemories: maxMemories,
+                groupByCategory: selectedMaxMemories > 3,
+                maxMemories: selectedMaxMemories,
                 includeTimestamp: true,
                 maxContentLength: config.contextFormatting?.maxContentLength || 500,
                 maxContentLengthCLI: config.contextFormatting?.maxContentLengthCLI || 400,
                 maxContentLengthCategorized: config.contextFormatting?.maxContentLengthCategorized || 350,
-                storageInfo: showStorageSource ? (storageInfo || detectStorageBackend(config)) : null
+                storageInfo: showStorageSource ? (storageInfo || detectStorageBackendFallback(config)) : null
             });
             
             // Inject context into session
