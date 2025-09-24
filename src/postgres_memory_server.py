@@ -1,20 +1,38 @@
 import os
 import sys
 import time
+import json
+import uuid
+import asyncio
+import threading
+import logging
+from decimal import Decimal
+from datetime import datetime
 from typing import Any, Dict, List, Optional
+from contextlib import asynccontextmanager
 
-import mcp.server.stdio
-import mcp.types as types
-from mcp.server import InitializationOptions, NotificationOptions, Server
+import fastmcp
+from fastmcp import FastMCP, Context
+
+# FastAPI imports for HTTP layer
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
 
 from ollama_embeddings import OllamaEmbeddings
-from postgres_memory_api import PostgresMemoryAPI
+from postgres_memory_api import PostgresMemoryAPI, get_project_domain
+from adaptive_lru_cache import memory_cache
+from connection_pool import initialize_connection_pool, get_connection_pool, get_health_checker
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 # Get server name from environment or use default
 server_name = os.environ.get("MCP_SERVER_NAME", "Local Context Memory")
 
-# Initialize the MCP server
-server = Server(server_name)
+# Initialize the FastMCP server
+server = FastMCP(server_name)
 
 # Check if Ollama is available
 ollama_available = False
@@ -39,20 +57,351 @@ try:
                 model_name=embedding_model, base_url=ollama_url, keep_alive=keep_alive
             )
         else:
-            print(
-                f"Ollama found but embedding model {embedding_model} not available, using text search only",
-                file=sys.stderr,
+            logger.warning(
+                f"Ollama found but embedding model {embedding_model} not available, using text search only"
             )
     else:
-        print("Ollama API returned error, using text search only", file=sys.stderr)
+        logger.warning("Ollama API returned error, using text search only")
 except Exception as e:
-    print(f"Ollama check failed: {e}, using text search only", file=sys.stderr)
+    logger.warning(f"Ollama check failed: {e}, using text search only")
 
 # Initialize the PostgreSQL memory API
 memory_api = PostgresMemoryAPI(ollama_embeddings=ollama_embeddings)
 
+# === HTTP SERVER SETUP ===
 
-@server.tool
+# Custom JSON encoder for Decimal and other types
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+# Performance metrics (same as bridge_server.py)
+performance_metrics = {
+    "queries_total": 0,
+    "query_errors": 0,
+    "avg_response_ms": 0,
+    "memory_count": 0,
+    "db_size_mb": 0,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "slow_queries": 0,  # Queries > 1s
+    "startup_time": datetime.now()
+}
+
+# Request/Response models
+class MemoryStoreRequest(BaseModel):
+    content: str
+    metadata: Optional[Dict[str, Any]] = {}
+    domain: Optional[str] = None  # Auto-detection enabled
+    tags: Optional[List[str]] = []
+
+class MCPRequest(BaseModel):
+    jsonrpc: str = "2.0"
+    id: int = 1
+    method: str
+    params: Dict[str, Any]
+
+class ConsolidationRequest(BaseModel):
+    domain: str = "default"
+    strategy: str = "clustering"
+
+# FastAPI lifespan function
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("🚀 Unified Memory Server starting...")
+    print(f"📊 PostgreSQL: {os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', 5432)}")
+    print(f"🧠 Ollama: {ollama_url} ({embedding_model})")
+    print(f"🌐 HTTP Server: http://localhost:8000")
+    print(f"⚡ MCP Protocol: stdio transport")
+    print("🔄 Dual Protocol Mode: ENABLED")
+
+    # Initialize connection pool
+    try:
+        connection_params = {
+            'host': os.getenv('POSTGRES_HOST', 'localhost'),
+            'port': int(os.getenv('POSTGRES_PORT', 5432)),
+            'database': os.getenv('POSTGRES_DB', 'postgres'),
+            'user': os.getenv('POSTGRES_USER', 'postgres'),
+            'password': os.getenv('POSTGRES_PASSWORD', 'postgres')
+        }
+        pool = initialize_connection_pool(
+            connection_params,
+            min_connections=int(os.getenv('POOL_MIN_CONNECTIONS', 2)),
+            max_connections=int(os.getenv('POOL_MAX_CONNECTIONS', 10))
+        )
+        print(f"🔗 Connection pool initialized: {pool.get_pool_status()}")
+    except Exception as e:
+        logger.warning(f"Connection pool initialization failed: {e}")
+
+    yield
+
+    # Shutdown
+    print("🔻 Unified Memory Server shutting down...")
+    pool = get_connection_pool()
+    if pool:
+        print("🔌 Closing database connection pool...")
+        pool.close_all_connections()
+
+# Initialize FastAPI app
+http_app = FastAPI(
+    title="Memory Bridge API",
+    description="Unified Memory System with MCP and HTTP support",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+# Add CORS middleware
+http_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# === HTTP ENDPOINTS ===
+
+@http_app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "service": "Unified Memory Server",
+        "version": "2.0.0",
+        "protocols": ["MCP", "HTTP"],
+        "description": "Unified MCP and HTTP memory server"
+    }
+
+@http_app.get("/api/health")
+async def health_check():
+    """Health check endpoint for hooks"""
+    try:
+        start_time = time.time()
+
+        # Test database connection
+        domains = memory_api.list_domains()
+        response_time = (time.time() - start_time) * 1000
+
+        # Test Ollama if available
+        ollama_status = "available" if ollama_available else "unavailable"
+
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "response_time_ms": round(response_time, 2),
+            "storage": {
+                "backend": "postgresql",
+                "domains": len(domains),
+                "total_memories": sum([memory_api.get_domain_stats(d).get("memory_count", 0) for d in domains])
+            },
+            "ollama": {
+                "status": ollama_status,
+                "model": embedding_model if ollama_available else None
+            },
+            "protocols": ["MCP", "HTTP"]
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@http_app.get("/api/health/detailed")
+async def health_check_detailed():
+    """Detailed health check with cache and connection pool metrics"""
+    base_health = await health_check()
+
+    # Add cache health information
+    cache_stats = memory_cache.get_stats()
+    cache_health = memory_cache.get_health_status()
+
+    # Get connection pool status
+    pool = get_connection_pool()
+    pool_status = pool.get_pool_status() if pool else None
+
+    # Add performance metrics
+    base_health.update({
+        "metrics": performance_metrics,
+        "uptime_seconds": (datetime.now() - performance_metrics["startup_time"]).total_seconds(),
+        "cache": {
+            "stats": cache_stats,
+            "health": cache_health
+        },
+        "connection_pool": pool_status
+    })
+
+    return base_health
+
+@http_app.get("/api/cache/stats")
+async def get_cache_stats():
+    """Get detailed cache statistics"""
+    return {
+        "cache_stats": memory_cache.get_stats(),
+        "cache_health": memory_cache.get_health_status()
+    }
+
+@http_app.post("/api/cache/invalidate")
+async def invalidate_cache(domain: str = None, pattern: str = None):
+    """Invalidate cache entries"""
+    memory_cache.invalidate(pattern=pattern, domain=domain)
+    return {
+        "success": True,
+        "message": f"Cache invalidated for domain={domain}, pattern={pattern}",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@http_app.get("/api/metrics")
+async def get_metrics():
+    """Get performance metrics"""
+    uptime = (datetime.now() - performance_metrics["startup_time"]).total_seconds()
+
+    return {
+        "uptime_seconds": uptime,
+        "queries_total": performance_metrics["queries_total"],
+        "query_errors": performance_metrics["query_errors"],
+        "slow_queries": performance_metrics["slow_queries"],
+        "avg_response_ms": performance_metrics["avg_response_ms"],
+        "memory_count": performance_metrics["memory_count"]
+    }
+
+@http_app.get("/api/project/domain")
+async def get_current_project_domain():
+    """Get the current project domain based on the working directory"""
+    try:
+        domain = get_project_domain()
+        return {
+            "success": True,
+            "domain": domain,
+            "working_directory": os.getcwd()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get project domain: {str(e)}")
+
+@http_app.post("/api/memories")
+async def store_memory_http(request: MemoryStoreRequest):
+    """Store a memory via HTTP (for hooks)"""
+    try:
+        # Prepare metadata with tags
+        metadata = request.metadata or {}
+        if request.tags:
+            metadata["tags"] = request.tags
+
+        # Use the same store_memory function as MCP
+        memory_id = memory_api.store_memory(
+            content=request.content,
+            domain=request.domain,
+            metadata=metadata
+        )
+
+        performance_metrics["queries_total"] += 1
+
+        return {
+            "success": True,
+            "memory_id": memory_id,
+            "domain": request.domain or "default",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        performance_metrics["query_errors"] += 1
+        raise HTTPException(status_code=500, detail=str(e))
+
+@http_app.get("/api/memories")
+async def retrieve_memories_http(query: str = "", domain: str = "default", limit: int = 10):
+    """Retrieve memories via HTTP (for testing/debugging)"""
+    try:
+        start_time = time.time()
+        performance_metrics["queries_total"] += 1
+
+        # Use the same retrieve_memories function as MCP
+        results = memory_api.retrieve_memories(query=query, domain=domain, limit=limit)
+
+        response_time = (time.time() - start_time) * 1000
+        performance_metrics["avg_response_ms"] = response_time
+
+        if response_time > 1000:
+            performance_metrics["slow_queries"] += 1
+
+        return {
+            "success": True,
+            "query": query,
+            "domain": domain,
+            "memories": results,
+            "count": len(results),
+            "response_time_ms": round(response_time, 2)
+        }
+    except Exception as e:
+        performance_metrics["query_errors"] += 1
+        raise HTTPException(status_code=500, detail=str(e))
+
+@http_app.post("/mcp")
+async def mcp_endpoint(request: MCPRequest):
+    """
+    MCP protocol endpoint for memory retrieval
+    Handles tools/call method for retrieve_memory
+    """
+    try:
+        if request.method == "tools/call":
+            tool_name = request.params.get("name")
+            args = request.params.get("arguments", {})
+
+            if tool_name == "retrieve_memory":
+                query = args.get("query", "")
+                domain = args.get("domain", "default")
+                limit = args.get("limit", 10)
+
+                # Use the same retrieve function
+                results = memory_api.retrieve_memories(query=query, domain=domain, limit=limit)
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": json.dumps(results, indent=2, cls=CustomJSONEncoder)
+                            }
+                        ]
+                    }
+                }
+            else:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "error": {
+                        "code": -32601,
+                        "message": f"Method not found: {tool_name}"
+                    }
+                }
+        else:
+            return {
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32601,
+                    "message": f"Method not supported: {request.method}"
+                }
+            }
+    except Exception as e:
+        return {
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32603,
+                "message": f"Internal error: {str(e)}"
+            }
+        }
+
+# === MCP TOOLS SECTION ===
+# (All existing MCP tools remain unchanged below)
+
+
+@server.tool()()
 def store_memory(
     content: str,
     domain: Optional[str] = None,
@@ -119,7 +468,7 @@ def store_memory(
     return memory_id
 
 
-@server.tool
+@server.tool()
 def update_memory(
     memory_id: str,
     content: Optional[str] = None,
@@ -164,7 +513,7 @@ def update_memory(
     return success
 
 
-@mcp.resource("memory://{domain}/{query}")
+@server.resource("memory://{domain}/{query}")
 def get_memories(
     domain: str, query: str, limit: Optional[int] = 5
 ) -> List[Dict[str, Any]]:
@@ -210,7 +559,7 @@ def get_memories(
     return results
 
 
-@server.tool
+@server.tool()
 def search_memories(
     query: str, domain: Optional[str] = None, limit: Optional[int] = 5, time_filter: Optional[str] = None
 ) -> List[Dict[str, Any]]:
@@ -272,7 +621,7 @@ def search_memories(
     return results
 
 
-@server.tool
+@server.tool()
 def recall_memory(
     query: str, n_results: Optional[int] = 5
 ) -> List[Dict[str, Any]]:
@@ -322,7 +671,7 @@ def recall_memory(
     return results
 
 
-@server.tool
+@server.tool()
 def search_by_tag(
     tags: List[str], domain: Optional[str] = None, limit: Optional[int] = 5
 ) -> List[Dict[str, Any]]:
@@ -376,7 +725,7 @@ def search_by_tag(
     return results
 
 
-@server.tool
+@server.tool()
 def list_memory_domains() -> List[str]:
     """
     List all available memory domains in the database.
@@ -398,7 +747,7 @@ def list_memory_domains() -> List[str]:
     return memory_api.list_domains()
 
 
-@server.tool
+@server.tool()
 def delete_memory(
     memory_id: str, domain: Optional[str] = None
 ) -> bool:
@@ -426,11 +775,11 @@ def delete_memory(
         success = memory_api.delete_memory(memory_id, domain)
         return success
     except Exception as e:
-        print(f"Error deleting memory {memory_id}: {e}", file=sys.stderr)
+        logger.error(f"Error deleting memory {memory_id}: {e}")
         return False
 
 
-@server.tool
+@server.tool()
 def delete_by_tag(
     tags: List[str], domain: Optional[str] = None
 ) -> int:
@@ -471,11 +820,11 @@ def delete_by_tag(
         
         return deleted_count
     except Exception as e:
-        print(f"Error deleting memories by tags {tags}: {e}", file=sys.stderr)
+        logger.error(f"Error deleting memories by tags {tags}: {e}")
         return 0
 
 
-@server.tool
+@server.tool()
 def get_current_project_domain() -> str:
     """
     Get the current project domain based on the working directory.
@@ -500,7 +849,7 @@ def get_current_project_domain() -> str:
     return get_project_domain()
 
 
-@server.tool
+@server.tool()
 def create_domain(domain_name: str) -> bool:
     """
     Create a new memory domain.
@@ -545,11 +894,11 @@ def create_domain(domain_name: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error creating domain {domain_name}: {e}", file=sys.stderr)
+        logger.error(f"Error creating domain {domain_name}: {e}")
         return False
 
 
-@server.tool
+@server.tool()
 def get_domain_info(domain_name: str) -> Dict[str, Any]:
     """
     Get detailed information about a specific memory domain.
@@ -600,7 +949,7 @@ def get_domain_info(domain_name: str) -> Dict[str, Any]:
             "last_activity": stats.get("last_activity", None),
         }
     except Exception as e:
-        print(f"Error getting domain info for {domain_name}: {e}", file=sys.stderr)
+        logger.error(f"Error getting domain info for {domain_name}: {e}")
         return {
             "domain": domain_name,
             "memory_count": 0,
@@ -611,7 +960,7 @@ def get_domain_info(domain_name: str) -> Dict[str, Any]:
         }
 
 
-@server.tool
+@server.tool()
 def switch_to_domain(domain_name: str) -> Dict[str, Any]:
     """
     Switch the current working domain context.
@@ -672,7 +1021,7 @@ def switch_to_domain(domain_name: str) -> Dict[str, Any]:
             "message": f"{'Created and switched to' if created else 'Switched to existing'} domain '{domain_name}' with {domain_info['memory_count']} memories",
         }
     except Exception as e:
-        print(f"Error switching to domain {domain_name}: {e}", file=sys.stderr)
+        logger.error(f"Error switching to domain {domain_name}: {e}")
         return {
             "success": False,
             "domain": domain_name,
@@ -682,7 +1031,7 @@ def switch_to_domain(domain_name: str) -> Dict[str, Any]:
         }
 
 
-@server.tool
+@server.tool()
 def copy_memories_between_domains(
     source_domain: str,
     target_domain: str,
@@ -769,9 +1118,8 @@ def copy_memories_between_domains(
                 )
                 copied_count += 1
             except Exception as e:
-                print(
-                    f"Error copying memory {memory.get('id', 'unknown')}: {e}",
-                    file=sys.stderr,
+                logger.error(
+                    f"Error copying memory {memory.get('id', 'unknown')}: {e}"
                 )
 
         return {
@@ -783,9 +1131,8 @@ def copy_memories_between_domains(
             "message": f"Copied {copied_count} memories from '{source_domain}' to '{target_domain}'",
         }
     except Exception as e:
-        print(
-            f"Error copying memories from {source_domain} to {target_domain}: {e}",
-            file=sys.stderr,
+        logger.error(
+            f"Error copying memories from {source_domain} to {target_domain}: {e}"
         )
         return {
             "success": False,
@@ -797,7 +1144,7 @@ def copy_memories_between_domains(
         }
 
 
-@server.tool
+@server.tool()
 def ingest_document(
     file_path: str,
     domain: Optional[str] = None,
@@ -843,7 +1190,7 @@ def ingest_document(
         return f"Ingestion failed: {str(e)}"
 
 
-@server.tool
+@server.tool()
 def ingest_text_content(
     content: str, source_name: str, domain: Optional[str] = None
 ) -> str:
@@ -881,7 +1228,7 @@ def ingest_text_content(
         return f"Text ingestion failed: {str(e)}"
 
 
-@mcp.prompt
+@server.prompt
 def summarize_memories(memories: List[Dict[str, Any]]) -> str:
     """
     Create a prompt for summarizing a list of memories.
@@ -905,7 +1252,7 @@ Summary:"""
     return prompt
 
 
-@mcp.prompt
+@server.prompt
 def memory_review(time_period: str, focus_area: str = "") -> str:
     """
     Review and organize memories from a specific time period.
@@ -936,7 +1283,7 @@ def memory_review(time_period: str, focus_area: str = "") -> str:
     return prompt_text
 
 
-@mcp.prompt
+@server.prompt
 def memory_analysis(tags: str = "", time_range: str = "all time") -> str:
     """
     Analyze patterns and themes in stored memories.
@@ -983,7 +1330,7 @@ def memory_analysis(tags: str = "", time_range: str = "all time") -> str:
     return analysis_text
 
 
-@mcp.prompt
+@server.prompt
 def knowledge_export(format_type: str, filter_criteria: str = "") -> str:
     """
     Export memories in a specific format.
@@ -1026,7 +1373,7 @@ def knowledge_export(format_type: str, filter_criteria: str = "") -> str:
     return export_text
 
 
-@mcp.prompt
+@server.prompt
 def memory_cleanup(older_than: str = "", similarity_threshold: float = 0.95) -> str:
     """
     Identify and remove duplicate or outdated memories.
@@ -1058,7 +1405,7 @@ def memory_cleanup(older_than: str = "", similarity_threshold: float = 0.95) -> 
     return cleanup_text
 
 
-@mcp.prompt
+@server.prompt
 def learning_session(topic: str, key_points: str, questions: str = "") -> str:
     """
     Store structured learning notes from a study session.
@@ -1100,7 +1447,7 @@ def learning_session(topic: str, key_points: str, questions: str = "") -> str:
 
 # Session Management Tools
 
-@server.tool
+@server.tool()
 def start_session(
     session_id: str,
     project_name: Optional[str] = None,
@@ -1155,11 +1502,11 @@ def start_session(
         )
         return result
     except Exception as e:
-        print(f"Error starting session {session_id}: {e}", file=sys.stderr)
+        logger.error(f"Error starting session {session_id}: {e}")
         return {"error": str(e)}
 
 
-@server.tool
+@server.tool()
 def end_session(
     session_id: str,
     final_topics: Optional[List[str]] = None,
@@ -1208,11 +1555,11 @@ def end_session(
         )
         return result
     except Exception as e:
-        print(f"Error ending session {session_id}: {e}", file=sys.stderr)
+        logger.error(f"Error ending session {session_id}: {e}")
         return {"error": str(e)}
 
 
-@server.tool
+@server.tool()
 def get_session_history(
     project_name: Optional[str] = None,
     limit: int = 5,
@@ -1258,11 +1605,11 @@ def get_session_history(
         )
         return result
     except Exception as e:
-        print(f"Error getting session history: {e}", file=sys.stderr)
+        logger.error(f"Error getting session history: {e}", )
         return {"error": str(e)}
 
 
-@server.tool
+@server.tool()
 def get_conversation_threads(
     project_name: Optional[str] = None,
     limit: int = 10,
@@ -1301,11 +1648,11 @@ def get_conversation_threads(
         )
         return result
     except Exception as e:
-        print(f"Error getting conversation threads: {e}", file=sys.stderr)
+        logger.error(f"Error getting conversation threads: {e}", )
         return {"error": str(e)}
 
 
-@server.tool
+@server.tool()
 def track_session_memory(
     session_id: str,
     memory_id: str,
@@ -1350,25 +1697,50 @@ def track_session_memory(
         )
         return result
     except Exception as e:
-        print(f"Error tracking session memory: {e}", file=sys.stderr)
+        logger.error(f"Error tracking session memory: {e}", )
         return False
 
 
+def run_http_server():
+    """Run the HTTP server in a separate thread"""
+    port = int(os.environ.get("BRIDGE_PORT", 8000))
+    print(f"🌐 Starting HTTP server on port {port}")
+    uvicorn.run(
+        http_app,
+        host="0.0.0.0",
+        port=port,
+        log_level="info",
+        access_log=False  # Reduce noise in logs
+    )
+
+def run_mcp_server():
+    """Run the MCP server with stdio transport"""
+    print("⚡ Starting MCP server with stdio transport")
+    server.run(transport="stdio")
+
 if __name__ == "__main__":
-    import asyncio
-    async def main():
-        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-            await server.run(
-                read_stream,
-                write_stream,
-                InitializationOptions(
-                    server_name=server_name,
-                    server_version="1.0.0",
-                    capabilities=server.get_capabilities(
-                        notification_options=NotificationOptions(),
-                        experimental_capabilities={},
-                    ),
-                ),
-            )
-    
-    asyncio.run(main())
+    # Detect mode based on environment or command line arguments
+    mode = os.environ.get("SERVER_MODE", "mcp")
+
+    if len(sys.argv) > 1:
+        mode = sys.argv[1]
+
+    if mode == "http":
+        # HTTP-only mode (for testing)
+        run_http_server()
+    elif mode == "dual":
+        # Dual protocol mode - HTTP in background thread, MCP in main thread
+        print("🚀 Starting Unified Memory Server in DUAL mode")
+
+        # Start HTTP server in background thread
+        http_thread = threading.Thread(target=run_http_server, daemon=True)
+        http_thread.start()
+
+        # Give HTTP server time to start
+        time.sleep(2)
+
+        # Run MCP server in main thread (blocks)
+        run_mcp_server()
+    else:
+        # Default: MCP-only mode (for Claude Code)
+        run_mcp_server()

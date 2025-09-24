@@ -98,6 +98,8 @@ DEFAULT_TIMEOUT_MS = 5000
 
 
 class PostgresMemoryAPI:
+    _consolidation_initialized = False  # Class variable to track initialization
+
     def __init__(self, ollama_embeddings: Optional[Any] = None) -> None:
         """Initialize PostgreSQL memory store with connection parameters."""
 
@@ -126,11 +128,11 @@ class PostgresMemoryAPI:
                     base_url=ollama_url,
                     keep_alive=ollama_keep_alive,
                 )
-                print(
-                    f"✅ Ollama embeddings initialized: {ollama_model} at {ollama_url}"
+                logger.info(
+                    f"Ollama embeddings initialized: {ollama_model} at {ollama_url}"
                 )
             except Exception as e:
-                print(f"⚠️ Failed to initialize Ollama embeddings: {e}")
+                logger.warning(f"Failed to initialize Ollama embeddings: {e}")
                 self.ollama_embeddings = None
         else:
             self.ollama_embeddings = ollama_embeddings
@@ -341,7 +343,7 @@ class PostgresMemoryAPI:
 
                             # If no records have embeddings, fall through to text search
             except Exception as e:
-                print(f"Vector search failed: {e}")
+                logger.debug(f"Vector search failed, falling back to text search: {e}")
 
         # Check if this is a tag-based search
         if query.startswith("tags:"):
@@ -467,7 +469,7 @@ class PostgresMemoryAPI:
                         try:
                             embedding = self.ollama_embeddings.get_embedding(content)
                         except Exception as e:
-                            print(f"Failed to generate embedding: {e}")
+                            logger.debug(f"Failed to generate embedding for update: {e}")
 
                     if embedding:
                         update_query = sql.SQL(
@@ -500,7 +502,7 @@ class PostgresMemoryAPI:
                         try:
                             embedding = self.ollama_embeddings.get_embedding(content)
                         except Exception as e:
-                            print(f"Failed to generate embedding: {e}")
+                            logger.debug(f"Failed to generate embedding for update: {e}")
 
                     if embedding:
                         update_query = sql.SQL(
@@ -679,6 +681,13 @@ class PostgresMemoryAPI:
 
     def _init_consolidation_system(self) -> None:
         """Initialize the existing consolidation system."""
+        # Skip if already initialized at class level
+        if PostgresMemoryAPI._consolidation_initialized:
+            self.consolidation_config = getattr(PostgresMemoryAPI, '_shared_config', None)
+            self.clustering_engine = getattr(PostgresMemoryAPI, '_shared_engine', None)
+            self.consolidator = getattr(PostgresMemoryAPI, '_shared_consolidator', None)
+            return
+
         try:
             from consolidation.base import ConsolidationConfig
             from consolidation.clustering import SemanticClusteringEngine
@@ -699,10 +708,16 @@ class PostgresMemoryAPI:
                 connection_string, self.ollama_embeddings
             )
 
-            print("✅ Consolidation system initialized successfully")
+            # Store at class level for reuse
+            PostgresMemoryAPI._shared_config = self.consolidation_config
+            PostgresMemoryAPI._shared_engine = self.clustering_engine
+            PostgresMemoryAPI._shared_consolidator = self.consolidator
+            PostgresMemoryAPI._consolidation_initialized = True
+
+            logger.info("Consolidation system initialized successfully")
 
         except Exception as e:
-            print(f"⚠️ Consolidation system initialization failed: {e}")
+            logger.warning(f"Consolidation system initialization failed: {e}")
             self.consolidation_config = None
             self.clustering_engine = None
             self.consolidator = None
@@ -804,7 +819,7 @@ class PostgresMemoryAPI:
                     return memories
 
         except Exception as e:
-            print(f"Error retrieving memories for clustering: {e}")
+            logger.error(f"Error retrieving memories for clustering: {e}")
             return []
 
     def consolidate_memories(

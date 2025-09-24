@@ -5,8 +5,11 @@ Phase 2: Enhanced with conversation context awareness for dynamic memory loading
 """
 
 import math
+import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 def calculate_time_decay(memory_date: str, decay_rate: float = 0.1) -> float:
     """
@@ -34,9 +37,9 @@ def calculate_time_decay(memory_date: str, decay_rate: float = 0.1) -> float:
         # Ensure score is between 0 and 1
         return max(0.01, min(1.0, decay_score))
 
-    except:
-        # Silently fail with default score to avoid noise
-        return 0.5
+    except (ValueError, TypeError, AttributeError) as e:
+        logger.debug(f"Time decay calculation failed for date '{memory_date}': {e}")
+        return 0.5  # Default score for invalid dates
 
 def calculate_tag_relevance(memory_tags: List[str] = [], project_context: Dict[str, Any] = {}) -> float:
     """
@@ -104,9 +107,9 @@ def calculate_tag_relevance(memory_tags: List[str] = [], project_context: Dict[s
 
         return max(0.1, total_score)
 
-    except:
-        # Silently fail with default score to avoid noise
-        return 0.3
+    except (ValueError, TypeError, AttributeError) as e:
+        logger.debug(f"Tag relevance calculation failed: {e}")
+        return 0.3  # Default score for tag matching errors
 
 def calculate_content_quality(memory_content: str = '') -> float:
     """
@@ -154,9 +157,9 @@ def calculate_content_quality(memory_content: str = '') -> float:
 
         return min(1.0, base_score + code_bonus + structure_bonus)
 
-    except:
-        # Silently fail with default score to avoid noise
-        return 0.5
+    except (ValueError, TypeError, AttributeError) as e:
+        logger.debug(f"Content quality calculation failed: {e}")
+        return 0.5  # Default score for content quality errors
 
 def calculate_importance_weight(memory_metadata: Dict[str, Any]) -> float:
     """
@@ -181,8 +184,9 @@ def calculate_importance_weight(memory_metadata: Dict[str, Any]) -> float:
 
         return 0.5
 
-    except:
-        return 0.5
+    except (ValueError, TypeError, KeyError) as e:
+        logger.debug(f"Importance extraction failed: {e}")
+        return 0.5  # Default importance score
 
 def calculate_conversation_relevance(memory: Dict[str, Any], conversation_analysis: Dict[str, Any]) -> float:
     """
@@ -232,8 +236,9 @@ def calculate_conversation_relevance(memory: Dict[str, Any], conversation_analys
 
         return 0.3  # Default low relevance
 
-    except:
-        return 0.5
+    except (ValueError, TypeError, KeyError, AttributeError) as e:
+        logger.debug(f"Conversation relevance calculation failed: {e}")
+        return 0.5  # Default relevance score
 
 def score_memory_relevance(memories: List[Dict[str, Any]],
                           project_context: Dict[str, Any] = {},
