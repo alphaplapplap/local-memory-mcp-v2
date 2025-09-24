@@ -401,7 +401,7 @@ async def mcp_endpoint(request: MCPRequest):
 # (All existing MCP tools remain unchanged below)
 
 
-@server.tool()()
+@server.tool()
 def store_memory(
     content: str,
     domain: Optional[str] = None,

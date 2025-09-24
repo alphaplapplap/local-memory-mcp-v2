@@ -12,18 +12,15 @@ try:
     from .postgres_memory_api import PostgresMemoryAPI, get_project_domain
     from .memory_scorer import score_memory_relevance
     from .ollama_embeddings import OllamaEmbeddings
-    from .python_api import MemorySystem
 except ImportError:
     # When run directly from src directory
     from postgres_memory_api import PostgresMemoryAPI, get_project_domain
     from memory_scorer import score_memory_relevance
     from ollama_embeddings import OllamaEmbeddings
-    from python_api import MemorySystem
 
 __all__ = [
     "PostgresMemoryAPI",
     "get_project_domain",
     "score_memory_relevance",
     "OllamaEmbeddings",
-    "MemorySystem",
 ]
