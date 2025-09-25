@@ -500,14 +500,14 @@ def store_memory(
     if content.strip() == "":
         raise ValueError("Content cannot be empty or whitespace only")
 
-    # Content size validation - 100KB limit
-    max_content_size = 100_000
+    # Content size validation - 5KB limit (optimized for context efficiency)
+    max_content_size = 5_000  # Reduced from 100KB for better token efficiency
     if len(content) > max_content_size:
         raise ValueError(f"Content too long (max {max_content_size:,} characters, got {len(content):,})")
 
     # Check byte size for unicode content
     content_bytes = content.encode('utf-8')
-    max_bytes = 100 * 1024  # 100KB
+    max_bytes = 5 * 1024  # 5KB (optimized)
     if len(content_bytes) > max_bytes:
         raise ValueError(f"Content too large (max {max_bytes:,} bytes, got {len(content_bytes):,} bytes)")
 
@@ -543,7 +543,7 @@ def store_memory(
         import json
         metadata_json = json.dumps(metadata, ensure_ascii=False)
         metadata_bytes = metadata_json.encode('utf-8')
-        max_metadata_bytes = 10 * 1024  # 10KB
+        max_metadata_bytes = 2 * 1024  # 2KB (optimized from 10KB)
         if len(metadata_bytes) > max_metadata_bytes:
             raise ValueError(f"Metadata too large (max {max_metadata_bytes:,} bytes, got {len(metadata_bytes):,} bytes)")
 

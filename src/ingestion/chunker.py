@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 class ChunkingStrategy:
     """Configuration for text chunking behavior."""
 
-    chunk_size: int = 1000  # Target characters per chunk
-    chunk_overlap: int = 200  # Characters to overlap between chunks
+    chunk_size: int = 800  # Target characters per chunk (optimized from 1000)
+    chunk_overlap: int = 100  # Characters to overlap between chunks (optimized from 200)
     respect_sentence_boundaries: bool = True
     respect_paragraph_boundaries: bool = True
-    min_chunk_size: int = 100  # Minimum characters for a valid chunk
+    min_chunk_size: int = 200  # Minimum characters for a valid chunk (optimized from 100)
 
 
 class TextChunker:

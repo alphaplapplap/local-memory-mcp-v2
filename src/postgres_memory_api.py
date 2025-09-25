@@ -168,13 +168,56 @@ class PostgresMemoryAPI:
                 cursor.execute("SELECT create_domain_memories_table(%s)", (domain,))
                 conn.commit()
 
-    @handle_errors()
-    @validate_inputs(
-        content=lambda x: isinstance(x, str) and x.strip() != "",
-        metadata=lambda x: x is None or isinstance(x, dict),
-        domain=lambda x: x is None or isinstance(x, str),
-    )
-    @monitor_database_operation("INSERT", "memories")
+    def _assess_content_quality(self, content: str) -> tuple[bool, float, str]:
+        """
+        Assess content quality for storage worthiness.
+        Returns: (should_store, quality_score, reason)
+        """
+        content_lower = content.lower()
+        content_length = len(content.strip())
+
+        # Reject too short content
+        if content_length < 20:
+            return False, 0.1, "Content too short to be meaningful"
+
+        # Check for generic/low-value patterns
+        generic_patterns = [
+            'todo', 'fixme', 'placeholder', 'temp', 'test test',
+            'delete this', 'remove this', 'update this', 'change this',
+            'lorem ipsum', 'sample text', 'example content'
+        ]
+
+        generic_count = sum(1 for pattern in generic_patterns if pattern in content_lower)
+        if generic_count >= 2:
+            return False, 0.2, "Content contains multiple generic placeholders"
+
+        # Boost technical content
+        technical_indicators = [
+            'error:', 'exception:', 'bug:', 'fix:', 'solution:',
+            'config:', 'implementation:', 'optimization:', 'pattern:',
+            '```', 'function', 'class', 'def ', 'const ', 'import'
+        ]
+
+        technical_score = sum(0.1 for indicator in technical_indicators if indicator in content_lower)
+
+        # Base quality score
+        if content_length < 50:
+            base_score = 0.4
+        elif content_length < 200:
+            base_score = 0.6
+        elif content_length < 1000:
+            base_score = 0.8
+        else:
+            base_score = 0.7  # Slightly lower for very long content
+
+        quality_score = min(1.0, base_score + technical_score)
+
+        # Decision threshold
+        if quality_score < 0.3:
+            return False, quality_score, "Content quality below threshold"
+
+        return True, quality_score, "Content meets quality standards"
+
     def store_memory(
         self,
         content: str,
@@ -200,8 +243,18 @@ class PostgresMemoryAPI:
                     "Content cannot be empty or whitespace only", field="content"
                 )
 
-            # Content size validation - 100KB limit (roughly 100,000 chars)
-            max_content_size = 100_000
+            # Assess content quality (Phase 1 optimization)
+            should_store, quality_score, reason = self._assess_content_quality(content)
+            if not should_store:
+                logger.info(f"Rejecting low-quality content: {reason} (score: {quality_score:.2f})")
+                raise ValidationError(
+                    f"Content quality too low: {reason}",
+                    field="content",
+                    value=quality_score,
+                )
+
+            # Content size validation - 5KB limit (optimized from 100KB)
+            max_content_size = 5_000
             if len(content) > max_content_size:
                 raise ValidationError(
                     f"Content too long (max {max_content_size:,} characters)",
@@ -211,7 +264,7 @@ class PostgresMemoryAPI:
 
             # Check actual byte size for unicode content
             content_bytes = content.encode('utf-8')
-            max_bytes = 100 * 1024  # 100KB
+            max_bytes = 5 * 1024  # 5KB (optimized from 100KB)
             if len(content_bytes) > max_bytes:
                 raise ValidationError(
                     f"Content too large (max {max_bytes:,} bytes, got {len(content_bytes):,} bytes)",
@@ -225,10 +278,10 @@ class PostgresMemoryAPI:
                         "Metadata must be a dictionary or None", field="metadata"
                     )
 
-                # Validate metadata size (10KB JSON limit)
+                # Validate metadata size (2KB JSON limit - optimized from 10KB)
                 metadata_json = json.dumps(metadata, ensure_ascii=False)
                 metadata_bytes = metadata_json.encode('utf-8')
-                max_metadata_bytes = 10 * 1024  # 10KB
+                max_metadata_bytes = 2 * 1024  # 2KB (optimized)
                 if len(metadata_bytes) > max_metadata_bytes:
                     raise ValidationError(
                         f"Metadata too large (max {max_metadata_bytes:,} bytes, got {len(metadata_bytes):,} bytes)",
