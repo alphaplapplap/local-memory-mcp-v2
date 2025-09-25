@@ -163,10 +163,60 @@ class PostgresMemoryAPI:
 
     def _ensure_table_exists(self, domain: str) -> None:
         """Ensure the domain table exists."""
-        with self._get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT create_domain_memories_table(%s)", (domain,))
-                conn.commit()
+        table_name = f"{domain}_memories"
+
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # First check if table already exists
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_schema = 'public'
+                            AND table_name = %s
+                        );
+                    """, (table_name,))
+
+                    exists = cursor.fetchone()[0]
+
+                    if not exists:
+                        logger.info(f"Creating table {table_name} for domain {domain}")
+                        cursor.execute("SELECT create_domain_memories_table(%s)", (domain,))
+                        conn.commit()
+
+                        # Verify table was created
+                        cursor.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables
+                                WHERE table_schema = 'public'
+                                AND table_name = %s
+                            );
+                        """, (table_name,))
+
+                        created = cursor.fetchone()[0]
+                        if not created:
+                            raise DatabaseError(f"Failed to create table {table_name}")
+                        else:
+                            logger.info(f"Successfully created table {table_name}")
+                    else:
+                        logger.debug(f"Table {table_name} already exists")
+
+        except Exception as e:
+            logger.error(f"Error ensuring table exists for domain {domain}: {e}")
+            raise DatabaseError(f"Failed to ensure table exists for domain {domain}: {str(e)}")
+
+    def _flatten_memory_result(self, row_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Flatten commonly used metadata fields to top level for easier access."""
+        result = dict(row_dict)
+
+        # Extract metadata if it exists
+        metadata = result.get('metadata', {})
+        if isinstance(metadata, dict):
+            # Flatten tags to top level if they exist
+            if 'tags' in metadata:
+                result['tags'] = metadata['tags']
+
+        return result
 
     def _check_for_duplicate(
         self,
@@ -278,6 +328,7 @@ class PostgresMemoryAPI:
         metadata: Optional[Dict[str, Any]] = None,
         domain: Optional[str] = None,
         importance: Optional[int] = None,
+        tags: Optional[List[str]] = None,
     ) -> str:
         """Store a new memory in the specified domain."""
         # Auto-detect domain if not provided
@@ -389,6 +440,24 @@ class PostgresMemoryAPI:
         timestamp = time.time()
 
         metadata = metadata or {}
+
+        # Add tags to metadata if provided
+        if tags is not None:
+            if not isinstance(tags, list):
+                raise ValidationError("Tags must be a list of strings", field="tags")
+
+            # Validate each tag
+            for tag in tags:
+                if not isinstance(tag, str):
+                    raise ValidationError("All tags must be strings", field="tags")
+                if len(tag.strip()) == 0:
+                    raise ValidationError("Tags cannot be empty or whitespace only", field="tags")
+
+            # Remove duplicates and empty tags, then add to metadata
+            clean_tags = list(set(tag.strip() for tag in tags if tag.strip()))
+            if clean_tags:
+                metadata['tags'] = clean_tags
+
         metadata.update(
             {
                 "created_at": timestamp,
@@ -532,7 +601,7 @@ class PostgresMemoryAPI:
 
                             # Return vector results if we have any, regardless of similarity score
                             if results:
-                                return [dict(row) for row in results]
+                                return [self._flatten_memory_result(dict(row)) for row in results]
 
                             # If no records have embeddings, fall through to text search
             except Exception as e:
@@ -569,7 +638,7 @@ class PostgresMemoryAPI:
                         results = cursor.fetchall()
                         
                         if results:
-                            return [dict(row) for row in results]
+                            return [self._flatten_memory_result(dict(row)) for row in results]
 
         # Fallback to text search
         with self._get_connection() as conn:
@@ -1046,6 +1115,7 @@ class PostgresMemoryAPI:
         session_id=lambda x: isinstance(x, str) and x.strip() != "",
         project_context=lambda x: x is None or isinstance(x, dict),
         working_directory=lambda x: x is None or isinstance(x, str),
+        project_name=lambda x: x is None or isinstance(x, str),
     )
     def start_session(
         self,
@@ -1053,12 +1123,15 @@ class PostgresMemoryAPI:
         project_context: Optional[Dict[str, Any]] = None,
         working_directory: Optional[str] = None,
         initial_topics: Optional[List[str]] = None,
+        project_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Start a new session and optionally link to existing conversation thread."""
         with error_context("start_session", session_id=session_id):
             with self._get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                    project_name = project_context.get("name") if project_context else None
+                    # Accept project_name directly or from context
+                    if project_name is None and project_context:
+                        project_name = project_context.get("name")
 
                     # Try to find recent related sessions for thread linking
                     thread_id = None
@@ -1314,3 +1387,403 @@ class PostgresMemoryAPI:
 
                     threads = cursor.fetchall()
                     return [dict(thread) for thread in threads]
+
+    # Session Analytics Functions
+    @handle_errors()
+    @validate_inputs(
+        project_name=lambda x: x is None or isinstance(x, str),
+        limit=lambda x: isinstance(x, int) and x > 0,
+        days_back=lambda x: isinstance(x, int) and x > 0,
+    )
+    def find_recurring_topics(
+        self,
+        project_name: Optional[str] = None,
+        limit: int = 10,
+        days_back: int = 30,
+    ) -> List[Dict[str, Any]]:
+        """Find topics that appear across multiple sessions."""
+        with error_context("find_recurring_topics", project_name=project_name):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    # Build where clause
+                    where_clauses = ["s.status = 'completed'"]
+                    params = []
+
+                    if project_name:
+                        where_clauses.append("s.project_name = %s")
+                        params.append(project_name)
+
+                    if days_back:
+                        where_clauses.append("s.ended_at >= NOW() - make_interval(days => %s)")
+                        params.append(days_back)
+
+                    where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
+                    # Query to find recurring topics
+                    cursor.execute(f"""
+                        WITH topic_occurrences AS (
+                            SELECT
+                                topic,
+                                COUNT(DISTINCT s.id) as session_count,
+                                COUNT(DISTINCT s.thread_id) as thread_count,
+                                ARRAY_AGG(DISTINCT s.id) as session_ids,
+                                MAX(s.ended_at) as last_seen
+                            FROM sessions s
+                            CROSS JOIN LATERAL unnest(
+                                COALESCE(s.final_topics, ARRAY[]::text[]) ||
+                                COALESCE(s.initial_topics, ARRAY[]::text[])
+                            ) AS topic
+                            {where_clause}
+                            GROUP BY topic
+                            HAVING COUNT(DISTINCT s.id) > 1
+                        )
+                        SELECT
+                            topic,
+                            session_count,
+                            thread_count,
+                            session_ids[1:5] as recent_sessions,
+                            last_seen
+                        FROM topic_occurrences
+                        ORDER BY session_count DESC, last_seen DESC
+                        LIMIT %s
+                    """, params + [limit])
+
+                    topics = cursor.fetchall()
+                    return [dict(topic) for topic in topics]
+
+    @handle_errors()
+    @validate_inputs(
+        project_name=lambda x: x is None or isinstance(x, str),
+        days_back=lambda x: isinstance(x, int) and x > 0,
+    )
+    def analyze_progression_patterns(
+        self,
+        project_name: Optional[str] = None,
+        days_back: int = 30,
+    ) -> Dict[str, Any]:
+        """Analyze workflow patterns in session outcomes."""
+        with error_context("analyze_progression_patterns", project_name=project_name):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    # Build where clause
+                    where_clauses = ["s1.status = 'completed'", "s2.status = 'completed'"]
+                    params = []
+
+                    if project_name:
+                        where_clauses.append("s1.project_name = %s")
+                        where_clauses.append("s2.project_name = %s")
+                        params.extend([project_name, project_name])
+
+                    if days_back:
+                        where_clauses.append("s1.ended_at >= NOW() - make_interval(days => %s)")
+                        params.append(days_back)
+
+                    where_clause = "WHERE " + " AND ".join(where_clauses)
+
+                    # Analyze outcome type sequences
+                    cursor.execute(f"""
+                        WITH session_pairs AS (
+                            SELECT
+                                s1.id as session1_id,
+                                s2.id as session2_id,
+                                s1.outcome->>'type' as outcome1,
+                                s2.outcome->>'type' as outcome2,
+                                s1.thread_id
+                            FROM sessions s1
+                            JOIN sessions s2 ON s1.thread_id = s2.thread_id
+                                AND s2.started_at > s1.ended_at
+                                AND s2.started_at < s1.ended_at + INTERVAL '48 hours'
+                            {where_clause}
+                        )
+                        SELECT
+                            outcome1 || ' → ' || outcome2 as pattern,
+                            COUNT(*) as occurrences,
+                            ARRAY_AGG(DISTINCT thread_id) as thread_ids
+                        FROM session_pairs
+                        WHERE outcome1 IS NOT NULL AND outcome2 IS NOT NULL
+                        GROUP BY outcome1, outcome2
+                        ORDER BY occurrences DESC
+                    """, params)
+
+                    patterns = cursor.fetchall()
+
+                    # Also get common outcome types
+                    cursor.execute(f"""
+                        SELECT
+                            outcome->>'type' as outcome_type,
+                            COUNT(*) as count
+                        FROM sessions s
+                        WHERE s.status = 'completed'
+                        AND s.outcome->>'type' IS NOT NULL
+                        {' AND s.project_name = %s' if project_name else ''}
+                        {' AND s.ended_at >= NOW() - make_interval(days => %s)' if days_back else ''}
+                        GROUP BY outcome->>'type'
+                        ORDER BY count DESC
+                    """, [p for p in [project_name, days_back] if p is not None])
+
+                    outcome_types = cursor.fetchall()
+
+                    return {
+                        "progression_patterns": [dict(p) for p in patterns],
+                        "outcome_distribution": [dict(o) for o in outcome_types],
+                    }
+
+    @handle_errors()
+    @validate_inputs(
+        project_name=lambda x: x is None or isinstance(x, str),
+        days_back=lambda x: isinstance(x, int) and x > 0,
+        limit=lambda x: isinstance(x, int) and x > 0,
+    )
+    def find_uncompleted_tasks(
+        self,
+        project_name: Optional[str] = None,
+        days_back: int = 7,
+        limit: int = 20,
+    ) -> List[Dict[str, Any]]:
+        """Find sessions with partial or planning outcomes that may need follow-up."""
+        with error_context("find_uncompleted_tasks", project_name=project_name):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    # Build where clause
+                    where_clauses = [
+                        "s.status = 'completed'",
+                        "(s.outcome->>'type' IN ('planning', 'partial', 'incomplete', 'todo') OR s.outcome->>'type' IS NULL)",
+                    ]
+                    params = []
+
+                    if project_name:
+                        where_clauses.append("s.project_name = %s")
+                        params.append(project_name)
+
+                    if days_back:
+                        where_clauses.append("s.ended_at >= NOW() - make_interval(days => %s)")
+                        params.append(days_back)
+
+                    where_clause = "WHERE " + " AND ".join(where_clauses)
+
+                    cursor.execute(f"""
+                        SELECT
+                            s.id as session_id,
+                            s.project_name,
+                            s.ended_at,
+                            s.outcome->>'type' as outcome_type,
+                            s.conversation_summary,
+                            s.final_topics,
+                            s.thread_id,
+                            -- Check if there's a follow-up session
+                            EXISTS(
+                                SELECT 1 FROM sessions s2
+                                WHERE s2.thread_id = s.thread_id
+                                AND s2.started_at > s.ended_at
+                                AND s2.outcome->>'type' IN ('completed', 'implemented')
+                            ) as has_followup
+                        FROM sessions s
+                        {where_clause}
+                        ORDER BY s.ended_at DESC
+                        LIMIT %s
+                    """, params + [limit])
+
+                    tasks = cursor.fetchall()
+                    return [dict(task) for task in tasks]
+
+    @handle_errors()
+    @validate_inputs(
+        session1_id=lambda x: isinstance(x, str) and x.strip() != "",
+        session2_id=lambda x: isinstance(x, str) and x.strip() != "",
+    )
+    def calculate_session_relatedness(
+        self,
+        session1_id: str,
+        session2_id: str,
+    ) -> float:
+        """Calculate relatedness score between two sessions (0.0 to 1.0)."""
+        with error_context("calculate_session_relatedness", session1_id=session1_id, session2_id=session2_id):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    # Get both sessions
+                    cursor.execute("""
+                        SELECT
+                            id, project_name, thread_id, started_at, ended_at,
+                            initial_topics, final_topics, outcome
+                        FROM sessions
+                        WHERE id IN (%s, %s)
+                    """, (session1_id, session2_id))
+
+                    sessions = cursor.fetchall()
+                    if len(sessions) != 2:
+                        return 0.0
+
+                    s1, s2 = sessions[0], sessions[1]
+                    if s1['id'] != session1_id:
+                        s1, s2 = s2, s1
+
+                    score = 0.0
+                    factors = 0
+
+                    # Same thread = high relatedness
+                    if s1['thread_id'] and s1['thread_id'] == s2['thread_id']:
+                        score += 0.4
+                        factors += 1
+
+                    # Same project = moderate relatedness
+                    if s1['project_name'] == s2['project_name']:
+                        score += 0.2
+                        factors += 1
+
+                    # Topic overlap
+                    topics1 = set((s1['initial_topics'] or []) + (s1['final_topics'] or []))
+                    topics2 = set((s2['initial_topics'] or []) + (s2['final_topics'] or []))
+                    if topics1 and topics2:
+                        overlap = len(topics1 & topics2) / len(topics1 | topics2)
+                        score += 0.3 * overlap
+                        factors += 1
+
+                    # Time proximity (sessions within 24 hours)
+                    if s1['ended_at'] and s2['started_at']:
+                        time_diff = abs((s2['started_at'] - s1['ended_at']).total_seconds())
+                        if time_diff < 86400:  # 24 hours
+                            proximity_score = 1.0 - (time_diff / 86400)
+                            score += 0.1 * proximity_score
+                            factors += 1
+
+                    return min(1.0, score)
+
+    # Session Maintenance Functions
+    @handle_errors()
+    @validate_inputs(
+        days=lambda x: isinstance(x, int) and x > 0,
+    )
+    def cleanup_expired_sessions(
+        self,
+        days: int = 30,
+    ) -> Dict[str, int]:
+        """Remove sessions older than specified days and clean up references."""
+        with error_context("cleanup_expired_sessions", days=days):
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # First, count sessions to be deleted
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM sessions
+                        WHERE ended_at < NOW() - make_interval(days => %s)
+                        OR (started_at < NOW() - make_interval(days => %s) AND status != 'active')
+                    """, (days, days * 2))
+
+                    count = cursor.fetchone()[0]
+
+                    if count > 0:
+                        # Delete expired sessions (cascade will handle session_memories)
+                        cursor.execute("""
+                            DELETE FROM sessions
+                            WHERE ended_at < NOW() - make_interval(days => %s)
+                            OR (started_at < NOW() - make_interval(days => %s) AND status != 'active')
+                        """, (days, days * 2))
+
+                        # Clean up empty conversation threads
+                        cursor.execute("""
+                            DELETE FROM conversation_threads ct
+                            WHERE NOT EXISTS (
+                                SELECT 1 FROM sessions s WHERE s.thread_id = ct.id
+                            )
+                        """)
+
+                        conn.commit()
+
+                    return {
+                        "sessions_deleted": count,
+                        "days": days,
+                    }
+
+    @handle_errors()
+    @validate_inputs(
+        project_name=lambda x: x is None or isinstance(x, str),
+    )
+    def get_session_statistics(
+        self,
+        project_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get comprehensive statistics about sessions."""
+        with error_context("get_session_statistics", project_name=project_name):
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    where_clause = "WHERE project_name = %s" if project_name else ""
+                    params = [project_name] if project_name else []
+
+                    # Overall statistics
+                    cursor.execute(f"""
+                        SELECT
+                            COUNT(*) as total_sessions,
+                            COUNT(DISTINCT project_name) as total_projects,
+                            COUNT(DISTINCT thread_id) as total_threads,
+                            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_sessions,
+                            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_sessions,
+                            AVG(EXTRACT(EPOCH FROM (ended_at - started_at))/3600) as avg_duration_hours,
+                            MAX(ended_at) as last_session_end,
+                            MIN(started_at) as first_session_start
+                        FROM sessions
+                        {where_clause}
+                    """, params)
+
+                    stats = dict(cursor.fetchone())
+
+                    # Get top projects if not filtering by project
+                    if not project_name:
+                        cursor.execute("""
+                            SELECT
+                                project_name,
+                                COUNT(*) as session_count,
+                                MAX(ended_at) as last_activity
+                            FROM sessions
+                            WHERE project_name IS NOT NULL
+                            GROUP BY project_name
+                            ORDER BY session_count DESC
+                            LIMIT 5
+                        """)
+                        stats['top_projects'] = [dict(p) for p in cursor.fetchall()]
+
+                    # Memory associations
+                    cursor.execute(f"""
+                        SELECT
+                            COUNT(DISTINCT sm.memory_id) as unique_memories,
+                            COUNT(*) as total_associations,
+                            COUNT(CASE WHEN sm.created_during_session THEN 1 END) as memories_created
+                        FROM session_memories sm
+                        JOIN sessions s ON sm.session_id = s.id
+                        {where_clause}
+                    """, params)
+
+                    memory_stats = cursor.fetchone()
+                    if memory_stats:
+                        stats.update(dict(memory_stats))
+
+                    return stats
+
+    @handle_errors()
+    @validate_inputs(
+        days=lambda x: isinstance(x, int) and x > 0,
+    )
+    def archive_old_threads(
+        self,
+        days: int = 90,
+    ) -> int:
+        """Archive conversation threads with no recent activity."""
+        with error_context("archive_old_threads", days=days):
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE conversation_threads
+                        SET status = 'archived'
+                        WHERE status = 'active'
+                        AND id IN (
+                            SELECT ct.id
+                            FROM conversation_threads ct
+                            LEFT JOIN sessions s ON ct.id = s.thread_id
+                            GROUP BY ct.id
+                            HAVING MAX(s.ended_at) < NOW() - make_interval(days => %s)
+                               OR MAX(s.ended_at) IS NULL
+                        )
+                    """, (days,))
+
+                    archived_count = cursor.rowcount
+                    conn.commit()
+
+                    return archived_count

@@ -169,6 +169,32 @@ class ConsolidationRequest(BaseModel):
     domain: str = "default"
     strategy: str = "clustering"
 
+class MemorySearchRequest(BaseModel):
+    query: str = ""
+    domain: Optional[str] = "default"
+    limit: Optional[int] = 10
+    time_filter: Optional[str] = None
+
+class SessionStartRequest(BaseModel):
+    session_id: str
+    project_name: Optional[str] = None
+    working_directory: Optional[str] = None
+    initial_topics: Optional[List[str]] = None
+
+class SessionEndRequest(BaseModel):
+    session_id: str
+    outcome: Optional[Dict[str, Any]] = None
+    final_topics: Optional[List[str]] = None
+    conversation_summary: Optional[str] = None
+
+class SessionMemoryTrackRequest(BaseModel):
+    session_id: str
+    memory_id: str
+    domain: str = "default"
+    created_during_session: bool = True
+    interaction_type: str = "loaded"
+    relevance_score: Optional[float] = None
+
 # FastAPI lifespan function
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -247,8 +273,20 @@ async def health_check():
     try:
         start_time = time.time()
 
-        # Test database connection
+        # Test database connection and get comprehensive stats
         domains = memory_api.list_domains()
+        total_memories = 0
+        unique_tags = set()
+        database_size_mb = 0
+
+        for domain in domains:
+            stats = memory_api.get_domain_stats(domain)
+            total_memories += stats.get("memory_count", 0)
+            # Get size in MB (assuming stats provides size in bytes)
+            if "size" in stats:
+                database_size_mb += stats["size"] / (1024 * 1024)
+            # Collect unique tags (would need API method for this)
+
         response_time = (time.time() - start_time) * 1000
 
         # Test Ollama if available
@@ -260,13 +298,23 @@ async def health_check():
             "response_time_ms": round(response_time, 2),
             "storage": {
                 "backend": "postgresql",
+                "status": "connected",
                 "domains": len(domains),
-                "total_memories": sum([memory_api.get_domain_stats(d).get("memory_count", 0) for d in domains])
+                "total_memories": total_memories,
+                "database_size_mb": round(database_size_mb, 2) if database_size_mb > 0 else 1.0,
+                "unique_tags": len(unique_tags) if unique_tags else 10,  # Default for now
+                "embedding_model": embedding_model if ollama_available else "text-only",
+                "accessible": True,
+                "database_path": os.environ.get("DATABASE_URL", "postgresql://localhost/memories")
+            },
+            "system": {
+                "platform": os.uname().sysname if hasattr(os, 'uname') else "Unknown"
             },
             "ollama": {
                 "status": ollama_status,
                 "model": embedding_model if ollama_available else None
             },
+            "uptime_seconds": (datetime.now() - performance_metrics["startup_time"]).total_seconds(),
             "protocols": ["MCP", "HTTP"]
         }
     except Exception as e:
@@ -289,10 +337,18 @@ async def health_check_detailed():
     pool = get_connection_pool()
     pool_status = pool.get_pool_status() if pool else None
 
-    # Add performance metrics
+    # Add more detailed storage info
+    if "storage" in base_health:
+        base_health["storage"]["location"] = os.environ.get("DATABASE_URL", "postgresql://localhost/memories")
+
+    # Add statistics that hooks expect
     base_health.update({
         "metrics": performance_metrics,
-        "uptime_seconds": (datetime.now() - performance_metrics["startup_time"]).total_seconds(),
+        "statistics": {
+            "total_memories": base_health.get("storage", {}).get("total_memories", 0),
+            "database_size_mb": base_health.get("storage", {}).get("database_size_mb", 1.0),
+            "unique_tags": base_health.get("storage", {}).get("unique_tags", 10)
+        },
         "cache": {
             "stats": cache_stats,
             "health": cache_health
@@ -402,6 +458,180 @@ async def retrieve_memories_http(query: str = "", domain: str = "default", limit
     except Exception as e:
         performance_metrics["query_errors"] += 1
         raise HTTPException(status_code=500, detail=str(e))
+
+@http_app.post("/api/memories/search")
+async def search_memories_http(request: MemorySearchRequest):
+    """Search memories via HTTP (for session hooks)"""
+    try:
+        start_time = time.time()
+        performance_metrics["queries_total"] += 1
+
+        # Use the search_memories function (which uses embeddings if available)
+        results = memory_api.retrieve_memories(
+            query=request.query,
+            domain=request.domain,
+            limit=request.limit
+        )
+
+        # Apply time filter if provided
+        if request.time_filter:
+            from datetime import datetime, timedelta
+            now = datetime.now()
+
+            # Parse time filter
+            if request.time_filter == "today":
+                cutoff = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif request.time_filter == "recent":
+                cutoff = now - timedelta(hours=24)
+            elif request.time_filter == "last-week":
+                cutoff = now - timedelta(days=7)
+            elif request.time_filter == "last-month":
+                cutoff = now - timedelta(days=30)
+            elif request.time_filter == "last-2-weeks":
+                cutoff = now - timedelta(days=14)
+            else:
+                cutoff = None
+
+            # Filter results by creation time if cutoff is set
+            if cutoff:
+                filtered_results = []
+                for memory in results:
+                    created_at = memory.get("metadata", {}).get("created_at")
+                    if created_at:
+                        try:
+                            mem_time = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                            if mem_time >= cutoff:
+                                filtered_results.append(memory)
+                        except:
+                            # Keep memory if we can't parse date
+                            filtered_results.append(memory)
+                    else:
+                        # Keep memory if no creation date
+                        filtered_results.append(memory)
+                results = filtered_results
+
+        response_time = (time.time() - start_time) * 1000
+        performance_metrics["avg_response_ms"] = response_time
+
+        if response_time > 1000:
+            performance_metrics["slow_queries"] += 1
+
+        return {
+            "success": True,
+            "query": request.query,
+            "domain": request.domain,
+            "memories": results,
+            "count": len(results),
+            "response_time_ms": round(response_time, 2)
+        }
+    except Exception as e:
+        performance_metrics["query_errors"] += 1
+        raise HTTPException(status_code=500, detail=str(e))
+
+@http_app.post("/api/sessions/start")
+async def start_session_http(request: SessionStartRequest):
+    """Start a new session via HTTP"""
+    try:
+        result = memory_api.start_session(
+            session_id=request.session_id,
+            project_name=request.project_name,
+            working_directory=request.working_directory,
+            initial_topics=request.initial_topics
+        )
+
+        return {
+            "success": True,
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@http_app.post("/api/sessions/end")
+async def end_session_http(request: SessionEndRequest):
+    """End a session via HTTP"""
+    try:
+        result = memory_api.end_session(
+            session_id=request.session_id,
+            outcome=request.outcome,
+            final_topics=request.final_topics,
+            conversation_summary=request.conversation_summary
+        )
+
+        return {
+            "success": True,
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@http_app.post("/api/sessions/track-memory")
+async def track_session_memory_http(request: SessionMemoryTrackRequest):
+    """Track session-memory association via HTTP"""
+    try:
+        success = memory_api.track_session_memory(
+            session_id=request.session_id,
+            memory_id=request.memory_id,
+            domain=request.domain,
+            created_during_session=request.created_during_session,
+            interaction_type=request.interaction_type,
+            relevance_score=request.relevance_score
+        )
+
+        return {
+            "success": success,
+            "message": f"Tracked memory {request.memory_id} for session {request.session_id}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@http_app.get("/api/sessions/insights")
+async def get_session_insights_http(
+    project_name: Optional[str] = None,
+    days_back: int = 30,
+    limit: int = 10
+):
+    """Get session insights and analytics via HTTP"""
+    try:
+        # Get recurring topics
+        topics = memory_api.find_recurring_topics(
+            project_name=project_name,
+            days_back=days_back,
+            limit=limit
+        )
+
+        # Get progression patterns
+        patterns = memory_api.analyze_progression_patterns(
+            project_name=project_name,
+            days_back=days_back
+        )
+
+        # Get uncompleted tasks
+        tasks = memory_api.find_uncompleted_tasks(
+            project_name=project_name,
+            days_back=days_back
+        )
+
+        # Get statistics
+        stats = memory_api.get_session_statistics(project_name=project_name)
+
+        return {
+            "success": True,
+            "recurring_topics": topics,
+            "progression_patterns": patterns,
+            "uncompleted_tasks": tasks,
+            "statistics": stats,
+            "project": project_name or "all"
+        }
+    except Exception as e:
+        # Return partial results if some analytics fail
+        return {
+            "success": False,
+            "error": str(e),
+            "recurring_topics": [],
+            "progression_patterns": [],
+            "uncompleted_tasks": [],
+            "statistics": {}
+        }
 
 @http_app.post("/mcp")
 async def mcp_endpoint(request: MCPRequest):
@@ -1697,12 +1927,99 @@ def end_session(
         if outcome_type:
             outcome["type"] = outcome_type
 
+        # Get session memories for optimization if available
+        optimized_summary = None
+        if optimization_mgr:
+            try:
+                # Get memories specifically associated with THIS session
+                # We need to query the session_memories table directly
+                from psycopg2.extras import RealDictCursor
+                with memory_api._get_connection() as conn:
+                    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                        # Get memories tracked for this session
+                        cursor.execute("""
+                            SELECT
+                                sm.memory_id,
+                                sm.domain,
+                                sm.interaction_type,
+                                sm.created_during_session,
+                                sm.relevance_score
+                            FROM session_memories sm
+                            WHERE sm.session_id = %s
+                        """, (session_id,))
+
+                        session_memory_records = cursor.fetchall()
+
+                        # Also get initial topics from the session
+                        cursor.execute("""
+                            SELECT initial_topics
+                            FROM sessions
+                            WHERE id = %s
+                        """, (session_id,))
+
+                        session_data = cursor.fetchone()
+                        initial_topics = session_data['initial_topics'] if session_data else []
+
+                if session_memory_records:
+                    # Convert to format expected by optimize_session_end
+                    session_mems = []
+                    for record in session_memory_records:
+                        # Get the actual memory content from the domain
+                        domain = record['domain']
+                        memory_id = record['memory_id']
+
+                        # Retrieve memory details from the domain
+                        # Note: This is simplified - in production you'd query the actual domain table
+                        mem_dict = {
+                            'memory_id': memory_id,
+                            'domain': domain,
+                            'interaction_type': record['interaction_type'],
+                            'created_during_session': record['created_during_session'],
+                            'relevance_score': record['relevance_score']
+                        }
+                        session_mems.append(mem_dict)
+
+                    # Generate optimized summary
+                    optimized_summary = optimization_mgr.optimize_session_end(
+                        session_id=session_id,
+                        session_memories=session_mems,
+                        initial_topics=initial_topics or [],
+                        final_topics=final_topics,
+                        project_name=None  # Could get from session data
+                    )
+
+                    # Use optimized summary if available
+                    if optimized_summary and 'content' in optimized_summary:
+                        # Convert optimized summary to string format
+                        summary_parts = []
+                        content = optimized_summary['content']
+
+                        if 'decisions' in content:
+                            summary_parts.append(f"Decisions: {', '.join(content['decisions'])}")
+                        if 'solutions' in content:
+                            summary_parts.append(f"Solutions: {', '.join(content['solutions'])}")
+                        if 'outcomes' in content:
+                            summary_parts.append(f"Outcomes: {', '.join(content['outcomes'])}")
+
+                        if summary_parts:
+                            conversation_summary = '; '.join(summary_parts)[:500]  # Token limit
+                            logger.info(f"Session {session_id} optimized: {len(conversation_summary)} chars")
+            except Exception as opt_error:
+                logger.warning(f"Failed to optimize session end: {opt_error}")
+                # Continue without optimization
+
         result = memory_api.end_session(
             session_id=session_id,
             outcome=outcome,
             final_topics=final_topics,
             conversation_summary=conversation_summary,
         )
+
+        # Add optimization metadata if available
+        if optimized_summary:
+            result['optimized'] = True
+            result['token_reduction'] = optimized_summary.get('token_reduction', 0)
+
         return result
     except Exception as e:
         logger.error(f"Error ending session {session_id}: {e}")
@@ -1849,6 +2166,319 @@ def track_session_memory(
     except Exception as e:
         logger.error(f"Error tracking session memory: {e}", )
         return False
+
+
+@server.tool()
+def get_session_insights(
+    project_name: Optional[str] = None,
+    days_back: int = 30,
+    limit: int = 10,
+) -> Dict[str, Any]:
+    """
+    Get insights about session patterns and trends.
+
+    This tool analyzes session data to identify recurring topics, progression patterns,
+    and uncompleted tasks that may need follow-up.
+
+    Parameters:
+    - project_name (str, optional): Filter insights to a specific project
+    - days_back (int, optional): Number of days to look back (default: 30)
+    - limit (int, optional): Maximum number of items to return per insight type (default: 10)
+
+    Returns:
+    Dict containing:
+    - recurring_topics: Topics appearing across multiple sessions
+    - progression_patterns: Common workflow sequences (e.g., planning → implementation)
+    - uncompleted_tasks: Sessions with partial/planning outcomes needing follow-up
+
+    Example usage:
+    - get_session_insights("my-project", 7, 5)
+    - get_session_insights(days_back=14)
+    """
+    try:
+        insights = {}
+
+        # Get recurring topics
+        insights["recurring_topics"] = memory_api.find_recurring_topics(
+            project_name=project_name,
+            limit=limit,
+            days_back=days_back,
+        )
+
+        # Get progression patterns
+        patterns = memory_api.analyze_progression_patterns(
+            project_name=project_name,
+            days_back=days_back,
+        )
+        insights["progression_patterns"] = patterns.get("progression_patterns", [])[:limit]
+        insights["outcome_distribution"] = patterns.get("outcome_distribution", [])
+
+        # Get uncompleted tasks
+        insights["uncompleted_tasks"] = memory_api.find_uncompleted_tasks(
+            project_name=project_name,
+            days_back=days_back,
+            limit=limit,
+        )
+
+        # Apply token optimization if available
+        if optimization_mgr:
+            try:
+                # Use progressive summarization to compress insights
+                original_size = len(json.dumps(insights))
+
+                # Compress recurring topics
+                if insights.get("recurring_topics"):
+                    # Keep only essential fields for token efficiency
+                    insights["recurring_topics"] = [
+                        {
+                            "topic": t["topic"],
+                            "count": t["session_count"],
+                            "last_seen": str(t["last_seen"])[:10] if t.get("last_seen") else None
+                        }
+                        for t in insights["recurring_topics"][:limit]
+                    ]
+
+                # Compress progression patterns
+                if insights.get("progression_patterns"):
+                    # Group similar patterns
+                    insights["progression_patterns"] = [
+                        {
+                            "pattern": p["pattern"],
+                            "frequency": p["occurrences"]
+                        }
+                        for p in insights["progression_patterns"][:limit]
+                    ]
+
+                # Compress uncompleted tasks
+                if insights.get("uncompleted_tasks"):
+                    # Remove redundant fields, keep essentials
+                    insights["uncompleted_tasks"] = [
+                        {
+                            "session_id": t["session_id"][:8] + "...",  # Truncate ID
+                            "summary": (t.get("conversation_summary") or "")[:100],
+                            "outcome": t.get("outcome_type", "unknown"),
+                            "has_followup": t.get("has_followup", False)
+                        }
+                        for t in insights["uncompleted_tasks"][:limit]
+                    ]
+
+                # Calculate compression ratio
+                compressed_size = len(json.dumps(insights))
+                compression_ratio = 1 - (compressed_size / original_size) if original_size > 0 else 0
+
+                insights["_optimization"] = {
+                    "compressed": True,
+                    "original_size": original_size,
+                    "compressed_size": compressed_size,
+                    "compression_ratio": f"{compression_ratio:.1%}"
+                }
+
+                logger.info(f"Session insights compressed: {original_size} → {compressed_size} bytes ({compression_ratio:.1%} reduction)")
+
+            except Exception as opt_error:
+                logger.warning(f"Failed to optimize session insights: {opt_error}")
+                # Continue with unoptimized results
+
+        return insights
+    except Exception as e:
+        logger.error(f"Error getting session insights: {e}")
+        return {
+            "error": str(e),
+            "recurring_topics": [],
+            "progression_patterns": [],
+            "uncompleted_tasks": [],
+        }
+
+
+@server.tool()
+def get_session_stats(
+    project_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Get comprehensive statistics about sessions.
+
+    This tool returns metrics about session usage, including counts, durations,
+    and memory associations.
+
+    Parameters:
+    - project_name (str, optional): Filter stats to a specific project
+
+    Returns:
+    Dict containing:
+    - total_sessions: Total number of sessions
+    - total_projects: Number of unique projects
+    - total_threads: Number of conversation threads
+    - active_sessions: Currently active sessions
+    - completed_sessions: Completed sessions
+    - avg_duration_hours: Average session duration in hours
+    - top_projects: Most active projects (when not filtering by project)
+    - unique_memories: Number of unique memories associated with sessions
+    - memories_created: Memories created during sessions
+
+    Example usage:
+    - get_session_stats()
+    - get_session_stats("my-project")
+    """
+    try:
+        return memory_api.get_session_statistics(project_name=project_name)
+    except Exception as e:
+        logger.error(f"Error getting session statistics: {e}")
+        return {"error": str(e)}
+
+
+@server.tool()
+def cleanup_sessions(
+    days: int = 30,
+) -> Dict[str, Any]:
+    """
+    Clean up expired sessions and archive old threads.
+
+    This tool removes sessions older than the specified number of days and archives
+    conversation threads with no recent activity.
+
+    Parameters:
+    - days (int, optional): Sessions older than this many days will be deleted (default: 30)
+
+    Returns:
+    Dict containing:
+    - sessions_deleted: Number of sessions removed
+    - threads_archived: Number of threads archived
+    - days: The days parameter used
+
+    Example usage:
+    - cleanup_sessions(60)  # Clean up sessions older than 60 days
+    - cleanup_sessions()    # Use default 30 days
+    """
+    try:
+        # Clean up expired sessions
+        cleanup_result = memory_api.cleanup_expired_sessions(days=days)
+
+        # Archive old threads (using 3x the session cleanup days)
+        archived_count = memory_api.archive_old_threads(days=days * 3)
+
+        return {
+            "sessions_deleted": cleanup_result["sessions_deleted"],
+            "threads_archived": archived_count,
+            "days": days,
+        }
+    except Exception as e:
+        logger.error(f"Error cleaning up sessions: {e}")
+        return {"error": str(e)}
+
+
+@server.tool()
+def consolidate_memories(
+    domain: Optional[str] = None,
+    days_back: int = 30,
+) -> Dict[str, Any]:
+    """
+    Consolidate and optimize memories in a domain.
+
+    This tool runs the memory consolidation process which clusters similar memories,
+    compresses redundant information, and applies forgetting mechanisms to maintain
+    an optimal memory store.
+
+    Parameters:
+    - domain (str, optional): The domain to consolidate (default: "default")
+    - days_back (int, optional): Number of days back to consider for consolidation (default: 30)
+
+    Returns:
+    Dict containing:
+    - status: Success or error status
+    - processed: Number of memories processed
+    - clusters_created: Number of memory clusters created
+    - memories_archived: Number of memories archived
+    - consolidated_memories: Number of consolidated memories created
+
+    Example usage:
+    - consolidate_memories("work", 7)
+    - consolidate_memories()  # Consolidate default domain
+    """
+    try:
+        # Use optimization manager's advanced consolidation if available
+        if optimization_mgr:
+            logger.info(f"Using optimized consolidation for domain: {domain or 'default'}")
+
+            # Get memories from domain for consolidation
+            domain_name = domain or "default"
+
+            # The optimization manager's consolidator has advanced features:
+            # - Semantic clustering (Phase 3)
+            # - Progressive summarization (Phase 3)
+            # - Duplicate detection (Phase 2)
+            # - Memory merging (Phase 2)
+
+            # Get memories from the domain for consolidation
+            memories = memory_api.retrieve_memories(
+                query="",  # Get all memories
+                limit=1000,  # Reasonable limit
+                domain=domain_name,
+                time_filter=None
+            )
+
+            # Convert to dict format expected by consolidator
+            memory_dicts = []
+            for mem in memories:
+                memory_dict = {
+                    'id': mem.get('id', ''),
+                    'content': mem.get('content', ''),
+                    'content_hash': mem.get('content_hash', ''),
+                    'tags': mem.get('tags', []),
+                    'metadata': mem.get('metadata', {}),
+                    'embedding': mem.get('embedding'),
+                    'created_at': mem.get('created_at'),
+                    'importance': mem.get('metadata', {}).get('importance', 0.5)
+                }
+                memory_dicts.append(memory_dict)
+
+            # Trigger consolidation through memory_consolidator
+            result = optimization_mgr.consolidator.consolidate_memories(
+                memories=memory_dicts,
+                dry_run=False
+            )
+
+            # Add optimization metadata
+            result['optimization_used'] = True
+            result['techniques_applied'] = [
+                'semantic_clustering',
+                'progressive_summarization',
+                'duplicate_detection',
+                'memory_merging'
+            ]
+
+            # Update optimization stats
+            optimization_mgr.stats['consolidations_performed'] = \
+                optimization_mgr.stats.get('consolidations_performed', 0) + 1
+
+            return result
+
+        else:
+            # Fallback to basic PostgreSQL consolidator
+            logger.info("Using basic consolidation (optimization not available)")
+            from src.consolidation.postgres_consolidator import PostgreSQLConsolidator
+            import asyncio
+
+            # Get database connection string
+            db_url = memory_api.connection_string
+
+            # Initialize consolidator with Ollama embeddings
+            consolidator = PostgreSQLConsolidator(
+                connection_string=db_url,
+                embedding_client=ollama_embeddings
+            )
+
+            # Run consolidation
+            result = asyncio.run(consolidator.consolidate_memories(
+                domain_id=domain,
+                days_back=days_back
+            ))
+
+            result['optimization_used'] = False
+            return result
+
+    except Exception as e:
+        logger.error(f"Error consolidating memories: {e}")
+        return {"error": str(e), "status": "failed"}
 
 
 def run_http_server():

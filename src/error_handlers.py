@@ -291,7 +291,11 @@ def error_context(operation: str, **context):
         duration = time.time() - start_time
         error_details = {"operation": operation, "duration": duration, **context}
 
-        if isinstance(e, MemorySystemError):
+        if isinstance(e, ValidationError):
+            # Let ValidationError pass through without wrapping
+            # to ensure immediate failure for invalid input
+            raise e
+        elif isinstance(e, MemorySystemError):
             e.details.update(error_details)
         else:
             # Wrap in MemorySystemError with context

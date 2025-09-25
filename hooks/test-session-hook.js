@@ -6,7 +6,7 @@
  */
 
 const path = require('path');
-const { handler } = require('./hooks/core/session-start.js');
+const { handler } = require('./core/session-start.js');
 
 // Mock context that simulates a real Claude session
 const mockContext = {
