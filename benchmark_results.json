@@ -1,0 +1,39 @@
+{
+  "phase1": {
+    "memories_kept": 400,
+    "memories_rejected": 100,
+    "size_rejections": 50,
+    "quality_rejections": 50,
+    "token_count": 5285,
+    "token_reduction": 0.9254520833921065,
+    "processing_time": 0.8842442035675049,
+    "rejection_rate": 0.2
+  },
+  "phase2": {
+    "duplicates_found": 0,
+    "memories_merged": 0,
+    "memories_archived": 32,
+    "memories_after": 400,
+    "consolidation_reduction": 0.0,
+    "session_tokens": 90,
+    "session_compression": 0.6525096525096525,
+    "processing_time": 0.01834893226623535
+  },
+  "phase3": {
+    "adaptive_weights_learned": true,
+    "clusters_created": 6,
+    "cluster_representatives": 6,
+    "cluster_reduction": 0.94,
+    "progressive_context_tokens": 0,
+    "context_efficiency": 0,
+    "memory_summary_tokens": 259,
+    "processing_time": 0.03364896774291992
+  },
+  "overall": {
+    "total_token_reduction": 0.9955271250035264,
+    "total_memory_reduction": 0.19999999999999996,
+    "total_processing_time": 0.9362421035766602,
+    "tokens_saved": 70576,
+    "efficiency_multiplier": 223.5698517817721
+  }
+}
