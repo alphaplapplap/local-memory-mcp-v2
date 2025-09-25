@@ -1,0 +1,282 @@
+{
+  "project_name": "optimization-test",
+  "domain": "optimization-test",
+  "weights": {
+    "time_decay": 0.19702975186196195,
+    "tag_relevance": 0.2955446277929428,
+    "content_relevance": 0.19702975186196195,
+    "content_quality": 0.2462871898274524,
+    "conversation_relevance": 0.06410867865568078
+  },
+  "learning_rate": 0.1,
+  "momentum": 0.9,
+  "last_update": "2025-09-25T11:01:50.559523",
+  "total_queries": 20,
+  "successful_queries": 5,
+  "access_patterns": {
+    "mem_1758819708706": {
+      "memory_id": "mem_1758819708706",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.6613150981477225
+      ],
+      "was_useful": [
+        true
+      ],
+      "query_contexts": [
+        "authentication security"
+      ],
+      "last_accessed": "2025-09-25T11:01:49.434744"
+    },
+    "mem_1758819708582": {
+      "memory_id": "mem_1758819708582",
+      "domain": "optimization-test",
+      "access_count": 2,
+      "relevance_scores": [
+        0.6590993660825065,
+        0.43303219714529595
+      ],
+      "was_useful": [
+        true,
+        false
+      ],
+      "query_contexts": [
+        "authentication security",
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.559331"
+    },
+    "mem_1758819707081": {
+      "memory_id": "mem_1758819707081",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.6420014700404986
+      ],
+      "was_useful": [
+        true
+      ],
+      "query_contexts": [
+        "authentication security"
+      ],
+      "last_accessed": "2025-09-25T11:01:49.434750"
+    },
+    "mem_1758819708232": {
+      "memory_id": "mem_1758819708232",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.618094087273335
+      ],
+      "was_useful": [
+        true
+      ],
+      "query_contexts": [
+        "authentication security"
+      ],
+      "last_accessed": "2025-09-25T11:01:49.434753"
+    },
+    "mem_1758819708647": {
+      "memory_id": "mem_1758819708647",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.46292536919181315
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "authentication security"
+      ],
+      "last_accessed": "2025-09-25T11:01:49.434755"
+    },
+    "mem_1758819709022": {
+      "memory_id": "mem_1758819709022",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.4344346799510199
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "authentication security"
+      ],
+      "last_accessed": "2025-09-25T11:01:49.434757"
+    },
+    "mem_1758819709084": {
+      "memory_id": "mem_1758819709084",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.4290618689824731
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "authentication security"
+      ],
+      "last_accessed": "2025-09-25T11:01:49.434759"
+    },
+    "mem_1758819708890": {
+      "memory_id": "mem_1758819708890",
+      "domain": "optimization-test",
+      "access_count": 2,
+      "relevance_scores": [
+        0.42252211940858775,
+        0.5348444215425131
+      ],
+      "was_useful": [
+        false,
+        false
+      ],
+      "query_contexts": [
+        "authentication security",
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.558445"
+    },
+    "mem_1758819709312": {
+      "memory_id": "mem_1758819709312",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.39686390345669786
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "authentication security"
+      ],
+      "last_accessed": "2025-09-25T11:01:49.434767"
+    },
+    "mem_1758819708519": {
+      "memory_id": "mem_1758819708519",
+      "domain": "optimization-test",
+      "access_count": 2,
+      "relevance_scores": [
+        0.388558398596753,
+        0.4974779802527852
+      ],
+      "was_useful": [
+        false,
+        false
+      ],
+      "query_contexts": [
+        "authentication security",
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.559325"
+    },
+    "mem_1758819709448": {
+      "memory_id": "mem_1758819709448",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.6955310152075946
+      ],
+      "was_useful": [
+        true
+      ],
+      "query_contexts": [
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.558434"
+    },
+    "mem_1758819709239": {
+      "memory_id": "mem_1758819709239",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.5807118673348951
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.558440"
+    },
+    "mem_1758819708453": {
+      "memory_id": "mem_1758819708453",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.5779631959807934
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.558442"
+    },
+    "mem_1758819708327": {
+      "memory_id": "mem_1758819708327",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.5568654777231884
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.558444"
+    },
+    "mem_1758819708955": {
+      "memory_id": "mem_1758819708955",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.5258440302227233
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.559323"
+    },
+    "mem_1758819709152": {
+      "memory_id": "mem_1758819709152",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.494460783665971
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.559327"
+    },
+    "mem_1758819708393": {
+      "memory_id": "mem_1758819708393",
+      "domain": "optimization-test",
+      "access_count": 1,
+      "relevance_scores": [
+        0.4538290555484742
+      ],
+      "was_useful": [
+        false
+      ],
+      "query_contexts": [
+        "optimization implementation"
+      ],
+      "last_accessed": "2025-09-25T11:01:50.559330"
+    }
+  }
+}

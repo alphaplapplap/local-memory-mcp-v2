@@ -47,6 +47,14 @@ from postgres_memory_api import PostgresMemoryAPI, get_project_domain
 from adaptive_lru_cache import memory_cache
 from connection_pool import initialize_connection_pool, get_connection_pool, get_health_checker
 
+# Import optimization manager
+try:
+    from optimization.optimization_manager import OptimizationManager
+    optimization_available = True
+except ImportError:
+    logger.warning("OptimizationManager not available, running without optimizations")
+    optimization_available = False
+
 # Configure logger
 logger = logging.getLogger(__name__)
 
@@ -99,6 +107,26 @@ except Exception as e:
 
 # Initialize the PostgreSQL memory API
 memory_api = PostgresMemoryAPI(ollama_embeddings=ollama_embeddings)
+
+# Initialize optimization manager if available
+if optimization_available:
+    try:
+        optimization_mgr = OptimizationManager({
+            'similarity_threshold': 0.95,
+            'consolidation_threshold': 100,
+            'archive_days': 30,
+            'session_max_tokens': 500,
+            'min_cluster_size': 3,
+            'max_cluster_size': 20,
+            'cluster_similarity': 0.7,
+            'max_context_tokens': 2000
+        })
+        logger.info("OptimizationManager initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize OptimizationManager: {e}")
+        optimization_mgr = None
+else:
+    optimization_mgr = None
 
 # === HTTP SERVER SETUP ===
 
@@ -500,16 +528,28 @@ def store_memory(
     if content.strip() == "":
         raise ValueError("Content cannot be empty or whitespace only")
 
-    # Content size validation - 5KB limit (optimized for context efficiency)
-    max_content_size = 5_000  # Reduced from 100KB for better token efficiency
-    if len(content) > max_content_size:
-        raise ValueError(f"Content too long (max {max_content_size:,} characters, got {len(content):,})")
+    # Use optimization manager if available
+    if optimization_mgr:
+        should_store, reason, optimized_data = optimization_mgr.optimize_memory_storage(
+            content=content,
+            domain=domain,
+            metadata={'tags': tags, 'importance': importance, 'source': source},
+            project_name=domain  # Use domain as project name for now
+        )
 
-    # Check byte size for unicode content
-    content_bytes = content.encode('utf-8')
-    max_bytes = 5 * 1024  # 5KB (optimized)
-    if len(content_bytes) > max_bytes:
-        raise ValueError(f"Content too large (max {max_bytes:,} bytes, got {len(content_bytes):,} bytes)")
+        if not should_store:
+            raise ValueError(f"Memory rejected: {reason}")
+    else:
+        # Fallback to basic size validation
+        max_content_size = 5_000  # 5KB limit
+        if len(content) > max_content_size:
+            raise ValueError(f"Content too long (max {max_content_size:,} characters, got {len(content):,})")
+
+        # Check byte size for unicode content
+        content_bytes = content.encode('utf-8')
+        max_bytes = 5 * 1024  # 5KB
+        if len(content_bytes) > max_bytes:
+            raise ValueError(f"Content too large (max {max_bytes:,} bytes, got {len(content_bytes):,} bytes)")
 
     # Domain validation
     if domain is not None:
@@ -693,15 +733,42 @@ def search_memories(
     - search_memories("recent meetings", "startup", 5)
     - search_memories("machine learning projects", "work", 8)
     """
-    results = memory_api.retrieve_memories(query, limit, domain, time_filter)
+    # Use optimization manager if available
+    if optimization_mgr:
+        # Get more raw results for optimization to work with
+        raw_limit = min(limit * 3, 30) if limit else 15  # Get 3x for clustering
+        results = memory_api.retrieve_memories(query, raw_limit, domain, time_filter)
 
-    # Add search information
-    for result in results:
-        result["query"] = query
-        if "score" not in result:
-            result["score"] = 0.0
+        # Optimize retrieved memories
+        optimized_results, optimization_meta = optimization_mgr.optimize_memory_retrieval(
+            query=query,
+            memories=results,
+            domain=domain or "default",
+            project_name=domain,  # Use domain as project name
+            token_budget=1000  # Default budget
+        )
 
-    return results
+        # Limit to requested count and add metadata
+        final_results = optimized_results[:limit] if limit else optimized_results
+        for result in final_results:
+            result["query"] = query
+            if "score" not in result:
+                result["score"] = 0.0
+            result["optimization_applied"] = True
+            result["optimization_meta"] = optimization_meta
+
+        return final_results
+    else:
+        # Fallback to standard retrieval
+        results = memory_api.retrieve_memories(query, limit, domain, time_filter)
+
+        # Add search information
+        for result in results:
+            result["query"] = query
+            if "score" not in result:
+                result["score"] = 0.0
+
+        return results
 
 
 @server.tool()
