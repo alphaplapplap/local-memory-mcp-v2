@@ -147,7 +147,8 @@ function formatMemoriesForCLI(memories, projectContext, options = {}) {
         includeTimestamp = true,
         maxContentLengthCLI = 400,
         maxContentLengthCategorized = 350,
-        storageInfo = null
+        storageInfo = null,
+        relevantFiles = null
     } = options;
 
     if (!memories || memories.length === 0) {
@@ -214,6 +215,31 @@ function formatMemoriesForCLI(memories, projectContext, options = {}) {
     }
     
     contextMessage += `${COLORS.CYAN}├─${COLORS.RESET} 📚 ${COLORS.BRIGHT}${validMemories.length} memories loaded${COLORS.RESET}\n`;
+
+    // Add relevant files section if available
+    if (relevantFiles && relevantFiles.length > 0) {
+        contextMessage += `${COLORS.CYAN}├─${COLORS.RESET} 📁 ${COLORS.BRIGHT}Relevant Files${COLORS.RESET}:\n`;
+        const maxFilesToShow = 10;
+        const filesToShow = relevantFiles.slice(0, maxFilesToShow);
+
+        filesToShow.forEach((file, idx) => {
+            const isLast = idx === filesToShow.length - 1 && relevantFiles.length <= maxFilesToShow;
+            const prefix = isLast ? `${COLORS.CYAN}│  └─${COLORS.RESET}` : `${COLORS.CYAN}│  ├─${COLORS.RESET}`;
+
+            // Extract just the filename or last two path segments for brevity
+            const pathSegments = file.split('/');
+            const displayPath = pathSegments.length > 2
+                ? `.../${pathSegments.slice(-2).join('/')}`
+                : file;
+
+            contextMessage += `${prefix} ${COLORS.GRAY}${displayPath}${COLORS.RESET}\n`;
+        });
+
+        if (relevantFiles.length > maxFilesToShow) {
+            contextMessage += `${COLORS.CYAN}│  └─${COLORS.RESET} ${COLORS.DIM}...and ${relevantFiles.length - maxFilesToShow} more files${COLORS.RESET}\n`;
+        }
+    }
+
     contextMessage += `${COLORS.CYAN}│${COLORS.RESET}\n`;
     
     if (validMemories.length > 3) {
@@ -736,7 +762,7 @@ function formatMemoriesForContext(memories, projectContext, options = {}) {
         if (isCLIEnvironment()) {
             return formatMemoriesForCLI(memories, projectContext, options);
         }
-        
+
         const {
             includeProjectSummary = true,
             includeScore = false,
@@ -744,7 +770,8 @@ function formatMemoriesForContext(memories, projectContext, options = {}) {
             maxMemories = 8,
             includeTimestamp = true,
             maxContentLength = 500,
-            storageInfo = null
+            storageInfo = null,
+            relevantFiles = null
         } = options;
         
         if (!memories || memories.length === 0) {

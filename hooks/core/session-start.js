@@ -856,6 +856,29 @@ async function onSessionStart(context) {
                 console.log(`${CONSOLE_COLORS.CYAN}🔄 Processing${CONSOLE_COLORS.RESET} ${CONSOLE_COLORS.DIM}→${CONSOLE_COLORS.RESET} ${actualUsed} memories selected`);
             }
             
+            // Extract relevant files from git context
+            let relevantFiles = [];
+            if (gitContext && gitContext.commits && gitContext.commits.length > 0) {
+                // Collect unique files from recent commits
+                const fileSet = new Set();
+                gitContext.commits.forEach(commit => {
+                    if (commit.files) {
+                        commit.files.forEach(file => {
+                            // Filter out common files we don't need to show
+                            if (!file.includes('.git/') &&
+                                !file.includes('node_modules/') &&
+                                !file.includes('.pyc') &&
+                                !file.includes('__pycache__/') &&
+                                !file.endsWith('.log') &&
+                                file.length > 0) {
+                                fileSet.add(file);
+                            }
+                        });
+                    }
+                });
+                relevantFiles = Array.from(fileSet).slice(0, 15); // Limit to 15 most relevant files
+            }
+
             // Format memories for context injection with strategy-based options
             const contextMessage = formatMemoriesForContext(topMemories, projectContext, {
                 includeScore: strategy.includeScore || false,
@@ -865,7 +888,8 @@ async function onSessionStart(context) {
                 maxContentLength: config.contextFormatting?.maxContentLength || 500,
                 maxContentLengthCLI: config.contextFormatting?.maxContentLengthCLI || 400,
                 maxContentLengthCategorized: config.contextFormatting?.maxContentLengthCategorized || 350,
-                storageInfo: showStorageSource ? (storageInfo || detectStorageBackend(config)) : null
+                storageInfo: showStorageSource ? (storageInfo || detectStorageBackend(config)) : null,
+                relevantFiles: relevantFiles // Pass relevant files to formatter
             });
             
             // Inject context into session
