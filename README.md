@@ -582,3 +582,4 @@ See the local memory system in action:
 ### Example 2 
 ![Example 2](docs/pictures/memory_example2.png)
 
+test
