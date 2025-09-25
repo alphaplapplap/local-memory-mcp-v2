@@ -1,0 +1,1386 @@
+#!/usr/bin/env python3
+"""
+HTTP API Bridge Server for Claude Hooks
+Provides HTTP endpoints that bridge to PostgreSQL memory storage
+"""
+
+import os
+import sys
+import json
+import uuid
+import asyncio
+import time
+import uvicorn
+from decimal import Decimal
+from datetime import datetime
+from typing import Dict, List, Any, Optional
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+
+# urllib3 1.x doesn't have SSL warnings with LibreSSL
+
+# Custom JSON encoder for Decimal and other types
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+# Add src to path
+sys.path.insert(0, 'src')
+
+from postgres_memory_api import PostgresMemoryAPI, get_project_domain
+from ollama_embeddings import OllamaEmbeddings
+from adaptive_lru_cache import memory_cache
+from connection_pool import initialize_connection_pool, get_connection_pool, get_health_checker
+
+# Load environment variables
+load_dotenv()
+
+# Performance metrics
+performance_metrics = {
+    "queries_total": 0,
+    "query_errors": 0,
+    "avg_response_ms": 0,
+    "memory_count": 0,
+    "db_size_mb": 0,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "slow_queries": 0,  # Queries > 1s
+    "startup_time": datetime.now()
+}
+
+# Initialize Ollama configuration
+ollama_url = os.getenv("OLLAMA_API_URL", "http://localhost:11434")
+embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text:v1.5")
+
+# Define lifespan function
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("🚀 Memory Bridge API Server starting...")
+    print(f"📊 PostgreSQL: {os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', 5432)}")
+    print(f"🧠 Ollama: {ollama_url} ({embedding_model})")
+    print(f"🌐 Listening on: http://localhost:8000")
+    print("🔄 Hot reloading: ENABLED (Development Mode)")
+    
+    # Initialize connection pool
+    try:
+        connection_params = {
+            'host': os.getenv('POSTGRES_HOST', 'localhost'),
+            'port': int(os.getenv('POSTGRES_PORT', 5432)),
+            'database': os.getenv('POSTGRES_DB', 'postgres'),
+            'user': os.getenv('POSTGRES_USER', 'postgres'),
+            'password': os.getenv('POSTGRES_PASSWORD', 'postgres')
+        }
+        pool = initialize_connection_pool(
+            connection_params,
+            min_connections=int(os.getenv('POOL_MIN_CONNECTIONS', 2)),
+            max_connections=int(os.getenv('POOL_MAX_CONNECTIONS', 20))
+        )
+        print(f"✅ Connection pool initialized: {pool.get_pool_status()}")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize connection pool: {e}")
+    
+    yield
+    
+    # Shutdown
+    print("👋 Memory Bridge API Server shutting down...")
+    pool = get_connection_pool()
+    if pool:
+        pool.close_all_connections()
+
+# Initialize FastAPI app with lifespan
+app = FastAPI(title="Memory Bridge API", version="1.0.0", lifespan=lifespan)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize Ollama embeddings if available
+
+try:
+    import requests
+    response = requests.get(f"{ollama_url}/api/tags", timeout=2)
+    if response.status_code == 200:
+        models = response.json().get("models", [])
+        model_names = [model.get("name", "") for model in models]
+        if embedding_model in model_names:
+            ollama_embeddings = OllamaEmbeddings(
+                model_name=embedding_model,
+                base_url=ollama_url,
+                keep_alive="10m"
+            )
+            print(f"✅ Ollama embeddings initialized with {embedding_model}")
+        else:
+            ollama_embeddings = None
+            print(f"⚠️ Embedding model {embedding_model} not found, using text search")
+    else:
+        ollama_embeddings = None
+        print("⚠️ Ollama not available, using text search")
+except Exception as e:
+    ollama_embeddings = None
+    print(f"⚠️ Ollama check failed: {e}")
+
+# Initialize PostgreSQL API
+memory_api = PostgresMemoryAPI(ollama_embeddings=ollama_embeddings)
+
+# Request/Response models
+class MemoryStoreRequest(BaseModel):
+    content: str
+    metadata: Optional[Dict[str, Any]] = {}
+    domain: Optional[str] = None  # Changed from "default" to None to enable auto-detection
+    tags: Optional[List[str]] = []
+
+class MCPRequest(BaseModel):
+    jsonrpc: str = "2.0"
+    id: int = 1
+    method: str
+    params: Dict[str, Any]
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "service": "Memory Bridge API",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": [
+            "/api/health",
+            "/api/memories",
+            "/mcp"
+        ]
+    }
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for hooks"""
+    try:
+        start_time = time.time()
+        
+        # Get memory statistics
+        domains = memory_api.list_domains()
+
+        # Count total memories across domains
+        total_memories = 0
+        domain_stats = []
+
+        # Use connection pool
+        pool = get_connection_pool()
+        if pool:
+            with pool.get_cursor() as cursor:
+                # Get total database size in MB
+                cursor.execute("SELECT pg_database_size('postgres') / 1024.0 / 1024.0")
+                database_size_mb = round(cursor.fetchone()[0], 2)
+
+                # Count tags across all domains
+                all_tags = set()
+                
+                for domain in domains:
+                    table_name = f"{domain}_memories"
+                    cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+                    count = cursor.fetchone()[0]
+                    total_memories += count
+
+                    # Count tags in this domain
+                    cursor.execute(f'SELECT metadata FROM "{table_name}" WHERE metadata ? \'tags\'')
+                    rows = cursor.fetchall()
+                    for row in rows:
+                        metadata = row[0]
+                        if 'tags' in metadata and metadata['tags']:
+                            all_tags.update(metadata['tags'])
+
+                    domain_stats.append({
+                        "domain": domain,
+                        "count": count
+                    })
+        else:
+            # Fallback to direct connection
+            import psycopg2
+            conn = psycopg2.connect(
+                host=os.getenv('POSTGRES_HOST', 'localhost'),
+                port=os.getenv('POSTGRES_PORT', 5432),
+                database=os.getenv('POSTGRES_DB', 'postgres'),
+                user=os.getenv('POSTGRES_USER', 'postgres'),
+                password=os.getenv('POSTGRES_PASSWORD', 'postgres')
+            )
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT pg_database_size('postgres') / 1024.0 / 1024.0")
+                database_size_mb = round(cursor.fetchone()[0], 2)
+                all_tags = set()
+                for domain in domains:
+                    table_name = f"{domain}_memories"
+                    cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+                    count = cursor.fetchone()[0]
+                    total_memories += count
+                    domain_stats.append({"domain": domain, "count": count})
+            conn.close()
+            
+        unique_tags_count = len(all_tags)
+        
+        # Update metrics
+        performance_metrics["memory_count"] = total_memories
+        performance_metrics["db_size_mb"] = database_size_mb
+        
+        # Track query time
+        query_time = (time.time() - start_time) * 1000
+        if query_time > 1000:
+            performance_metrics["slow_queries"] += 1
+
+        return {
+            "status": "healthy",
+            "storage": {
+                "backend": "postgresql",
+                "type": "local",
+                "status": "connected",
+                "accessible": True,
+                "database_path": f"postgresql://localhost:5432/{os.getenv('POSTGRES_DB', 'postgres')}",
+                "total_memories": total_memories,
+                "unique_tags": unique_tags_count,
+                "embedding_model": embedding_model if ollama_embeddings else "none",
+                "domains": domain_stats
+            },
+            "system": {
+                "platform": os.uname().sysname.lower(),
+                "version": "1.0.0"
+            },
+            "statistics": {
+                "total_memories": total_memories,
+                "database_size_mb": database_size_mb,
+                "unique_tags": unique_tags_count
+            },
+            "uptime_seconds": 0,  # TODO: Track uptime
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "storage": {
+                "backend": "postgresql",
+                "status": "disconnected"
+            }
+        }
+
+@app.get("/api/health/detailed")
+async def health_check_detailed():
+    """Detailed health check with cache metrics"""
+    base_health = await health_check()
+
+    # Add cache health information
+    cache_stats = memory_cache.get_stats()
+    cache_health = memory_cache.get_health_status()
+
+    base_health["cache"] = {
+        "status": cache_health["status"],
+        "health_score": cache_health["health_score"],
+        "statistics": cache_stats,
+        "issues": cache_health["issues"],
+        "recommendations": cache_health["recommendations"]
+    }
+
+    return base_health
+
+@app.get("/api/cache/stats")
+async def get_cache_stats():
+    """Get detailed cache statistics"""
+    return {
+        "cache_stats": memory_cache.get_stats(),
+        "cache_health": memory_cache.get_health_status()
+    }
+
+@app.get("/api/metrics")
+async def get_metrics():
+    """Get performance metrics"""
+    uptime = (datetime.now() - performance_metrics["startup_time"]).total_seconds()
+    
+    # Check for performance issues
+    alerts = []
+    if performance_metrics["avg_response_ms"] > 2000:
+        alerts.append("High average response time (>2s)")
+    if performance_metrics["memory_count"] > 10000:
+        alerts.append("Large memory count - consider consolidation")
+    if performance_metrics["db_size_mb"] > 1000:
+        alerts.append("Large database size (>1GB)")
+    if performance_metrics["query_errors"] > 10:
+        alerts.append("High error rate")
+    
+    # Get connection pool status
+    pool = get_connection_pool()
+    pool_status = pool.get_pool_status() if pool else None
+    
+    # Get cache hit rate
+    cache_hit_rate = 0
+    total_cache_requests = performance_metrics["cache_hits"] + performance_metrics["cache_misses"]
+    if total_cache_requests > 0:
+        cache_hit_rate = (performance_metrics["cache_hits"] / total_cache_requests) * 100
+    
+    return {
+        "uptime_seconds": uptime,
+        "metrics": performance_metrics,
+        "cache_hit_rate": f"{cache_hit_rate:.1f}%",
+        "connection_pool": pool_status,
+        "alerts": alerts,
+        "healthy": len(alerts) == 0
+    }
+
+@app.post("/api/cache/invalidate")
+async def invalidate_cache(domain: str = None, pattern: str = None):
+    """Invalidate cache entries"""
+    memory_cache.invalidate(pattern=pattern, domain=domain)
+    return {
+        "success": True,
+        "message": f"Cache invalidated for domain='{domain}', pattern='{pattern}'"
+    }
+
+from pydantic import BaseModel
+
+class ConsolidationRequest(BaseModel):
+    domain: str = "default"
+    strategy: str = "clustering"
+
+@app.post("/api/consolidation/run")
+async def run_consolidation(request: ConsolidationRequest):
+    """Run memory consolidation for a domain"""
+    try:
+        from src.consolidation.postgres_consolidator import PostgreSQLConsolidator
+        
+        # Build connection string
+        connection_string = f"postgresql://{os.getenv('POSTGRES_USER', 'postgres')}:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@{os.getenv('POSTGRES_HOST', 'localhost')}:{int(os.getenv('POSTGRES_PORT', 5432))}/{os.getenv('POSTGRES_DB', 'postgres')}"
+        
+        # Initialize consolidator
+        consolidator = PostgreSQLConsolidator(
+            connection_string=connection_string,
+            embedding_client=None  # Will use built-in embedding client
+        )
+        
+        # Run consolidation (using the actual method that exists)
+        result = await consolidator.consolidate_memories(domain_id=request.domain, days_back=30)
+        
+        return {
+            "success": True,
+            "domain": request.domain,
+            "strategy": request.strategy,
+            "result": result,
+            "message": f"Consolidation completed for domain '{request.domain}'"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": f"Consolidation failed: {str(e)}"
+        }
+
+@app.get("/api/consolidation/status")
+async def get_consolidation_status(domain: str = "default"):
+    """Get consolidation status for a domain"""
+    try:
+        from consolidation.health import ConsolidationHealthMonitor
+        
+        # Initialize health monitor
+        monitor = ConsolidationHealthMonitor()
+        
+        # Get overall health (the monitor doesn't have domain-specific checks)
+        health = await monitor.check_overall_health()
+        
+        return {
+            "success": True,
+            "domain": domain,
+            "health": health,
+            "message": f"Overall consolidation health for system"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.get("/api/project/domain")
+async def get_current_project_domain():
+    """Get the current project domain based on the working directory"""
+    try:
+        domain = get_project_domain()
+        return {
+            "success": True,
+            "domain": domain,
+            "message": f"Current project domain: {domain}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get project domain: {str(e)}")
+
+@app.post("/api/memories")
+async def store_memory(request: MemoryStoreRequest):
+    """Store a memory via HTTP (for hooks)"""
+    try:
+        # Prepare metadata with tags
+        metadata = request.metadata or {}
+        if request.tags:
+            metadata["tags"] = request.tags
+
+        # Store memory
+        memory_id = memory_api.store_memory(
+            content=request.content,
+            metadata=metadata,
+            domain=request.domain
+        )
+
+        return {
+            "success": True,
+            "memory_id": memory_id,
+            "message": "Memory stored successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/memories")
+async def retrieve_memories(query: str = "", domain: str = "default", limit: int = 10):
+    """Retrieve memories via HTTP with L1 cache (for testing/debugging)"""
+    try:
+        start_time = time.time()
+        performance_metrics["queries_total"] += 1
+        
+        # Check L1 cache first
+        cached_result = memory_cache.get(query, domain, limit)
+        if cached_result is not None:
+            performance_metrics["cache_hits"] += 1
+            return {
+                "success": True,
+                "memories": cached_result,
+                "count": len(cached_result),
+                "cache_hit": True
+            }
+
+        # Cache miss - query database
+        performance_metrics["cache_misses"] += 1
+        memories = memory_api.retrieve_memories(
+            query=query,
+            limit=limit,
+            domain=domain
+        )
+
+        # Cache the result
+        memory_cache.put(query, memories, domain, limit)
+        
+        # Track query time
+        query_time = (time.time() - start_time) * 1000
+        if query_time > 1000:
+            performance_metrics["slow_queries"] += 1
+        
+        # Update average response time
+        current_avg = performance_metrics["avg_response_ms"]
+        total_queries = performance_metrics["queries_total"]
+        performance_metrics["avg_response_ms"] = ((current_avg * (total_queries - 1)) + query_time) / total_queries
+
+        return {
+            "success": True,
+            "memories": memories,
+            "count": len(memories),
+            "cache_hit": False,
+            "query_time_ms": round(query_time, 2)
+        }
+    except Exception as e:
+        performance_metrics["query_errors"] += 1
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/mcp")
+async def mcp_endpoint(request: MCPRequest):
+    """
+    MCP protocol endpoint for memory retrieval
+    Handles tools/call method for retrieve_memory
+    """
+    try:
+        if request.method == "initialize":
+            # MCP initialization response
+            return {
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "tools": {
+                            "listChanged": False
+                        }
+                    },
+                    "serverInfo": {
+                        "name": "local-memory-mcp",
+                        "version": "1.0.0"
+                    }
+                }
+            }
+        
+        elif request.method == "tools/list":
+            # Return available tools
+            return {
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "tools": [
+                        {
+                            "name": "retrieve_memory",
+                            "description": "Retrieve memories from the local memory system using semantic search",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "The search query to find relevant memories"
+                                    },
+                                    "n_results": {
+                                        "type": "integer",
+                                        "description": "Number of results to return (default: 10)",
+                                        "default": 10
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "The domain to search in (default: 'default')",
+                                        "default": "default"
+                                    }
+                                },
+                                "required": ["query"]
+                            }
+                        },
+                        {
+                            "name": "search_memories",
+                            "description": "Search memories from the local memory system using semantic search",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "The search query to find relevant memories"
+                                    },
+                                    "limit": {
+                                        "type": "integer",
+                                        "description": "Number of results to return (default: 10)",
+                                        "default": 10
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "The domain to search in (default: 'default')",
+                                        "default": "default"
+                                    }
+                                },
+                                "required": ["query"]
+                            }
+                        },
+                        {
+                            "name": "store_memory",
+                            "description": "Store new information with optional tags and metadata",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "description": "The content of the memory to store"
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "The domain to store the memory in (default: 'default')",
+                                        "default": "default"
+                                    },
+                                    "source": {
+                                        "type": "string",
+                                        "description": "Optional source identifier for the memory"
+                                    },
+                                    "importance": {
+                                        "type": "number",
+                                        "description": "Optional importance score (0.0 to 1.0)"
+                                    },
+                                    "tags": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Optional list of tags for categorization"
+                                    }
+                                },
+                                "required": ["content"]
+                            }
+                        },
+                        {
+                            "name": "update_memory",
+                            "description": "Update an existing memory chunk with new information",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "memory_id": {
+                                        "type": "string",
+                                        "description": "The ID of the memory to update"
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "description": "New content for the memory"
+                                    },
+                                    "importance": {
+                                        "type": "number",
+                                        "description": "New importance score (0.0 to 1.0)"
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "The domain containing the memory"
+                                    }
+                                },
+                                "required": ["memory_id"]
+                            }
+                        },
+                        {
+                            "name": "recall_memory",
+                            "description": "Retrieve memories using natural language time expressions and optional semantic search",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "The search query to find relevant memories"
+                                    },
+                                    "n_results": {
+                                        "type": "integer",
+                                        "description": "Number of results to return (default: 5)",
+                                        "default": 5
+                                    }
+                                },
+                                "required": ["query"]
+                            }
+                        },
+                        {
+                            "name": "search_by_tag",
+                            "description": "Search memories by tags. Returns memories matching ANY of the specified tags",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "tags": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "List of tags to search for"
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "The domain to search in (default: 'default')",
+                                        "default": "default"
+                                    },
+                                    "limit": {
+                                        "type": "integer",
+                                        "description": "Maximum number of results to return (default: 5)",
+                                        "default": 5
+                                    }
+                                },
+                                "required": ["tags"]
+                            }
+                        },
+                        {
+                            "name": "list_memory_domains",
+                            "description": "List all available memory domains in the database",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        },
+                        {
+                            "name": "delete_memory",
+                            "description": "Delete a specific memory by its ID",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "memory_id": {
+                                        "type": "string",
+                                        "description": "The ID of the memory to delete"
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "The domain containing the memory"
+                                    }
+                                },
+                                "required": ["memory_id"]
+                            }
+                        },
+                        {
+                            "name": "delete_by_tag",
+                            "description": "Delete all memories with specific tags. WARNING: Deletes ALL memories containing any of the specified tags",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "tags": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "List of tags to delete memories for"
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "The domain to search in (default: 'default')",
+                                        "default": "default"
+                                    }
+                                },
+                                "required": ["tags"]
+                            }
+                        },
+                        {
+                            "name": "get_current_project_domain",
+                            "description": "Get the current project domain based on the working directory",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        },
+                        {
+                            "name": "create_domain",
+                            "description": "Create a new memory domain",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "domain_name": {
+                                        "type": "string",
+                                        "description": "The name of the domain to create"
+                                    }
+                                },
+                                "required": ["domain_name"]
+                            }
+                        },
+                        {
+                            "name": "get_domain_info",
+                            "description": "Get detailed information about a specific memory domain",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "domain_name": {
+                                        "type": "string",
+                                        "description": "The name of the domain to get information about"
+                                    }
+                                },
+                                "required": ["domain_name"]
+                            }
+                        },
+                        {
+                            "name": "switch_to_domain",
+                            "description": "Switch the current working domain context",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "domain_name": {
+                                        "type": "string",
+                                        "description": "The domain to switch to"
+                                    }
+                                },
+                                "required": ["domain_name"]
+                            }
+                        },
+                        {
+                            "name": "copy_memories_between_domains",
+                            "description": "Copy memories from one domain to another",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "source_domain": {
+                                        "type": "string",
+                                        "description": "The source domain to copy from"
+                                    },
+                                    "target_domain": {
+                                        "type": "string",
+                                        "description": "The target domain to copy to"
+                                    },
+                                    "query": {
+                                        "type": "string",
+                                        "description": "Optional query to filter memories to copy"
+                                    },
+                                    "limit": {
+                                        "type": "integer",
+                                        "description": "Optional limit on number of memories to copy"
+                                    }
+                                },
+                                "required": ["source_domain", "target_domain"]
+                            }
+                        },
+                        {
+                            "name": "ingest_document",
+                            "description": "Ingest a document file into the memory system",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "file_path": {
+                                        "type": "string",
+                                        "description": "Path to the document file to ingest"
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "Memory domain to store in (default: 'documents')",
+                                        "default": "documents"
+                                    },
+                                    "chunk_size": {
+                                        "type": "integer",
+                                        "description": "Size of text chunks (default: 1000)",
+                                        "default": 1000
+                                    },
+                                    "chunk_overlap": {
+                                        "type": "integer",
+                                        "description": "Overlap between chunks (default: 200)",
+                                        "default": 200
+                                    }
+                                },
+                                "required": ["file_path"]
+                            }
+                        },
+                        {
+                            "name": "ingest_text_content",
+                            "description": "Ingest raw text content directly into the memory system",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "description": "Text content to ingest"
+                                    },
+                                    "source_name": {
+                                        "type": "string",
+                                        "description": "Name/source identifier for the content"
+                                    },
+                                    "domain": {
+                                        "type": "string",
+                                        "description": "Memory domain to store in (default: 'documents')",
+                                        "default": "documents"
+                                    }
+                                },
+                                "required": ["content", "source_name"]
+                            }
+                        }
+                    ]
+                }
+            }
+        
+        elif request.method == "tools/call":
+            tool_name = request.params.get("name")
+            args = request.params.get("arguments", {})
+
+            # Handle different MCP tools
+            if tool_name == "retrieve_memory":
+                # Extract query parameters
+                query = args.get("query", "")
+                n_results = args.get("n_results", 10)
+                domain = args.get("domain", "default")
+
+                # Retrieve memories
+                memories = memory_api.retrieve_memories(
+                    query=query,
+                    limit=n_results,
+                    domain=domain
+                )
+
+                # Format response for hooks
+                formatted_memories = []
+                for mem in memories:
+                    created_at = mem.get("created_at")
+                    created_at_iso = created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at) if created_at else None
+
+                    formatted_memories.append({
+                        "id": mem.get("id"),
+                        "content": mem.get("content"),
+                        "metadata": mem.get("metadata", {}),
+                        "score": mem.get("score", 0),
+                        "created_at": created_at,
+                        "created_at_iso": created_at_iso
+                    })
+
+                # Return MCP-style response
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({
+                                "results": formatted_memories,
+                                "memories": formatted_memories
+                            }, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "search_memories":
+                # Extract query parameters
+                query = args.get("query", "")
+                limit = args.get("limit", 10)
+                domain = args.get("domain", "default")
+
+                # Search memories
+                memories = memory_api.retrieve_memories(
+                    query=query,
+                    limit=limit,
+                    domain=domain
+                )
+
+                # Format response for hooks
+                formatted_memories = []
+                for mem in memories:
+                    created_at = mem.get("created_at")
+                    created_at_iso = created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at) if created_at else None
+
+                    formatted_memories.append({
+                        "id": mem.get("id"),
+                        "content": mem.get("content"),
+                        "metadata": mem.get("metadata", {}),
+                        "score": mem.get("score", 0),
+                        "created_at": created_at,
+                        "created_at_iso": created_at_iso
+                    })
+
+                # Return MCP-style response
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({
+                                "results": formatted_memories,
+                                "memories": formatted_memories
+                            }, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "update_memory":
+                # Extract parameters
+                memory_id = args.get("memory_id")
+                content = args.get("content")
+                importance = args.get("importance")
+                domain = args.get("domain", "default")
+
+                # Update memory
+                result = memory_api.update_memory(
+                    memory_id=memory_id,
+                    content=content,
+                    importance=importance,
+                    domain=domain
+                )
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"success": result}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "recall_memory":
+                # Extract parameters
+                query = args.get("query", "")
+                n_results = args.get("n_results", 5)
+
+                # Recall memories
+                memories = memory_api.recall_memories(
+                    query=query,
+                    limit=n_results
+                )
+
+                # Format response
+                formatted_memories = []
+                for mem in memories:
+                    created_at = mem.get("created_at")
+                    created_at_iso = created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at) if created_at else None
+
+                    formatted_memories.append({
+                        "id": mem.get("id"),
+                        "content": mem.get("content"),
+                        "metadata": mem.get("metadata", {}),
+                        "score": mem.get("score", 0),
+                        "created_at": created_at,
+                        "created_at_iso": created_at_iso
+                    })
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"memories": formatted_memories}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "search_by_tag":
+                # Extract parameters
+                tags = args.get("tags", [])
+                domain = args.get("domain", "default")
+                limit = args.get("limit", 5)
+
+                # Search by tags
+                memories = memory_api.search_by_tags(
+                    tags=tags,
+                    domain=domain,
+                    limit=limit
+                )
+
+                # Format response
+                formatted_memories = []
+                for mem in memories:
+                    created_at = mem.get("created_at")
+                    created_at_iso = created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at) if created_at else None
+
+                    formatted_memories.append({
+                        "id": mem.get("id"),
+                        "content": mem.get("content"),
+                        "metadata": mem.get("metadata", {}),
+                        "score": mem.get("score", 0),
+                        "created_at": created_at,
+                        "created_at_iso": created_at_iso
+                    })
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"memories": formatted_memories}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "list_memory_domains":
+                # List domains
+                domains = memory_api.list_domains()
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"domains": domains}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "delete_memory":
+                # Extract parameters
+                memory_id = args.get("memory_id")
+                domain = args.get("domain", "default")
+
+                # Delete memory
+                result = memory_api.delete_memory(
+                    memory_id=memory_id,
+                    domain=domain
+                )
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"success": result}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "delete_by_tag":
+                # Extract parameters
+                tags = args.get("tags", [])
+                domain = args.get("domain", "default")
+
+                # Delete by tags
+                count = memory_api.delete_by_tags(
+                    tags=tags,
+                    domain=domain
+                )
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"deleted_count": count}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "get_current_project_domain":
+                # Get current project domain
+                domain = memory_api.get_current_project_domain()
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"domain": domain}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "create_domain":
+                # Extract parameters
+                domain_name = args.get("domain_name")
+
+                # Create domain
+                result = memory_api.create_domain(domain_name)
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"success": result}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "get_domain_info":
+                # Extract parameters
+                domain_name = args.get("domain_name")
+
+                # Get domain info
+                info = memory_api.get_domain_info(domain_name)
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps(info, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "switch_to_domain":
+                # Extract parameters
+                domain_name = args.get("domain_name")
+
+                # Switch domain
+                result = memory_api.switch_to_domain(domain_name)
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps(result, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "copy_memories_between_domains":
+                # Extract parameters
+                source_domain = args.get("source_domain")
+                target_domain = args.get("target_domain")
+                query = args.get("query")
+                limit = args.get("limit")
+
+                # Copy memories
+                result = memory_api.copy_memories_between_domains(
+                    source_domain=source_domain,
+                    target_domain=target_domain,
+                    query=query,
+                    limit=limit
+                )
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps(result, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "ingest_document":
+                # Extract parameters
+                file_path = args.get("file_path")
+                domain = args.get("domain", "documents")
+                chunk_size = args.get("chunk_size", 1000)
+                chunk_overlap = args.get("chunk_overlap", 200)
+
+                # Ingest document
+                result = memory_api.ingest_document(
+                    file_path=file_path,
+                    domain=domain,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap
+                )
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"result": result}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "ingest_text_content":
+                # Extract parameters
+                content = args.get("content")
+                source_name = args.get("source_name")
+                domain = args.get("domain", "documents")
+
+                # Ingest text content
+                result = memory_api.ingest_text_content(
+                    content=content,
+                    source_name=source_name,
+                    domain=domain
+                )
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({"result": result}, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "store_memory":
+                # Extract parameters
+                content = args.get("content", "")
+                domain = args.get("domain", "default")
+                source = args.get("source")
+                importance = args.get("importance")
+
+                # Prepare metadata
+                metadata = {}
+                if source:
+                    metadata["source"] = source
+                if importance is not None:
+                    metadata["importance"] = importance
+
+                # Store memory
+                memory_id = memory_api.store_memory(content, metadata, domain)
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({
+                                "memory_id": memory_id,
+                                "success": True
+                            }, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "list_memory_domains":
+                # List available domains
+                domains = memory_api.list_domains()
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({
+                                "domains": domains
+                            }, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            elif tool_name == "retrieve_memory":
+                # Retrieve memories with L1 cache (alias for search_memories for doobidoo compatibility)
+                query = params.get("query", "")
+                domain = params.get("domain", "default")
+                n_results = params.get("n_results", 10)
+
+                # Check L1 cache first
+                cached_memories = memory_cache.get(query, domain, n_results)
+                if cached_memories is not None:
+                    formatted_memories = cached_memories
+                else:
+                    # Cache miss - query database
+                    try:
+                        result = memory_api.search_memories(query, domain=domain, limit=n_results)
+                        memories = result.get("memories", [])
+
+                        # Format memories for session-start hook compatibility
+                        formatted_memories = []
+                        for memory in memories:
+                            formatted_memory = {
+                                "id": memory.get("id"),
+                                "content": memory.get("content"),
+                                "metadata": memory.get("metadata", {}),
+                                "score": memory.get("score", 0.0)
+                            }
+
+                            # Convert timestamp to ISO string for created_at_iso
+                            metadata = memory.get("metadata", {})
+                            if metadata and "created_at" in metadata:
+                                timestamp = metadata["created_at"]
+                                formatted_memory["created_at"] = timestamp
+                                formatted_memory["created_at_iso"] = datetime.fromtimestamp(timestamp).isoformat()
+                            else:
+                                formatted_memory["created_at"] = None
+                                formatted_memory["created_at_iso"] = None
+
+                            formatted_memories.append(formatted_memory)
+
+                        # Cache the formatted result for future requests
+                        memory_cache.put(query, formatted_memories, domain, n_results)
+                    except Exception as e:
+                        # Return empty result on database error
+                        formatted_memories = []
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps({
+                                "memories": formatted_memories,
+                                "count": len(formatted_memories)
+                            }, cls=CustomJSONEncoder)
+                        }]
+                    }
+                }
+
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown tool: {tool_name}")
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown method: {request.method}")
+
+    except Exception as e:
+        return {
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32603,
+                "message": str(e)
+            }
+        }
+
+if __name__ == "__main__":
+    # Use fixed port 8000 or environment override
+    port = int(os.environ.get("BRIDGE_PORT", 8000))
+
+    print(f"🌐 Bridge server starting on port {port}")
+
+    # Run the server
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        log_level="info"
+    )

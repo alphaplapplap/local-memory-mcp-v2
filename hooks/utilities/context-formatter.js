@@ -293,23 +293,23 @@ function formatMemoryForCLI(memory, index, options = {}) {
             includeDate = true,
             indent = false
         } = options;
-
+        
         // Extract meaningful content with markdown conversion enabled for CLI
         const content = extractMeaningfulContent(
-            memory?.content || 'No content available',
+            memory.content || 'No content available', 
             maxContentLength,
             { convertMarkdown: true, stripMarkdown: false }
         );
-
+        
         // Skip generic summaries
-        if (isGenericSessionSummary(memory?.content)) {
+        if (isGenericSessionSummary(memory.content)) {
             return null;
         }
         
         // Format date with recency indicators and color
         let dateStr = '';
-        if (includeDate && memory?.created_at_iso) {
-            const date = new Date(memory?.created_at_iso);
+        if (includeDate && memory.created_at_iso) {
+            const date = new Date(memory.created_at_iso);
             const now = new Date();
             const daysDiff = (now - date) / (1000 * 60 * 60 * 24);
             
@@ -337,13 +337,13 @@ function formatMemoryForCLI(memory, index, options = {}) {
         
         // Color the content based on type
         let coloredContent = content;
-        if (memory?.memory_type === 'decision' || (memory?.tags && memory.tags.some(tag => tag.includes('decision')))) {
+        if (memory.memory_type === 'decision' || (memory.tags && memory.tags.some(tag => tag.includes('decision')))) {
             coloredContent = `${COLORS.YELLOW}${content}${COLORS.RESET}`;
-        } else if (memory?.memory_type === 'insight') {
+        } else if (memory.memory_type === 'insight') {
             coloredContent = `${COLORS.MAGENTA}${content}${COLORS.RESET}`;
-        } else if (memory?.memory_type === 'bug-fix') {
+        } else if (memory.memory_type === 'bug-fix') {
             coloredContent = `${COLORS.GREEN}${content}${COLORS.RESET}`;
-        } else if (memory?.memory_type === 'feature') {
+        } else if (memory.memory_type === 'feature') {
             coloredContent = `${COLORS.BLUE}${content}${COLORS.RESET}`;
         }
         
@@ -431,15 +431,7 @@ function extractMeaningfulContent(content, maxLength = 500, options = {}) {
         
         if (meaningfulParts.length > 0) {
             const extracted = meaningfulParts.join(' | ');
-            let truncated = extracted;
-            if (extracted.length > maxLength) {
-                // Try to find a good breaking point
-                const lastPipe = extracted.lastIndexOf(' | ', maxLength - 3);
-                const lastSpace = extracted.lastIndexOf(' ', maxLength - 3);
-                const breakPoint = lastPipe > maxLength * 0.7 ? lastPipe :
-                                  lastSpace > maxLength * 0.7 ? lastSpace : maxLength - 3;
-                truncated = extracted.substring(0, breakPoint) + '...';
-            }
+            const truncated = extracted.length > maxLength ? extracted.substring(0, maxLength - 3) + '...' : extracted;
             
             // Apply markdown conversion if requested
             if (convertMarkdown) {
@@ -948,7 +940,6 @@ module.exports = {
     formatMemoriesForCLI,
     formatMemory,
     formatMemoryForCLI,
-    extractMeaningfulContent,
     groupMemoriesByCategory,
     createProjectSummary,
     formatSessionConsolidation,

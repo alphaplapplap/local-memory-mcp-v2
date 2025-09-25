@@ -107,16 +107,17 @@ class DatabaseConnectionPool:
             if connection:
                 try:
                     connection.rollback()
-                except Exception:
-                    pass  # Ignore rollback errors for closed connections
+                except Exception as rollback_error:
+                    logger.warning(f"Failed to rollback connection (connection may be closed): {rollback_error}")
             logger.error(f"Database connection error: {e}")
             raise
         finally:
             if connection:
                 try:
                     self._pool.putconn(connection)
-                except Exception:
-                    pass  # Connection might be invalid, let pool handle it
+                except Exception as putconn_error:
+                    logger.warning(f"Failed to return connection to pool (connection may be invalid): {putconn_error}")
+                    # Pool will handle cleanup of invalid connections
 
     @contextmanager
     def get_cursor(self, cursor_factory=None):

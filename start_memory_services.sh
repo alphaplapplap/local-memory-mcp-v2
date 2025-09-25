@@ -113,13 +113,13 @@ start_ollama() {
     fi
 }
 
-# Start Bridge Server
-start_bridge_server() {
-    log "Checking Bridge Server..."
+# Start Memory Server
+start_memory_server() {
+    log "Checking Memory Server..."
 
-    if check_service "bridge_server"; then
-        local pid=$(cat "$PID_DIR/bridge_server.pid")
-        success "Bridge Server is already running (PID: $pid)"
+    if check_service "memory_server"; then
+        local pid=$(cat "$PID_DIR/memory_server.pid")
+        success "Memory Server is already running (PID: $pid)"
         return 0
     fi
 
@@ -130,27 +130,27 @@ start_bridge_server() {
         return 1
     fi
 
-    log "Starting Bridge Server..."
+    log "Starting Memory Server..."
     cd "$SCRIPT_DIR"
 
-    # Use fixed port 8000 for bridge server
-    BRIDGE_PORT=8000 python3 bridge_server.py >"$LOG_DIR/bridge_server.log" 2>&1 &
-    local bridge_pid=$!
-    echo "$bridge_pid" > "$PID_DIR/bridge_server.pid"
+    # Start the unified memory server in HTTP mode (MCP requires stdio)
+    python3 src/postgres_memory_server.py http >"$LOG_DIR/memory_server.log" 2>&1 &
+    local server_pid=$!
+    echo "$server_pid" > "$PID_DIR/memory_server.pid"
 
-    # Wait for bridge server to start
+    # Wait for memory server to start
     for i in {1..10}; do
         if curl -s http://localhost:8000/api/health >/dev/null 2>&1; then
-            success "Bridge Server started on port 8000 (PID: $bridge_pid)"
+            success "Memory Server started on port 8000 (PID: $server_pid)"
             return 0
         fi
         sleep 1
     done
 
     # If startup failed, clean up PID file
-    rm -f "$PID_DIR/bridge_server.pid"
-    error "Bridge Server failed to start"
-    log "Check logs: $LOG_DIR/bridge_server.log"
+    rm -f "$PID_DIR/memory_server.pid"
+    error "Memory Server failed to start"
+    log "Check logs: $LOG_DIR/memory_server.log"
     return 1
 }
 
@@ -162,14 +162,14 @@ main() {
     # Start services in order
     start_postgres || exit 1
     start_ollama || true  # Continue even if Ollama fails
-    start_bridge_server || exit 1
+    start_memory_server || exit 1
 
     echo
     success "All services started successfully!"
     echo
     echo "Services running:"
     echo "  • PostgreSQL: localhost:5432"
-    echo "  • Bridge Server: http://localhost:8000"
+    echo "  • Memory Server: http://localhost:8000"
     if check_service "ollama" || curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
         echo "  • Ollama: http://localhost:11434"
     fi

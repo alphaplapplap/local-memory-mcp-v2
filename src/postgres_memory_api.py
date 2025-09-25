@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import time
 from typing import Any, Dict, List, Optional, Union
 
@@ -64,8 +65,15 @@ def get_project_domain(working_directory: str = None) -> str:
         # Detect project context
         project_context = detect_project_context(working_directory)
 
+        if not project_context:
+            logger.info("No project context detected, using 'default' domain")
+            return "default"
+
         # Extract project name and sanitize it for use as a domain
-        project_name = project_context.get("name", "unknown")
+        project_name = project_context.get("name")
+        if not project_name or project_name == "unknown":
+            logger.info("Project name not detected or unknown, using 'default' domain")
+            return "default"
 
         # Sanitize the project name to be a valid domain identifier
         import re
@@ -79,17 +87,26 @@ def get_project_domain(working_directory: str = None) -> str:
 
         # Ensure it's not empty and has a reasonable length
         if not sanitized_domain or len(sanitized_domain) < 2:
+            logger.info(f"Sanitized project name '{sanitized_domain}' is too short, using 'default' domain")
             sanitized_domain = "default"
         elif len(sanitized_domain) > 50:
+            original_domain = sanitized_domain
             sanitized_domain = sanitized_domain[:50].rstrip("_")
+            logger.info(f"Truncated long domain name from '{original_domain}' to '{sanitized_domain}'")
 
         logger.info(
             f"Auto-detected project domain: {sanitized_domain} from project: {project_name}"
         )
         return sanitized_domain
 
+    except ImportError as e:
+        logger.error(f"Failed to import required module for project detection: {e}")
+        return "default"
     except Exception as e:
-        logger.warning(f"Failed to detect project domain: {e}, using 'default'")
+        logger.error(f"Unexpected error in project domain detection: {e}, using 'default'")
+        # Log more details about the error for debugging
+        import traceback
+        logger.debug(f"Project detection error details: {traceback.format_exc()}")
         return "default"
 
 
@@ -183,20 +200,73 @@ class PostgresMemoryAPI:
                     "Content cannot be empty or whitespace only", field="content"
                 )
 
-            if len(content) > 10000:
+            # Content size validation - 100KB limit (roughly 100,000 chars)
+            max_content_size = 100_000
+            if len(content) > max_content_size:
                 raise ValidationError(
-                    "Content too long (max 10000 characters)",
+                    f"Content too long (max {max_content_size:,} characters)",
                     field="content",
                     value=len(content),
                 )
 
-            if metadata is not None and not isinstance(metadata, dict):
+            # Check actual byte size for unicode content
+            content_bytes = content.encode('utf-8')
+            max_bytes = 100 * 1024  # 100KB
+            if len(content_bytes) > max_bytes:
                 raise ValidationError(
-                    "Metadata must be a dictionary or None", field="metadata"
+                    f"Content too large (max {max_bytes:,} bytes, got {len(content_bytes):,} bytes)",
+                    field="content",
+                    value=len(content_bytes),
                 )
 
-            if domain is not None and not isinstance(domain, str):
-                raise ValidationError("Domain must be a string or None", field="domain")
+            if metadata is not None:
+                if not isinstance(metadata, dict):
+                    raise ValidationError(
+                        "Metadata must be a dictionary or None", field="metadata"
+                    )
+
+                # Validate metadata size (10KB JSON limit)
+                metadata_json = json.dumps(metadata, ensure_ascii=False)
+                metadata_bytes = metadata_json.encode('utf-8')
+                max_metadata_bytes = 10 * 1024  # 10KB
+                if len(metadata_bytes) > max_metadata_bytes:
+                    raise ValidationError(
+                        f"Metadata too large (max {max_metadata_bytes:,} bytes, got {len(metadata_bytes):,} bytes)",
+                        field="metadata",
+                        value=len(metadata_bytes),
+                    )
+
+            if domain is not None:
+                if not isinstance(domain, str):
+                    raise ValidationError("Domain must be a string or None", field="domain")
+
+                # Validate domain name format (alphanumeric, underscores, hyphens only)
+                import re
+                if not re.match(r"^[a-zA-Z0-9_-]+$", domain):
+                    raise ValidationError(
+                        "Domain must contain only alphanumeric characters, underscores, and hyphens",
+                        field="domain",
+                        value=domain
+                    )
+
+                # Length validation
+                if len(domain) < 1:
+                    raise ValidationError("Domain cannot be empty", field="domain")
+                elif len(domain) > 50:
+                    raise ValidationError(
+                        f"Domain too long (max 50 characters, got {len(domain)})",
+                        field="domain",
+                        value=len(domain)
+                    )
+
+                # Reserved names validation
+                reserved_names = {'system', 'admin', 'root', 'user', 'test', 'temp', 'public', 'private'}
+                if domain.lower() in reserved_names:
+                    raise ValidationError(
+                        f"Domain name '{domain}' is reserved",
+                        field="domain",
+                        value=domain
+                    )
 
             # Security validation
             content = security_validator.sanitize_content(content)
@@ -223,19 +293,29 @@ class PostgresMemoryAPI:
         if importance is not None:
             metadata["importance"] = importance
 
-        # Generate embedding with error handling
+        # Generate embedding with retry logic
         embedding = None
         if self.ollama_embeddings:
-            try:
-                embedding = self.ollama_embeddings.get_embedding(content)
-                if not embedding or not isinstance(embedding, list):
-                    raise EmbeddingError(
-                        "Invalid embedding generated",
-                        model=getattr(self.ollama_embeddings, "model_name", "unknown"),
-                    )
-            except Exception as e:
-                logger.warning(f"Failed to generate embedding: {e}")
-                # Continue without embedding rather than failing completely
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                try:
+                    embedding = self.ollama_embeddings.get_embedding(content)
+                    if not embedding or not isinstance(embedding, list):
+                        raise EmbeddingError(
+                            "Invalid embedding generated",
+                            model=getattr(self.ollama_embeddings, "model_name", "unknown"),
+                        )
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    if attempt < max_retries:
+                        logger.warning(f"Embedding attempt {attempt + 1} failed: {e}, retrying...")
+                        time.sleep(0.5 * (attempt + 1))  # Exponential backoff
+                        continue
+                    else:
+                        # Final failure - log error and decide whether to fail or continue
+                        logger.error(f"Failed to generate embedding after {max_retries + 1} attempts: {e}")
+                        # For now, continue without embedding but track this as degraded service
+                        # TODO: Consider making this configurable or failing completely based on use case
 
         # Database operation with comprehensive error handling
         with database_operation("INSERT", f"{domain}_memories") as cursor:

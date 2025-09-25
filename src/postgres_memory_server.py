@@ -1,11 +1,33 @@
 import os
 import sys
+
+# CRITICAL: Disable banner BEFORE importing FastMCP to prevent JSON protocol errors
+os.environ["FASTMCP_SHOW_CLI_BANNER"] = "false"
+
 import time
 import json
 import uuid
 import asyncio
 import threading
 import logging
+
+# Configure logging based on server mode
+if len(sys.argv) > 1 and sys.argv[1] == "mcp":
+    # Set environment variable so other modules can check
+    os.environ["SERVER_MODE"] = "mcp"
+    # Initial config - will be overridden after imports
+    logging.basicConfig(
+        level=logging.WARNING,
+        format='%(message)s',
+        stream=sys.stderr,
+        force=True
+    )
+else:
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%H:%M:%S'
+    )
 from decimal import Decimal
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -27,6 +49,16 @@ from connection_pool import initialize_connection_pool, get_connection_pool, get
 
 # Configure logger
 logger = logging.getLogger(__name__)
+
+# CRITICAL: Re-configure logging AFTER all imports to ensure stderr output in MCP mode
+if len(sys.argv) > 1 and sys.argv[1] == "mcp":
+    # Force ALL loggers to use stderr
+    root_logger = logging.getLogger()
+    root_logger.handlers = []
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setFormatter(logging.Formatter('%(message)s'))
+    root_logger.addHandler(stderr_handler)
+    root_logger.setLevel(logging.WARNING)
 
 # Get server name from environment or use default
 server_name = os.environ.get("MCP_SERVER_NAME", "Local Context Memory")
@@ -113,12 +145,14 @@ class ConsolidationRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print("🚀 Unified Memory Server starting...")
-    print(f"📊 PostgreSQL: {os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', 5432)}")
-    print(f"🧠 Ollama: {ollama_url} ({embedding_model})")
-    print(f"🌐 HTTP Server: http://localhost:8000")
-    print(f"⚡ MCP Protocol: stdio transport")
-    print("🔄 Dual Protocol Mode: ENABLED")
+    # Only log to stderr for HTTP mode to avoid breaking MCP JSON protocol
+    if os.environ.get("SERVER_MODE") != "mcp":
+        print("🚀 Unified Memory Server starting...", file=sys.stderr)
+        print(f"📊 PostgreSQL: {os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', 5432)}", file=sys.stderr)
+        print(f"🧠 Ollama: {ollama_url} ({embedding_model})", file=sys.stderr)
+        print(f"🌐 HTTP Server: http://localhost:8000", file=sys.stderr)
+        print(f"⚡ MCP Protocol: stdio transport", file=sys.stderr)
+        print("🔄 Dual Protocol Mode: ENABLED", file=sys.stderr)
 
     # Initialize connection pool
     try:
@@ -134,17 +168,20 @@ async def lifespan(app: FastAPI):
             min_connections=int(os.getenv('POOL_MIN_CONNECTIONS', 2)),
             max_connections=int(os.getenv('POOL_MAX_CONNECTIONS', 10))
         )
-        print(f"🔗 Connection pool initialized: {pool.get_pool_status()}")
+        if os.environ.get("SERVER_MODE") != "mcp":
+            print(f"🔗 Connection pool initialized: {pool.get_pool_status()}", file=sys.stderr)
     except Exception as e:
         logger.warning(f"Connection pool initialization failed: {e}")
 
     yield
 
     # Shutdown
-    print("🔻 Unified Memory Server shutting down...")
+    if os.environ.get("SERVER_MODE") != "mcp":
+        print("🔻 Unified Memory Server shutting down...", file=sys.stderr)
     pool = get_connection_pool()
     if pool:
-        print("🔌 Closing database connection pool...")
+        if os.environ.get("SERVER_MODE") != "mcp":
+            print("🔌 Closing database connection pool...", file=sys.stderr)
         pool.close_all_connections()
 
 # Initialize FastAPI app
@@ -456,6 +493,43 @@ def store_memory(
     - store_memory("Series A funding closed at $10M", "startup", "meeting", 0.9, ["funding", "milestone"])
     - store_memory("Python is preferred for data science projects", "work", "conversation", 0.8, ["programming", "preference"])
     """
+    # Pre-validate inputs before calling memory_api
+    if not content or not isinstance(content, str):
+        raise ValueError("Content must be a non-empty string")
+
+    if content.strip() == "":
+        raise ValueError("Content cannot be empty or whitespace only")
+
+    # Content size validation - 100KB limit
+    max_content_size = 100_000
+    if len(content) > max_content_size:
+        raise ValueError(f"Content too long (max {max_content_size:,} characters, got {len(content):,})")
+
+    # Check byte size for unicode content
+    content_bytes = content.encode('utf-8')
+    max_bytes = 100 * 1024  # 100KB
+    if len(content_bytes) > max_bytes:
+        raise ValueError(f"Content too large (max {max_bytes:,} bytes, got {len(content_bytes):,} bytes)")
+
+    # Domain validation
+    if domain is not None:
+        if not isinstance(domain, str):
+            raise ValueError("Domain must be a string or None")
+
+        import re
+        if not re.match(r"^[a-zA-Z0-9_-]+$", domain):
+            raise ValueError("Domain must contain only alphanumeric characters, underscores, and hyphens")
+
+        if len(domain) < 1:
+            raise ValueError("Domain cannot be empty")
+        elif len(domain) > 50:
+            raise ValueError(f"Domain too long (max 50 characters, got {len(domain)})")
+
+        # Reserved names validation
+        reserved_names = {'system', 'admin', 'root', 'user', 'test', 'temp', 'public', 'private'}
+        if domain.lower() in reserved_names:
+            raise ValueError(f"Domain name '{domain}' is reserved")
+
     metadata = {}
     if source:
         metadata["source"] = source
@@ -463,6 +537,15 @@ def store_memory(
         metadata["importance"] = importance
     if tags:
         metadata["tags"] = tags
+
+    # Metadata size validation
+    if metadata:
+        import json
+        metadata_json = json.dumps(metadata, ensure_ascii=False)
+        metadata_bytes = metadata_json.encode('utf-8')
+        max_metadata_bytes = 10 * 1024  # 10KB
+        if len(metadata_bytes) > max_metadata_bytes:
+            raise ValueError(f"Metadata too large (max {max_metadata_bytes:,} bytes, got {len(metadata_bytes):,} bytes)")
 
     memory_id = memory_api.store_memory(content, metadata, domain)
     return memory_id
@@ -1704,7 +1787,7 @@ def track_session_memory(
 def run_http_server():
     """Run the HTTP server in a separate thread"""
     port = int(os.environ.get("BRIDGE_PORT", 8000))
-    print(f"🌐 Starting HTTP server on port {port}")
+    print(f"🌐 Starting HTTP server on port {port}", file=sys.stderr)
     uvicorn.run(
         http_app,
         host="0.0.0.0",
@@ -1715,7 +1798,7 @@ def run_http_server():
 
 def run_mcp_server():
     """Run the MCP server with stdio transport"""
-    print("⚡ Starting MCP server with stdio transport")
+    # No print statements in MCP mode to avoid breaking JSON protocol
     server.run(transport="stdio")
 
 if __name__ == "__main__":
@@ -1730,7 +1813,7 @@ if __name__ == "__main__":
         run_http_server()
     elif mode == "dual":
         # Dual protocol mode - HTTP in background thread, MCP in main thread
-        print("🚀 Starting Unified Memory Server in DUAL mode")
+        print("🚀 Starting Unified Memory Server in DUAL mode", file=sys.stderr)
 
         # Start HTTP server in background thread
         http_thread = threading.Thread(target=run_http_server, daemon=True)

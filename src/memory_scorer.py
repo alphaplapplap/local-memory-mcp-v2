@@ -268,7 +268,7 @@ def score_memory_relevance(memories: List[Dict[str, Any]],
         weights['timeDecay'] = weights.get('timeDecay', 0.2)
         weights['conversationRelevance'] = weights.get('conversationRelevance', 0.35)
 
-    print(f'[Memory Scorer] Scoring {len(memories)} memories for project: {project_context.get("name", "unknown")}')
+    logger.debug(f'[Memory Scorer] Scoring {len(memories)} memories for project: {project_context.get("name", "unknown")}')
 
     scored_memories = []
 
@@ -324,17 +324,17 @@ def score_memory_relevance(memories: List[Dict[str, Any]],
 
         except Exception as e:
             # Skip problematic memories
-            print(f'[Memory Scorer] Error scoring memory: {str(e)}')
+            logger.error(f'[Memory Scorer] Error scoring memory: {str(e)}')
             continue
 
     # Sort by total score (highest first)
     scored_memories.sort(key=lambda m: m['relevanceScore'], reverse=True)
 
     # Log top scored memories
-    print('[Memory Scorer] Top scored memories:')
+    logger.debug('[Memory Scorer] Top scored memories:')
     for i, memory in enumerate(scored_memories[:3]):
         content_preview = memory.get('content', '')[:60] + '...' if len(memory.get('content', '')) > 60 else memory.get('content', '')
-        print(f'  {i+1}. Score: {memory["relevanceScore"]:.3f} - {content_preview}')
+        logger.debug(f'  {i+1}. Score: {memory["relevanceScore"]:.3f} - {content_preview}')
 
     return scored_memories
 
