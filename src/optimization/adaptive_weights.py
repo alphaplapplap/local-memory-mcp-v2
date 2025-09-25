@@ -17,9 +17,11 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class AccessPattern:
     """Tracks how memories are accessed and used"""
+
     memory_id: str
     domain: str
     access_count: int = 0
@@ -48,9 +50,11 @@ class AccessPattern:
 
         return usefulness_rate * avg_relevance * min(1.0, access_factor)
 
+
 @dataclass
 class ProjectProfile:
     """Project-specific weight profile"""
+
     project_name: str
     domain: str
     weights: Dict[str, float]
@@ -67,6 +71,7 @@ class ProjectProfile:
             return 0.0
         return self.successful_queries / self.total_queries
 
+
 class AdaptiveWeightLearner:
     """
     Learns and adjusts memory scoring weights based on usage patterns.
@@ -79,7 +84,7 @@ class AdaptiveWeightLearner:
         "tag_relevance": 0.30,
         "content_relevance": 0.20,
         "content_quality": 0.25,
-        "conversation_relevance": 0.05
+        "conversation_relevance": 0.05,
     }
 
     # Weight constraints to prevent extreme values
@@ -88,7 +93,7 @@ class AdaptiveWeightLearner:
         "tag_relevance": (0.10, 0.50),
         "content_relevance": (0.10, 0.40),
         "content_quality": (0.10, 0.40),
-        "conversation_relevance": (0.01, 0.20)
+        "conversation_relevance": (0.01, 0.20),
     }
 
     def __init__(self, profile_dir: str = ".memory_profiles"):
@@ -110,7 +115,7 @@ class AdaptiveWeightLearner:
             for filename in os.listdir(self.profile_dir):
                 if filename.endswith(".json"):
                     filepath = os.path.join(self.profile_dir, filename)
-                    with open(filepath, 'r') as f:
+                    with open(filepath, "r") as f:
                         data = json.load(f)
                         profile = self._dict_to_profile(data)
                         self.profiles[profile.project_name] = profile
@@ -128,7 +133,7 @@ class AdaptiveWeightLearner:
             # Convert to serializable format
             data = self._profile_to_dict(profile)
 
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 json.dump(data, f, indent=2)
 
             logger.debug(f"Saved profile for {profile.project_name}")
@@ -154,10 +159,10 @@ class AdaptiveWeightLearner:
                     "relevance_scores": ap.relevance_scores,
                     "was_useful": ap.was_useful,
                     "query_contexts": ap.query_contexts,
-                    "last_accessed": ap.last_accessed.isoformat()
+                    "last_accessed": ap.last_accessed.isoformat(),
                 }
                 for mid, ap in profile.access_patterns.items()
-            }
+            },
         }
 
     def _dict_to_profile(self, data: Dict) -> ProjectProfile:
@@ -170,7 +175,7 @@ class AdaptiveWeightLearner:
             momentum=data.get("momentum", 0.9),
             last_update=datetime.fromisoformat(data["last_update"]),
             total_queries=data.get("total_queries", 0),
-            successful_queries=data.get("successful_queries", 0)
+            successful_queries=data.get("successful_queries", 0),
         )
 
         # Reconstruct access patterns
@@ -182,13 +187,15 @@ class AdaptiveWeightLearner:
                 relevance_scores=ap_data["relevance_scores"],
                 was_useful=ap_data["was_useful"],
                 query_contexts=ap_data["query_contexts"],
-                last_accessed=datetime.fromisoformat(ap_data["last_accessed"])
+                last_accessed=datetime.fromisoformat(ap_data["last_accessed"]),
             )
             profile.access_patterns[mid] = ap
 
         return profile
 
-    def get_weights_for_project(self, project_name: str, domain: str = "default") -> Dict[str, float]:
+    def get_weights_for_project(
+        self, project_name: str, domain: str = "default"
+    ) -> Dict[str, float]:
         """
         Get optimized weights for a specific project.
         Creates new profile if project is unknown.
@@ -198,7 +205,7 @@ class AdaptiveWeightLearner:
             self.profiles[project_name] = ProjectProfile(
                 project_name=project_name,
                 domain=domain,
-                weights=self.DEFAULT_WEIGHTS.copy()
+                weights=self.DEFAULT_WEIGHTS.copy(),
             )
             self._save_profile(self.profiles[project_name])
 
@@ -211,7 +218,7 @@ class AdaptiveWeightLearner:
         relevance_score: float,
         was_useful: bool,
         query_context: str = "",
-        project_name: Optional[str] = None
+        project_name: Optional[str] = None,
     ):
         """Record a memory access event for learning"""
         if project_name:
@@ -226,14 +233,13 @@ class AdaptiveWeightLearner:
         # Create or update access pattern
         if memory_id not in profile.access_patterns:
             profile.access_patterns[memory_id] = AccessPattern(
-                memory_id=memory_id,
-                domain=profile.domain
+                memory_id=memory_id, domain=profile.domain
             )
 
         profile.access_patterns[memory_id].add_access(
             relevance_score=relevance_score,
             was_useful=was_useful,
-            query_context=query_context
+            query_context=query_context,
         )
 
         # Update profile stats
@@ -261,12 +267,15 @@ class AdaptiveWeightLearner:
                 if len(history) > 0:
                     # Exponential moving average of gradients
                     gradients[weight_name] = (
-                        profile.momentum * history[-1] +
-                        (1 - profile.momentum) * gradients[weight_name]
+                        profile.momentum * history[-1]
+                        + (1 - profile.momentum) * gradients[weight_name]
                     )
 
             # Update weight with learning rate
-            new_weight = profile.weights[weight_name] + profile.learning_rate * gradients[weight_name]
+            new_weight = (
+                profile.weights[weight_name]
+                + profile.learning_rate * gradients[weight_name]
+            )
 
             # Apply bounds
             min_bound, max_bound = self.WEIGHT_BOUNDS[weight_name]
@@ -315,7 +324,13 @@ class AdaptiveWeightLearner:
                 gradients["time_decay"] = -0.1  # Negative to reduce time penalty
 
             # Check if useful memories have high relevance scores
-            avg_relevance = np.mean([np.mean(p.relevance_scores) for p in high_utility if p.relevance_scores])
+            avg_relevance = np.mean(
+                [
+                    np.mean(p.relevance_scores)
+                    for p in high_utility
+                    if p.relevance_scores
+                ]
+            )
             if avg_relevance > 0.7:
                 gradients["content_relevance"] = 0.1
 
@@ -324,7 +339,9 @@ class AdaptiveWeightLearner:
             # If low utility memories are being retrieved, we need to adjust weights
 
             # Check if they're being retrieved due to tags
-            tag_patterns = [p for p in low_utility if "tag" in str(p.query_contexts).lower()]
+            tag_patterns = [
+                p for p in low_utility if "tag" in str(p.query_contexts).lower()
+            ]
             if len(tag_patterns) > len(low_utility) * 0.5:
                 gradients["tag_relevance"] = -0.1  # Reduce tag weight
                 gradients["content_relevance"] = 0.1  # Increase content weight
@@ -345,7 +362,8 @@ class AdaptiveWeightLearner:
 
         # Conversation relevance adjustment based on recency of access
         recent_accesses = [
-            p for p in patterns
+            p
+            for p in patterns
             if (datetime.now() - p.last_accessed) < timedelta(hours=1)
         ]
         if len(recent_accesses) > len(patterns) * 0.3:
@@ -362,10 +380,11 @@ class AdaptiveWeightLearner:
 
         # Calculate various metrics
         total_accesses = sum(p.access_count for p in profile.access_patterns.values())
-        avg_utility = np.mean([
-            p.get_utility_score()
-            for p in profile.access_patterns.values()
-        ]) if profile.access_patterns else 0.0
+        avg_utility = (
+            np.mean([p.get_utility_score() for p in profile.access_patterns.values()])
+            if profile.access_patterns
+            else 0.0
+        )
 
         # Weight stability (how much weights have changed)
         weight_diffs = {}
@@ -388,7 +407,7 @@ class AdaptiveWeightLearner:
             "last_update": profile.last_update.isoformat(),
             "learning_rate": profile.learning_rate,
             "momentum": profile.momentum,
-            "unique_memories_accessed": len(profile.access_patterns)
+            "unique_memories_accessed": len(profile.access_patterns),
         }
 
     def export_best_weights(self) -> Dict[str, Dict[str, float]]:
@@ -401,7 +420,7 @@ class AdaptiveWeightLearner:
                 best_weights[project_name] = {
                     "weights": profile.weights.copy(),
                     "success_rate": success_rate,
-                    "total_queries": profile.total_queries
+                    "total_queries": profile.total_queries,
                 }
 
         return best_weights

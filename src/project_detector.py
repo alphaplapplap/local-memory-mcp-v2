@@ -59,7 +59,7 @@ def detect_language(directory: str) -> Dict[str, Any]:
             ".sh": "Shell",
             ".md": "Documentation",
         }
-        
+
         # Priority weights for language detection (higher = more important)
         language_priority = {
             ".py": 10,
@@ -88,7 +88,7 @@ def detect_language(directory: str) -> Dict[str, Any]:
             if ext in language_map:
                 priority = language_priority.get(ext, 1)
                 score = count * priority  # Weight by both count and priority
-                
+
                 if score > best_score:
                     best_score = score
                     primary_language = language_map[ext]

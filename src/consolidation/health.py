@@ -643,12 +643,12 @@ class ConsolidationHealthMonitor:
 
 def get_consolidation_health():
     """Get consolidation system health status.
-    
+
     Returns:
         Dict with health status information
     """
     monitor = ConsolidationHealthMonitor()
-    
+
     # Return synchronous health check with basic information
     return {
         "status": "healthy",
@@ -660,9 +660,9 @@ def get_consolidation_health():
                 "checks": {
                     "configuration": "valid",
                     "retention_periods": "configured",
-                    "decay_algorithm": "functional"
+                    "decay_algorithm": "functional",
                 },
-                "metrics": {"recent_calculations": 0}
+                "metrics": {"recent_calculations": 0},
             },
             "association_engine": {
                 "status": "healthy",
@@ -670,9 +670,12 @@ def get_consolidation_health():
                 "checks": {
                     "similarity_thresholds": "configured",
                     "concept_extraction": "functional",
-                    "association_discovery": "active"
+                    "association_discovery": "active",
                 },
-                "metrics": {"recent_associations_discovered": 0, "similarity_range": "0.3-0.7"}
+                "metrics": {
+                    "recent_associations_discovered": 0,
+                    "similarity_range": "0.3-0.7",
+                },
             },
             "clustering_engine": {
                 "status": "healthy",
@@ -680,9 +683,9 @@ def get_consolidation_health():
                 "checks": {
                     "clustering_algorithm": "available",
                     "minimum_cluster_size": "configured",
-                    "embedding_processing": "functional"
+                    "embedding_processing": "functional",
                 },
-                "metrics": {"recent_clusters_created": 0}
+                "metrics": {"recent_clusters_created": 0},
             },
             "compression_engine": {
                 "status": "healthy",
@@ -690,9 +693,9 @@ def get_consolidation_health():
                 "checks": {
                     "summary_generation": "functional",
                     "concept_extraction": "active",
-                    "compression_ratio": "optimal"
+                    "compression_ratio": "optimal",
                 },
-                "metrics": {"recent_compressions": 0}
+                "metrics": {"recent_compressions": 0},
             },
             "forgetting_engine": {
                 "status": "healthy",
@@ -700,9 +703,9 @@ def get_consolidation_health():
                 "checks": {
                     "archive_storage": "accessible",
                     "relevance_thresholds": "configured",
-                    "controlled_forgetting": "safe"
+                    "controlled_forgetting": "safe",
                 },
-                "metrics": {"recent_archival_operations": 0}
+                "metrics": {"recent_archival_operations": 0},
             },
             "scheduler": {
                 "status": "healthy",
@@ -710,9 +713,9 @@ def get_consolidation_health():
                 "checks": {
                     "scheduler_running": "active",
                     "job_scheduling": "functional",
-                    "cron_expressions": "valid"
+                    "cron_expressions": "valid",
                 },
-                "metrics": {"scheduled_jobs": "configured", "last_execution": "recent"}
+                "metrics": {"scheduled_jobs": "configured", "last_execution": "recent"},
             },
             "storage_backend": {
                 "status": "healthy",
@@ -721,12 +724,15 @@ def get_consolidation_health():
                     "storage_connection": "connected",
                     "read_operations": "functional",
                     "write_operations": "functional",
-                    "backup_integrity": "verified"
+                    "backup_integrity": "verified",
                 },
-                "metrics": {"response_time_ms": "normal", "storage_utilization": "optimal"}
-            }
+                "metrics": {
+                    "response_time_ms": "normal",
+                    "storage_utilization": "optimal",
+                },
+            },
         },
         "metrics": {},
         "alerts": [],
-        "recommendations": []
+        "recommendations": [],
     }

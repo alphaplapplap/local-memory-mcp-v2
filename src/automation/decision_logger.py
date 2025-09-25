@@ -24,17 +24,18 @@ class DecisionLogger:
         else:
             # Fallback to simple logging if no memory service
             import logging
+
             logger = logging.getLogger(__name__)
             logger.info(f"Decision logged: {title} ({decision_type})")
 
     def log_decision_sync(self, title, category="general", importance=3):
         """Synchronous version for simple decision logging.
-        
+
         Args:
             title: The decision title/description
             category: Category of the decision
             importance: Importance level (1-5)
-            
+
         Returns:
             Dict with result information
         """
@@ -44,7 +45,7 @@ class DecisionLogger:
         Date: {datetime.now().isoformat()}
         Importance: {importance}
         """
-        
+
         if self.memory:
             try:
                 # Try to use memory service if available
@@ -52,12 +53,16 @@ class DecisionLogger:
                 return {"success": True, "memory_id": result}
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Failed to store decision in memory: {e}")
-        
+
         # Fallback to simple logging
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.info(f"Decision logged: {title} (category: {category}, importance: {importance})")
-        
+        logger.info(
+            f"Decision logged: {title} (category: {category}, importance: {importance})"
+        )
+
         return {"success": True, "method": "logging_fallback"}

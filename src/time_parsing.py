@@ -5,18 +5,19 @@ import re
 from datetime import datetime, timedelta
 from typing import Tuple, Optional, List, Dict
 
+
 class TimeParser:
     def __init__(self):
         # Copy all the regex patterns from doobidoo's time_parser.py
         self.time_patterns = {
             # Yesterday, today, tomorrow
-            r'\b(yesterday|today|tomorrow)\b': self._parse_relative_day,
+            r"\b(yesterday|today|tomorrow)\b": self._parse_relative_day,
             # Last/next week/month/year
-            r'\b(last|next)\s+(week|month|year|spring|summer|fall|winter)\b': self._parse_relative_period,
+            r"\b(last|next)\s+(week|month|year|spring|summer|fall|winter)\b": self._parse_relative_period,
             # X days/weeks/months ago
-            r'\b(\d+)\s+(days?|weeks?|months?|years?)\s+ago\b': self._parse_ago,
+            r"\b(\d+)\s+(days?|weeks?|months?|years?)\s+ago\b": self._parse_ago,
             # Time of day
-            r'\b(morning|afternoon|evening|night)\b': self._parse_time_of_day,
+            r"\b(morning|afternoon|evening|night)\b": self._parse_time_of_day,
         }
 
     def parse_query(self, query: str) -> Tuple[str, Optional[float], Optional[float]]:
@@ -28,8 +29,15 @@ class TimeParser:
         # ... (copy the full implementation)
         pass
 
+
 # Then adapt your PostgreSQL queries to use the time ranges:
-async def search_with_time_filter(pool, embedding_vector, query: str, start_time: Optional[float], end_time: Optional[float]):
+async def search_with_time_filter(
+    pool,
+    embedding_vector,
+    query: str,
+    start_time: Optional[float],
+    end_time: Optional[float],
+):
     """Search memories with time filtering"""
     async with pool.acquire() as conn:
         base_sql = """

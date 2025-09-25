@@ -87,12 +87,16 @@ def get_project_domain(working_directory: str = None) -> str:
 
         # Ensure it's not empty and has a reasonable length
         if not sanitized_domain or len(sanitized_domain) < 2:
-            logger.info(f"Sanitized project name '{sanitized_domain}' is too short, using 'default' domain")
+            logger.info(
+                f"Sanitized project name '{sanitized_domain}' is too short, using 'default' domain"
+            )
             sanitized_domain = "default"
         elif len(sanitized_domain) > 50:
             original_domain = sanitized_domain
             sanitized_domain = sanitized_domain[:50].rstrip("_")
-            logger.info(f"Truncated long domain name from '{original_domain}' to '{sanitized_domain}'")
+            logger.info(
+                f"Truncated long domain name from '{original_domain}' to '{sanitized_domain}'"
+            )
 
         logger.info(
             f"Auto-detected project domain: {sanitized_domain} from project: {project_name}"
@@ -103,9 +107,12 @@ def get_project_domain(working_directory: str = None) -> str:
         logger.error(f"Failed to import required module for project detection: {e}")
         return "default"
     except Exception as e:
-        logger.error(f"Unexpected error in project domain detection: {e}, using 'default'")
+        logger.error(
+            f"Unexpected error in project domain detection: {e}, using 'default'"
+        )
         # Log more details about the error for debugging
         import traceback
+
         logger.debug(f"Project detection error details: {traceback.format_exc()}")
         return "default"
 
@@ -169,29 +176,37 @@ class PostgresMemoryAPI:
             with self._get_connection() as conn:
                 with conn.cursor() as cursor:
                     # First check if table already exists
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT EXISTS (
                             SELECT FROM information_schema.tables
                             WHERE table_schema = 'public'
                             AND table_name = %s
                         );
-                    """, (table_name,))
+                    """,
+                        (table_name,),
+                    )
 
                     exists = cursor.fetchone()[0]
 
                     if not exists:
                         logger.info(f"Creating table {table_name} for domain {domain}")
-                        cursor.execute("SELECT create_domain_memories_table(%s)", (domain,))
+                        cursor.execute(
+                            "SELECT create_domain_memories_table(%s)", (domain,)
+                        )
                         conn.commit()
 
                         # Verify table was created
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             SELECT EXISTS (
                                 SELECT FROM information_schema.tables
                                 WHERE table_schema = 'public'
                                 AND table_name = %s
                             );
-                        """, (table_name,))
+                        """,
+                            (table_name,),
+                        )
 
                         created = cursor.fetchone()[0]
                         if not created:
@@ -203,18 +218,20 @@ class PostgresMemoryAPI:
 
         except Exception as e:
             logger.error(f"Error ensuring table exists for domain {domain}: {e}")
-            raise DatabaseError(f"Failed to ensure table exists for domain {domain}: {str(e)}")
+            raise DatabaseError(
+                f"Failed to ensure table exists for domain {domain}: {str(e)}"
+            )
 
     def _flatten_memory_result(self, row_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Flatten commonly used metadata fields to top level for easier access."""
         result = dict(row_dict)
 
         # Extract metadata if it exists
-        metadata = result.get('metadata', {})
+        metadata = result.get("metadata", {})
         if isinstance(metadata, dict):
             # Flatten tags to top level if they exist
-            if 'tags' in metadata:
-                result['tags'] = metadata['tags']
+            if "tags" in metadata:
+                result["tags"] = metadata["tags"]
 
         return result
 
@@ -223,7 +240,7 @@ class PostgresMemoryAPI:
         content: str,
         embedding: List[float],
         domain: str,
-        similarity_threshold: float = 0.95
+        similarity_threshold: float = 0.95,
     ) -> bool:
         """
         Check if a similar memory already exists using vector similarity.
@@ -243,7 +260,8 @@ class PostgresMemoryAPI:
                     table_name = sql.Identifier(f"{domain}_memories")
 
                     # Find similar memories using cosine similarity
-                    query = sql.SQL("""
+                    query = sql.SQL(
+                        """
                         SELECT
                             id,
                             content,
@@ -253,7 +271,8 @@ class PostgresMemoryAPI:
                             AND 1 - (embedding <=> %s::vector) >= %s
                         ORDER BY similarity DESC
                         LIMIT 1
-                    """).format(table_name)
+                    """
+                    ).format(table_name)
 
                     cursor.execute(query, (embedding, embedding, similarity_threshold))
                     result = cursor.fetchone()
@@ -286,23 +305,48 @@ class PostgresMemoryAPI:
 
         # Check for generic/low-value patterns
         generic_patterns = [
-            'todo', 'fixme', 'placeholder', 'temp', 'test test',
-            'delete this', 'remove this', 'update this', 'change this',
-            'lorem ipsum', 'sample text', 'example content'
+            "todo",
+            "fixme",
+            "placeholder",
+            "temp",
+            "test test",
+            "delete this",
+            "remove this",
+            "update this",
+            "change this",
+            "lorem ipsum",
+            "sample text",
+            "example content",
         ]
 
-        generic_count = sum(1 for pattern in generic_patterns if pattern in content_lower)
+        generic_count = sum(
+            1 for pattern in generic_patterns if pattern in content_lower
+        )
         if generic_count >= 2:
             return False, 0.2, "Content contains multiple generic placeholders"
 
         # Boost technical content
         technical_indicators = [
-            'error:', 'exception:', 'bug:', 'fix:', 'solution:',
-            'config:', 'implementation:', 'optimization:', 'pattern:',
-            '```', 'function', 'class', 'def ', 'const ', 'import'
+            "error:",
+            "exception:",
+            "bug:",
+            "fix:",
+            "solution:",
+            "config:",
+            "implementation:",
+            "optimization:",
+            "pattern:",
+            "```",
+            "function",
+            "class",
+            "def ",
+            "const ",
+            "import",
         ]
 
-        technical_score = sum(0.1 for indicator in technical_indicators if indicator in content_lower)
+        technical_score = sum(
+            0.1 for indicator in technical_indicators if indicator in content_lower
+        )
 
         # Base quality score
         if content_length < 50:
@@ -351,7 +395,9 @@ class PostgresMemoryAPI:
             # Assess content quality (Phase 1 optimization)
             should_store, quality_score, reason = self._assess_content_quality(content)
             if not should_store:
-                logger.info(f"Rejecting low-quality content: {reason} (score: {quality_score:.2f})")
+                logger.info(
+                    f"Rejecting low-quality content: {reason} (score: {quality_score:.2f})"
+                )
                 raise ValidationError(
                     f"Content quality too low: {reason}",
                     field="content",
@@ -368,7 +414,7 @@ class PostgresMemoryAPI:
                 )
 
             # Check actual byte size for unicode content
-            content_bytes = content.encode('utf-8')
+            content_bytes = content.encode("utf-8")
             max_bytes = 5 * 1024  # 5KB (optimized from 100KB)
             if len(content_bytes) > max_bytes:
                 raise ValidationError(
@@ -385,7 +431,7 @@ class PostgresMemoryAPI:
 
                 # Validate metadata size (2KB JSON limit - optimized from 10KB)
                 metadata_json = json.dumps(metadata, ensure_ascii=False)
-                metadata_bytes = metadata_json.encode('utf-8')
+                metadata_bytes = metadata_json.encode("utf-8")
                 max_metadata_bytes = 2 * 1024  # 2KB (optimized)
                 if len(metadata_bytes) > max_metadata_bytes:
                     raise ValidationError(
@@ -396,15 +442,18 @@ class PostgresMemoryAPI:
 
             if domain is not None:
                 if not isinstance(domain, str):
-                    raise ValidationError("Domain must be a string or None", field="domain")
+                    raise ValidationError(
+                        "Domain must be a string or None", field="domain"
+                    )
 
                 # Validate domain name format (alphanumeric, underscores, hyphens only)
                 import re
+
                 if not re.match(r"^[a-zA-Z0-9_-]+$", domain):
                     raise ValidationError(
                         "Domain must contain only alphanumeric characters, underscores, and hyphens",
                         field="domain",
-                        value=domain
+                        value=domain,
                     )
 
                 # Length validation
@@ -414,16 +463,25 @@ class PostgresMemoryAPI:
                     raise ValidationError(
                         f"Domain too long (max 50 characters, got {len(domain)})",
                         field="domain",
-                        value=len(domain)
+                        value=len(domain),
                     )
 
                 # Reserved names validation
-                reserved_names = {'system', 'admin', 'root', 'user', 'test', 'temp', 'public', 'private'}
+                reserved_names = {
+                    "system",
+                    "admin",
+                    "root",
+                    "user",
+                    "test",
+                    "temp",
+                    "public",
+                    "private",
+                }
                 if domain.lower() in reserved_names:
                     raise ValidationError(
                         f"Domain name '{domain}' is reserved",
                         field="domain",
-                        value=domain
+                        value=domain,
                     )
 
             # Security validation
@@ -451,12 +509,14 @@ class PostgresMemoryAPI:
                 if not isinstance(tag, str):
                     raise ValidationError("All tags must be strings", field="tags")
                 if len(tag.strip()) == 0:
-                    raise ValidationError("Tags cannot be empty or whitespace only", field="tags")
+                    raise ValidationError(
+                        "Tags cannot be empty or whitespace only", field="tags"
+                    )
 
             # Remove duplicates and empty tags, then add to metadata
             clean_tags = list(set(tag.strip() for tag in tags if tag.strip()))
             if clean_tags:
-                metadata['tags'] = clean_tags
+                metadata["tags"] = clean_tags
 
         metadata.update(
             {
@@ -464,7 +524,7 @@ class PostgresMemoryAPI:
                 "updated_at": timestamp,
             }
         )
-        
+
         # Add importance to metadata if provided
         if importance is not None:
             metadata["importance"] = importance
@@ -479,23 +539,31 @@ class PostgresMemoryAPI:
                     if not embedding or not isinstance(embedding, list):
                         raise EmbeddingError(
                             "Invalid embedding generated",
-                            model=getattr(self.ollama_embeddings, "model_name", "unknown"),
+                            model=getattr(
+                                self.ollama_embeddings, "model_name", "unknown"
+                            ),
                         )
                     break  # Success, exit retry loop
                 except Exception as e:
                     if attempt < max_retries:
-                        logger.warning(f"Embedding attempt {attempt + 1} failed: {e}, retrying...")
+                        logger.warning(
+                            f"Embedding attempt {attempt + 1} failed: {e}, retrying..."
+                        )
                         time.sleep(0.5 * (attempt + 1))  # Exponential backoff
                         continue
                     else:
                         # Final failure - log error and decide whether to fail or continue
-                        logger.error(f"Failed to generate embedding after {max_retries + 1} attempts: {e}")
+                        logger.error(
+                            f"Failed to generate embedding after {max_retries + 1} attempts: {e}"
+                        )
                         # For now, continue without embedding but track this as degraded service
                         # TODO: Consider making this configurable or failing completely based on use case
 
         # Check for duplicates before storing (Phase 2 optimization)
         if embedding and self._check_for_duplicate(content, embedding, domain):
-            logger.info(f"Duplicate memory detected in domain {domain}, skipping storage")
+            logger.info(
+                f"Duplicate memory detected in domain {domain}, skipping storage"
+            )
             # Return a special ID to indicate duplicate was found but not stored
             return f"duplicate_skipped_{memory_id}"
 
@@ -526,7 +594,11 @@ class PostgresMemoryAPI:
         return memory_id
 
     def retrieve_memories(
-        self, query: str, limit: int = 5, domain: Optional[str] = None, time_filter: Optional[str] = None
+        self,
+        query: str,
+        limit: int = 5,
+        domain: Optional[str] = None,
+        time_filter: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """Retrieve memories using vector similarity search with text search fallback."""
         # Input validation
@@ -601,7 +673,10 @@ class PostgresMemoryAPI:
 
                             # Return vector results if we have any, regardless of similarity score
                             if results:
-                                return [self._flatten_memory_result(dict(row)) for row in results]
+                                return [
+                                    self._flatten_memory_result(dict(row))
+                                    for row in results
+                                ]
 
                             # If no records have embeddings, fall through to text search
             except Exception as e:
@@ -611,19 +686,19 @@ class PostgresMemoryAPI:
         if query.startswith("tags:"):
             tag_list = query[5:].split(",")  # Remove "tags:" prefix and split by comma
             tag_list = [tag.strip() for tag in tag_list if tag.strip()]
-            
+
             if tag_list:
                 with self._get_connection() as conn:
                     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                         table_name = sql.Identifier(f"{domain}_memories")
-                        
+
                         # Search for memories containing any of the specified tags
                         tag_conditions = []
                         tag_params = []
                         for tag in tag_list:
                             tag_conditions.append("metadata->>'tags' ILIKE %s")
                             tag_params.append(f"%{tag}%")
-                        
+
                         tag_query = sql.SQL(
                             """
                             SELECT id, content, metadata, 0.0 as score
@@ -632,13 +707,22 @@ class PostgresMemoryAPI:
                             ORDER BY updated_at DESC
                             LIMIT %s
                         """
-                        ).format(table_name, sql.SQL(" OR ").join([sql.SQL(condition) for condition in tag_conditions]), sql.SQL(time_filter_sql))
-                        
+                        ).format(
+                            table_name,
+                            sql.SQL(" OR ").join(
+                                [sql.SQL(condition) for condition in tag_conditions]
+                            ),
+                            sql.SQL(time_filter_sql),
+                        )
+
                         cursor.execute(tag_query, tag_params + [limit])
                         results = cursor.fetchall()
-                        
+
                         if results:
-                            return [self._flatten_memory_result(dict(row)) for row in results]
+                            return [
+                                self._flatten_memory_result(dict(row))
+                                for row in results
+                            ]
 
         # Fallback to text search
         with self._get_connection() as conn:
@@ -680,7 +764,11 @@ class PostgresMemoryAPI:
                     return [dict(row) for row in results]
 
                 # Last resort: return most recent memories if no search matches
-                where_clause = sql.SQL("WHERE 1=1") + sql.SQL(time_filter_sql) if time_filter_sql else sql.SQL("")
+                where_clause = (
+                    sql.SQL("WHERE 1=1") + sql.SQL(time_filter_sql)
+                    if time_filter_sql
+                    else sql.SQL("")
+                )
                 fallback_query = sql.SQL(
                     """
                     SELECT id, content, metadata, 0.0 as score
@@ -731,7 +819,9 @@ class PostgresMemoryAPI:
                         try:
                             embedding = self.ollama_embeddings.get_embedding(content)
                         except Exception as e:
-                            logger.debug(f"Failed to generate embedding for update: {e}")
+                            logger.debug(
+                                f"Failed to generate embedding for update: {e}"
+                            )
 
                     if embedding:
                         update_query = sql.SQL(
@@ -764,7 +854,9 @@ class PostgresMemoryAPI:
                         try:
                             embedding = self.ollama_embeddings.get_embedding(content)
                         except Exception as e:
-                            logger.debug(f"Failed to generate embedding for update: {e}")
+                            logger.debug(
+                                f"Failed to generate embedding for update: {e}"
+                            )
 
                     if embedding:
                         update_query = sql.SQL(
@@ -945,9 +1037,11 @@ class PostgresMemoryAPI:
         """Initialize the existing consolidation system."""
         # Skip if already initialized at class level
         if PostgresMemoryAPI._consolidation_initialized:
-            self.consolidation_config = getattr(PostgresMemoryAPI, '_shared_config', None)
-            self.clustering_engine = getattr(PostgresMemoryAPI, '_shared_engine', None)
-            self.consolidator = getattr(PostgresMemoryAPI, '_shared_consolidator', None)
+            self.consolidation_config = getattr(
+                PostgresMemoryAPI, "_shared_config", None
+            )
+            self.clustering_engine = getattr(PostgresMemoryAPI, "_shared_engine", None)
+            self.consolidator = getattr(PostgresMemoryAPI, "_shared_consolidator", None)
             return
 
         try:
@@ -1139,45 +1233,59 @@ class PostgresMemoryAPI:
 
                     if project_name:
                         # Look for recent sessions in same project (last 24 hours)
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             SELECT id, thread_id FROM sessions
                             WHERE project_name = %s
                             AND status = 'completed'
                             AND started_at > NOW() - INTERVAL '24 hours'
                             ORDER BY started_at DESC
                             LIMIT 1
-                        """, (project_name,))
+                        """,
+                            (project_name,),
+                        )
 
                         recent_session = cursor.fetchone()
                         if recent_session:
-                            parent_session_id = recent_session['id']
-                            thread_id = recent_session['thread_id']
+                            parent_session_id = recent_session["id"]
+                            thread_id = recent_session["thread_id"]
 
                     # Create new thread if no existing one found
                     if not thread_id:
                         import uuid
+
                         thread_id = f"thread-{uuid.uuid4().hex[:12]}"
 
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             INSERT INTO conversation_threads (id, project_name, metadata)
                             VALUES (%s, %s, %s)
-                        """, (thread_id, project_name, json.dumps(project_context or {})))
+                        """,
+                            (
+                                thread_id,
+                                project_name,
+                                json.dumps(project_context or {}),
+                            ),
+                        )
 
                     # Create session record
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO sessions (
                             id, project_name, working_directory, initial_topics,
                             thread_id, parent_session_id, metadata
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, (
-                        session_id,
-                        project_name,
-                        working_directory,
-                        initial_topics or [],
-                        thread_id,
-                        parent_session_id,
-                        json.dumps(project_context or {})
-                    ))
+                    """,
+                        (
+                            session_id,
+                            project_name,
+                            working_directory,
+                            initial_topics or [],
+                            thread_id,
+                            parent_session_id,
+                            json.dumps(project_context or {}),
+                        ),
+                    )
 
                     conn.commit()
 
@@ -1188,7 +1296,7 @@ class PostgresMemoryAPI:
                         "thread_id": thread_id,
                         "parent_session_id": parent_session_id,
                         "project_name": project_name,
-                        "is_continuation": parent_session_id is not None
+                        "is_continuation": parent_session_id is not None,
                     }
 
     @handle_errors()
@@ -1208,17 +1316,21 @@ class PostgresMemoryAPI:
             with self._get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                     # Check if session exists and is active
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT id, thread_id, project_name FROM sessions
                         WHERE id = %s AND status = 'active'
-                    """, (session_id,))
+                    """,
+                        (session_id,),
+                    )
 
                     session = cursor.fetchone()
                     if not session:
                         raise ValidationError(f"Active session {session_id} not found")
 
                     # Update session with completion data
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         UPDATE sessions
                         SET ended_at = NOW(),
                             status = 'completed',
@@ -1226,22 +1338,27 @@ class PostgresMemoryAPI:
                             conversation_summary = %s,
                             outcome = %s
                         WHERE id = %s
-                    """, (
-                        final_topics or [],
-                        conversation_summary,
-                        json.dumps(outcome or {}),
-                        session_id
-                    ))
+                    """,
+                        (
+                            final_topics or [],
+                            conversation_summary,
+                            json.dumps(outcome or {}),
+                            session_id,
+                        ),
+                    )
 
                     # Update conversation thread topics
-                    if final_topics and session['thread_id']:
-                        cursor.execute("""
+                    if final_topics and session["thread_id"]:
+                        cursor.execute(
+                            """
                             UPDATE conversation_threads
                             SET topics = array(
                                 SELECT DISTINCT unnest(topics || %s::text[])
                             )
                             WHERE id = %s
-                        """, (final_topics, session['thread_id']))
+                        """,
+                            (final_topics, session["thread_id"]),
+                        )
 
                     conn.commit()
 
@@ -1250,7 +1367,7 @@ class PostgresMemoryAPI:
                     return {
                         "session_id": session_id,
                         "status": "completed",
-                        "thread_id": session['thread_id']
+                        "thread_id": session["thread_id"],
                     }
 
     @handle_errors()
@@ -1269,10 +1386,13 @@ class PostgresMemoryAPI:
         relevance_score: Optional[float] = None,
     ) -> bool:
         """Track the relationship between a session and a memory."""
-        with error_context("track_session_memory", session_id=session_id, memory_id=memory_id):
+        with error_context(
+            "track_session_memory", session_id=session_id, memory_id=memory_id
+        ):
             with self._get_connection() as conn:
                 with conn.cursor() as cursor:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO session_memories (
                             session_id, memory_id, domain, created_during_session,
                             interaction_type, relevance_score
@@ -1280,10 +1400,16 @@ class PostgresMemoryAPI:
                         ON CONFLICT (session_id, memory_id, domain) DO UPDATE SET
                             interaction_type = EXCLUDED.interaction_type,
                             relevance_score = EXCLUDED.relevance_score
-                    """, (
-                        session_id, memory_id, domain, created_during_session,
-                        interaction_type, relevance_score
-                    ))
+                    """,
+                        (
+                            session_id,
+                            memory_id,
+                            domain,
+                            created_during_session,
+                            interaction_type,
+                            relevance_score,
+                        ),
+                    )
 
                     conn.commit()
                     return True
@@ -1312,7 +1438,8 @@ class PostgresMemoryAPI:
                         params.append(project_name)
 
                     # Get recent sessions
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         SELECT
                             id, project_name, started_at, ended_at,
                             initial_topics, final_topics, conversation_summary,
@@ -1321,21 +1448,24 @@ class PostgresMemoryAPI:
                         {where_clause}
                         ORDER BY ended_at DESC
                         LIMIT %s
-                    """, params + [limit])
+                    """,
+                        params + [limit],
+                    )
 
                     sessions = cursor.fetchall()
 
                     result = {
                         "recent_sessions": [dict(session) for session in sessions],
-                        "total_sessions": len(sessions)
+                        "total_sessions": len(sessions),
                     }
 
                     if sessions and include_memories:
                         # Get memories associated with recent sessions
-                        session_ids = [s['id'] for s in sessions]
-                        placeholders = ','.join(['%s'] * len(session_ids))
+                        session_ids = [s["id"] for s in sessions]
+                        placeholders = ",".join(["%s"] * len(session_ids))
 
-                        cursor.execute(f"""
+                        cursor.execute(
+                            f"""
                             SELECT
                                 sm.session_id, sm.memory_id, sm.domain,
                                 sm.created_during_session, sm.interaction_type,
@@ -1343,7 +1473,9 @@ class PostgresMemoryAPI:
                             FROM session_memories sm
                             WHERE sm.session_id IN ({placeholders})
                             ORDER BY sm.relevance_score DESC NULLS LAST
-                        """, session_ids)
+                        """,
+                            session_ids,
+                        )
 
                         memories = cursor.fetchall()
                         result["session_memories"] = [dict(mem) for mem in memories]
@@ -1370,7 +1502,8 @@ class PostgresMemoryAPI:
                         where_clause += " AND ct.project_name = %s"
                         params.append(project_name)
 
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         SELECT
                             ct.id, ct.project_name, ct.created_at, ct.last_updated,
                             ct.topics, ct.metadata,
@@ -1383,7 +1516,9 @@ class PostgresMemoryAPI:
                                  ct.topics, ct.metadata
                         ORDER BY ct.last_updated DESC
                         LIMIT %s
-                    """, params + [limit])
+                    """,
+                        params + [limit],
+                    )
 
                     threads = cursor.fetchall()
                     return [dict(thread) for thread in threads]
@@ -1414,13 +1549,18 @@ class PostgresMemoryAPI:
                         params.append(project_name)
 
                     if days_back:
-                        where_clauses.append("s.ended_at >= NOW() - make_interval(days => %s)")
+                        where_clauses.append(
+                            "s.ended_at >= NOW() - make_interval(days => %s)"
+                        )
                         params.append(days_back)
 
-                    where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+                    where_clause = (
+                        "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+                    )
 
                     # Query to find recurring topics
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         WITH topic_occurrences AS (
                             SELECT
                                 topic,
@@ -1446,7 +1586,9 @@ class PostgresMemoryAPI:
                         FROM topic_occurrences
                         ORDER BY session_count DESC, last_seen DESC
                         LIMIT %s
-                    """, params + [limit])
+                    """,
+                        params + [limit],
+                    )
 
                     topics = cursor.fetchall()
                     return [dict(topic) for topic in topics]
@@ -1466,7 +1608,10 @@ class PostgresMemoryAPI:
             with self._get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                     # Build where clause
-                    where_clauses = ["s1.status = 'completed'", "s2.status = 'completed'"]
+                    where_clauses = [
+                        "s1.status = 'completed'",
+                        "s2.status = 'completed'",
+                    ]
                     params = []
 
                     if project_name:
@@ -1475,13 +1620,16 @@ class PostgresMemoryAPI:
                         params.extend([project_name, project_name])
 
                     if days_back:
-                        where_clauses.append("s1.ended_at >= NOW() - make_interval(days => %s)")
+                        where_clauses.append(
+                            "s1.ended_at >= NOW() - make_interval(days => %s)"
+                        )
                         params.append(days_back)
 
                     where_clause = "WHERE " + " AND ".join(where_clauses)
 
                     # Analyze outcome type sequences
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         WITH session_pairs AS (
                             SELECT
                                 s1.id as session1_id,
@@ -1503,12 +1651,15 @@ class PostgresMemoryAPI:
                         WHERE outcome1 IS NOT NULL AND outcome2 IS NOT NULL
                         GROUP BY outcome1, outcome2
                         ORDER BY occurrences DESC
-                    """, params)
+                    """,
+                        params,
+                    )
 
                     patterns = cursor.fetchall()
 
                     # Also get common outcome types
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         SELECT
                             outcome->>'type' as outcome_type,
                             COUNT(*) as count
@@ -1519,7 +1670,9 @@ class PostgresMemoryAPI:
                         {' AND s.ended_at >= NOW() - make_interval(days => %s)' if days_back else ''}
                         GROUP BY outcome->>'type'
                         ORDER BY count DESC
-                    """, [p for p in [project_name, days_back] if p is not None])
+                    """,
+                        [p for p in [project_name, days_back] if p is not None],
+                    )
 
                     outcome_types = cursor.fetchall()
 
@@ -1556,12 +1709,15 @@ class PostgresMemoryAPI:
                         params.append(project_name)
 
                     if days_back:
-                        where_clauses.append("s.ended_at >= NOW() - make_interval(days => %s)")
+                        where_clauses.append(
+                            "s.ended_at >= NOW() - make_interval(days => %s)"
+                        )
                         params.append(days_back)
 
                     where_clause = "WHERE " + " AND ".join(where_clauses)
 
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         SELECT
                             s.id as session_id,
                             s.project_name,
@@ -1581,7 +1737,9 @@ class PostgresMemoryAPI:
                         {where_clause}
                         ORDER BY s.ended_at DESC
                         LIMIT %s
-                    """, params + [limit])
+                    """,
+                        params + [limit],
+                    )
 
                     tasks = cursor.fetchall()
                     return [dict(task) for task in tasks]
@@ -1597,50 +1755,63 @@ class PostgresMemoryAPI:
         session2_id: str,
     ) -> float:
         """Calculate relatedness score between two sessions (0.0 to 1.0)."""
-        with error_context("calculate_session_relatedness", session1_id=session1_id, session2_id=session2_id):
+        with error_context(
+            "calculate_session_relatedness",
+            session1_id=session1_id,
+            session2_id=session2_id,
+        ):
             with self._get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                     # Get both sessions
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT
                             id, project_name, thread_id, started_at, ended_at,
                             initial_topics, final_topics, outcome
                         FROM sessions
                         WHERE id IN (%s, %s)
-                    """, (session1_id, session2_id))
+                    """,
+                        (session1_id, session2_id),
+                    )
 
                     sessions = cursor.fetchall()
                     if len(sessions) != 2:
                         return 0.0
 
                     s1, s2 = sessions[0], sessions[1]
-                    if s1['id'] != session1_id:
+                    if s1["id"] != session1_id:
                         s1, s2 = s2, s1
 
                     score = 0.0
                     factors = 0
 
                     # Same thread = high relatedness
-                    if s1['thread_id'] and s1['thread_id'] == s2['thread_id']:
+                    if s1["thread_id"] and s1["thread_id"] == s2["thread_id"]:
                         score += 0.4
                         factors += 1
 
                     # Same project = moderate relatedness
-                    if s1['project_name'] == s2['project_name']:
+                    if s1["project_name"] == s2["project_name"]:
                         score += 0.2
                         factors += 1
 
                     # Topic overlap
-                    topics1 = set((s1['initial_topics'] or []) + (s1['final_topics'] or []))
-                    topics2 = set((s2['initial_topics'] or []) + (s2['final_topics'] or []))
+                    topics1 = set(
+                        (s1["initial_topics"] or []) + (s1["final_topics"] or [])
+                    )
+                    topics2 = set(
+                        (s2["initial_topics"] or []) + (s2["final_topics"] or [])
+                    )
                     if topics1 and topics2:
                         overlap = len(topics1 & topics2) / len(topics1 | topics2)
                         score += 0.3 * overlap
                         factors += 1
 
                     # Time proximity (sessions within 24 hours)
-                    if s1['ended_at'] and s2['started_at']:
-                        time_diff = abs((s2['started_at'] - s1['ended_at']).total_seconds())
+                    if s1["ended_at"] and s2["started_at"]:
+                        time_diff = abs(
+                            (s2["started_at"] - s1["ended_at"]).total_seconds()
+                        )
                         if time_diff < 86400:  # 24 hours
                             proximity_score = 1.0 - (time_diff / 86400)
                             score += 0.1 * proximity_score
@@ -1662,29 +1833,37 @@ class PostgresMemoryAPI:
             with self._get_connection() as conn:
                 with conn.cursor() as cursor:
                     # First, count sessions to be deleted
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT COUNT(*) FROM sessions
                         WHERE ended_at < NOW() - make_interval(days => %s)
                         OR (started_at < NOW() - make_interval(days => %s) AND status != 'active')
-                    """, (days, days * 2))
+                    """,
+                        (days, days * 2),
+                    )
 
                     count = cursor.fetchone()[0]
 
                     if count > 0:
                         # Delete expired sessions (cascade will handle session_memories)
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             DELETE FROM sessions
                             WHERE ended_at < NOW() - make_interval(days => %s)
                             OR (started_at < NOW() - make_interval(days => %s) AND status != 'active')
-                        """, (days, days * 2))
+                        """,
+                            (days, days * 2),
+                        )
 
                         # Clean up empty conversation threads
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             DELETE FROM conversation_threads ct
                             WHERE NOT EXISTS (
                                 SELECT 1 FROM sessions s WHERE s.thread_id = ct.id
                             )
-                        """)
+                        """
+                        )
 
                         conn.commit()
 
@@ -1709,7 +1888,8 @@ class PostgresMemoryAPI:
                     params = [project_name] if project_name else []
 
                     # Overall statistics
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         SELECT
                             COUNT(*) as total_sessions,
                             COUNT(DISTINCT project_name) as total_projects,
@@ -1721,13 +1901,16 @@ class PostgresMemoryAPI:
                             MIN(started_at) as first_session_start
                         FROM sessions
                         {where_clause}
-                    """, params)
+                    """,
+                        params,
+                    )
 
                     stats = dict(cursor.fetchone())
 
                     # Get top projects if not filtering by project
                     if not project_name:
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             SELECT
                                 project_name,
                                 COUNT(*) as session_count,
@@ -1737,11 +1920,13 @@ class PostgresMemoryAPI:
                             GROUP BY project_name
                             ORDER BY session_count DESC
                             LIMIT 5
-                        """)
-                        stats['top_projects'] = [dict(p) for p in cursor.fetchall()]
+                        """
+                        )
+                        stats["top_projects"] = [dict(p) for p in cursor.fetchall()]
 
                     # Memory associations
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         SELECT
                             COUNT(DISTINCT sm.memory_id) as unique_memories,
                             COUNT(*) as total_associations,
@@ -1749,7 +1934,9 @@ class PostgresMemoryAPI:
                         FROM session_memories sm
                         JOIN sessions s ON sm.session_id = s.id
                         {where_clause}
-                    """, params)
+                    """,
+                        params,
+                    )
 
                     memory_stats = cursor.fetchone()
                     if memory_stats:
@@ -1769,7 +1956,8 @@ class PostgresMemoryAPI:
         with error_context("archive_old_threads", days=days):
             with self._get_connection() as conn:
                 with conn.cursor() as cursor:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         UPDATE conversation_threads
                         SET status = 'archived'
                         WHERE status = 'active'
@@ -1781,7 +1969,9 @@ class PostgresMemoryAPI:
                             HAVING MAX(s.ended_at) < NOW() - make_interval(days => %s)
                                OR MAX(s.ended_at) IS NULL
                         )
-                    """, (days,))
+                    """,
+                        (days,),
+                    )
 
                     archived_count = cursor.rowcount
                     conn.commit()

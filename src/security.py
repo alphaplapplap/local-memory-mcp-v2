@@ -135,10 +135,10 @@ class SecurityValidator:
     @classmethod
     def validate_domain_name(cls, domain: str) -> bool:
         """Validate that a domain name is safe to use.
-        
+
         Args:
             domain: The domain name to validate
-            
+
         Returns:
             True if valid, False otherwise
         """
@@ -271,10 +271,10 @@ security_audit_logger = SecurityAuditLogger()
 
 def validate_domain_name(domain: str) -> bool:
     """Validate that a domain name is safe to use.
-    
+
     Args:
         domain: The domain name to validate
-        
+
     Returns:
         True if valid, False otherwise
     """
@@ -283,10 +283,10 @@ def validate_domain_name(domain: str) -> bool:
 
 def sanitize_content(content: str) -> str:
     """Sanitize content to remove potentially harmful elements.
-    
+
     Args:
         content: The content to sanitize
-        
+
     Returns:
         The sanitized content
     """

@@ -13,6 +13,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+
 class SessionSummarizer:
     """
     Intelligent session summarization for maximum context efficiency.
@@ -45,7 +46,7 @@ class SessionSummarizer:
         memories: List[Dict[str, Any]],
         conversation_summary: Optional[str] = None,
         initial_topics: List[str] = None,
-        final_topics: List[str] = None
+        final_topics: List[str] = None,
     ) -> Dict[str, Any]:
         """
         Generate a compact session summary optimized for token efficiency.
@@ -73,7 +74,7 @@ class SessionSummarizer:
             "session_id": session_id,
             "timestamp": datetime.now().isoformat(),
             "summary_type": "compact",
-            "content": {}
+            "content": {},
         }
 
         # Add decisions (highest priority)
@@ -109,10 +110,12 @@ class SessionSummarizer:
         summary["metadata"] = {
             "memory_count": len(memories),
             "token_estimate": len(json.dumps(summary)) // 4,
-            "compression_ratio": self._calculate_compression_ratio(memories, summary)
+            "compression_ratio": self._calculate_compression_ratio(memories, summary),
         }
 
-        logger.info(f"Generated compact summary: {summary['metadata']['token_estimate']} tokens")
+        logger.info(
+            f"Generated compact summary: {summary['metadata']['token_estimate']} tokens"
+        )
         return summary
 
     def _extract_decisions(self, memories: List[Dict[str, Any]]) -> List[str]:
@@ -120,25 +123,32 @@ class SessionSummarizer:
         decisions = []
 
         decision_keywords = [
-            'decided', 'decision', 'chose', 'selected', 'opted',
-            'will use', 'going with', 'approach:', 'strategy:'
+            "decided",
+            "decision",
+            "chose",
+            "selected",
+            "opted",
+            "will use",
+            "going with",
+            "approach:",
+            "strategy:",
         ]
 
         for memory in memories:
-            content = memory.get('content', '').lower()
+            content = memory.get("content", "").lower()
             for keyword in decision_keywords:
                 if keyword in content:
                     # Extract concise decision statement
-                    decision = self._extract_concise_statement(memory['content'], keyword)
+                    decision = self._extract_concise_statement(
+                        memory["content"], keyword
+                    )
                     if decision and len(decision) < 100:
                         decisions.append(decision)
                     break
 
         # Sort by importance if available
         decisions = sorted(
-            decisions,
-            key=lambda d: self._score_importance(d),
-            reverse=True
+            decisions, key=lambda d: self._score_importance(d), reverse=True
         )
 
         return decisions
@@ -148,15 +158,23 @@ class SessionSummarizer:
         solutions = []
 
         solution_keywords = [
-            'fixed', 'solved', 'solution:', 'resolved', 'workaround',
-            'bug fix', 'error fix', 'issue resolved'
+            "fixed",
+            "solved",
+            "solution:",
+            "resolved",
+            "workaround",
+            "bug fix",
+            "error fix",
+            "issue resolved",
         ]
 
         for memory in memories:
-            content = memory.get('content', '').lower()
+            content = memory.get("content", "").lower()
             for keyword in solution_keywords:
                 if keyword in content:
-                    solution = self._extract_concise_statement(memory['content'], keyword)
+                    solution = self._extract_concise_statement(
+                        memory["content"], keyword
+                    )
                     if solution and len(solution) < 100:
                         solutions.append(solution)
                     break
@@ -168,15 +186,24 @@ class SessionSummarizer:
         outcomes = []
 
         outcome_keywords = [
-            'completed', 'achieved', 'implemented', 'created', 'built',
-            'deployed', 'released', 'finished', 'done'
+            "completed",
+            "achieved",
+            "implemented",
+            "created",
+            "built",
+            "deployed",
+            "released",
+            "finished",
+            "done",
         ]
 
         for memory in memories:
-            content = memory.get('content', '').lower()
+            content = memory.get("content", "").lower()
             for keyword in outcome_keywords:
                 if keyword in content:
-                    outcome = self._extract_concise_statement(memory['content'], keyword)
+                    outcome = self._extract_concise_statement(
+                        memory["content"], keyword
+                    )
                     if outcome and len(outcome) < 100:
                         outcomes.append(outcome)
                     break
@@ -188,15 +215,21 @@ class SessionSummarizer:
         technical = []
 
         technical_patterns = [
-            'config:', 'configuration:', 'api:', 'endpoint:',
-            'function:', 'class:', 'module:', 'package:'
+            "config:",
+            "configuration:",
+            "api:",
+            "endpoint:",
+            "function:",
+            "class:",
+            "module:",
+            "package:",
         ]
 
         for memory in memories:
-            content = memory.get('content', '').lower()
+            content = memory.get("content", "").lower()
             for pattern in technical_patterns:
                 if pattern in content:
-                    detail = self._extract_concise_statement(memory['content'], pattern)
+                    detail = self._extract_concise_statement(memory["content"], pattern)
                     if detail and len(detail) < 80:
                         technical.append(detail)
                     break
@@ -222,19 +255,33 @@ class SessionSummarizer:
                 return ""
 
             # Extract sentence containing keyword
-            start = max(0, content.rfind('.', 0, pos) + 1)
-            end = content.find('.', pos)
+            start = max(0, content.rfind(".", 0, pos) + 1)
+            end = content.find(".", pos)
             if end == -1:
                 end = min(len(content), pos + 100)
 
             statement = content[start:end].strip()
 
             # Remove unnecessary words for compactness
-            noise_words = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for']
+            noise_words = [
+                "the",
+                "a",
+                "an",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+            ]
             words = statement.split()
-            filtered = [w for w in words if w.lower() not in noise_words or words.index(w) < 3]
+            filtered = [
+                w for w in words if w.lower() not in noise_words or words.index(w) < 3
+            ]
 
-            return ' '.join(filtered)[:100]
+            return " ".join(filtered)[:100]
 
         except Exception as e:
             logger.debug(f"Failed to extract statement: {e}")
@@ -246,8 +293,14 @@ class SessionSummarizer:
 
         # Boost for specific important terms
         important_terms = [
-            'critical', 'breaking', 'security', 'performance',
-            'authentication', 'database', 'api', 'production'
+            "critical",
+            "breaking",
+            "security",
+            "performance",
+            "authentication",
+            "database",
+            "api",
+            "production",
         ]
 
         statement_lower = statement.lower()
@@ -260,15 +313,21 @@ class SessionSummarizer:
     def _trim_summary(self, summary: Dict[str, Any]) -> Dict[str, Any]:
         """Trim summary to fit token limit."""
         # Priority order for trimming
-        trim_order = ['technical', 'topic_progression', 'outcomes', 'solutions', 'decisions']
+        trim_order = [
+            "technical",
+            "topic_progression",
+            "outcomes",
+            "solutions",
+            "decisions",
+        ]
 
-        content = summary.get('content', {})
+        content = summary.get("content", {})
 
         for key in trim_order:
             if key in content:
                 items = content[key]
                 # Reduce by half
-                content[key] = items[:len(items)//2]
+                content[key] = items[: len(items) // 2]
 
                 # Check if we're under limit now
                 if len(json.dumps(summary)) <= self.max_chars:
@@ -277,12 +336,10 @@ class SessionSummarizer:
         return summary
 
     def _calculate_compression_ratio(
-        self,
-        memories: List[Dict[str, Any]],
-        summary: Dict[str, Any]
+        self, memories: List[Dict[str, Any]], summary: Dict[str, Any]
     ) -> float:
         """Calculate compression ratio."""
-        original_size = sum(len(m.get('content', '')) for m in memories)
+        original_size = sum(len(m.get("content", "")) for m in memories)
         summary_size = len(json.dumps(summary))
 
         if original_size == 0:
@@ -291,9 +348,7 @@ class SessionSummarizer:
         return round(original_size / summary_size, 2)
 
     def merge_summaries(
-        self,
-        summaries: List[Dict[str, Any]],
-        max_tokens: Optional[int] = None
+        self, summaries: List[Dict[str, Any]], max_tokens: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Merge multiple session summaries into one.
@@ -313,23 +368,19 @@ class SessionSummarizer:
         merged = {
             "summary_type": "merged",
             "session_count": len(summaries),
-            "content": {
-                "decisions": [],
-                "solutions": [],
-                "outcomes": []
-            }
+            "content": {"decisions": [], "solutions": [], "outcomes": []},
         }
 
         # Collect all items
         for summary in summaries:
-            content = summary.get('content', {})
-            for key in ['decisions', 'solutions', 'outcomes']:
+            content = summary.get("content", {})
+            for key in ["decisions", "solutions", "outcomes"]:
                 if key in content:
-                    merged['content'][key].extend(content[key])
+                    merged["content"][key].extend(content[key])
 
         # Deduplicate and limit
-        for key in merged['content']:
-            items = merged['content'][key]
+        for key in merged["content"]:
+            items = merged["content"][key]
             # Remove duplicates while preserving order
             seen = set()
             unique = []
@@ -337,6 +388,6 @@ class SessionSummarizer:
                 if item not in seen:
                     seen.add(item)
                     unique.append(item)
-            merged['content'][key] = unique[:3]  # Keep top 3 of each type
+            merged["content"][key] = unique[:3]  # Keep top 3 of each type
 
         return merged

@@ -29,7 +29,6 @@ Flask==3.1.2
 flask-cors==6.0.1
 Flask-Login==0.6.3
 frozenlist==1.7.0
-future==0.18.3
 gevent==25.5.1
 geventhttpclient==2.3.4
 gitdb==4.0.12

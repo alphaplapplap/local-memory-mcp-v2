@@ -16,9 +16,11 @@ import hashlib
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class Summary:
     """Base class for all summary types"""
+
     summary_id: str
     level: str  # "memory", "cluster", "domain"
     content: str
@@ -33,29 +35,36 @@ class Summary:
         self.access_count += 1
         self.last_accessed = datetime.now()
 
+
 @dataclass
 class MemorySummary(Summary):
     """Individual memory summary"""
+
     memory_id: str = ""
     original_length: int = 0
     compression_ratio: float = 0.0
 
+
 @dataclass
 class ClusterSummary(Summary):
     """Cluster-level summary"""
+
     cluster_id: str = ""
     memory_count: int = 0
     topic: str = ""
     key_points: List[str] = field(default_factory=list)
 
+
 @dataclass
 class DomainSummary(Summary):
     """Domain-level summary"""
+
     domain: str = ""
     cluster_count: int = 0
     total_memories: int = 0
     themes: List[str] = field(default_factory=list)
     overview: str = ""
+
 
 class ProgressiveSummarizer:
     """
@@ -65,9 +74,9 @@ class ProgressiveSummarizer:
 
     # Token budgets for each level
     TOKEN_BUDGETS = {
-        "memory": 50,      # Ultra-compressed individual memories
-        "cluster": 200,    # Cluster summaries
-        "domain": 500      # Domain overviews
+        "memory": 50,  # Ultra-compressed individual memories
+        "cluster": 200,  # Cluster summaries
+        "domain": 500,  # Domain overviews
     }
 
     def __init__(self, max_context_tokens: int = 2000):
@@ -87,9 +96,7 @@ class ProgressiveSummarizer:
         self.cache_ttl = timedelta(hours=1)
 
     def summarize_memory(
-        self,
-        memory: Dict[str, Any],
-        force_regenerate: bool = False
+        self, memory: Dict[str, Any], force_regenerate: bool = False
     ) -> MemorySummary:
         """
         Create ultra-compressed summary of a single memory.
@@ -101,7 +108,7 @@ class ProgressiveSummarizer:
         Returns:
             Compressed memory summary
         """
-        memory_id = memory['id']
+        memory_id = memory["id"]
 
         if not force_regenerate and memory_id in self.memory_summaries:
             summary = self.memory_summaries[memory_id]
@@ -109,22 +116,19 @@ class ProgressiveSummarizer:
             return summary
 
         # Extract key information
-        content = memory.get('content', '')
-        metadata = memory.get('metadata', {})
+        content = memory.get("content", "")
+        metadata = memory.get("metadata", {})
 
         # Create compressed summary
         compressed = self._compress_content(
-            content,
-            max_tokens=self.TOKEN_BUDGETS['memory'],
-            preserve_technical=True
+            content, max_tokens=self.TOKEN_BUDGETS["memory"], preserve_technical=True
         )
 
         # Calculate metrics
         original_length = len(content)
         compressed_length = len(compressed)
         compression_ratio = (
-            original_length / compressed_length
-            if compressed_length > 0 else 1.0
+            original_length / compressed_length if compressed_length > 0 else 1.0
         )
 
         # Create summary object
@@ -137,10 +141,10 @@ class ProgressiveSummarizer:
             original_length=original_length,
             compression_ratio=compression_ratio,
             metadata={
-                'tags': metadata.get('tags', []),
-                'importance': metadata.get('importance', 0.5),
-                'source': metadata.get('source', 'unknown')
-            }
+                "tags": metadata.get("tags", []),
+                "importance": metadata.get("importance", 0.5),
+                "source": metadata.get("source", "unknown"),
+            },
         )
 
         self.memory_summaries[memory_id] = summary
@@ -150,7 +154,7 @@ class ProgressiveSummarizer:
         self,
         cluster: Any,  # MemoryCluster from semantic_clustering
         memories: List[Dict[str, Any]],
-        force_regenerate: bool = False
+        force_regenerate: bool = False,
     ) -> ClusterSummary:
         """
         Create cluster-level summary.
@@ -178,7 +182,7 @@ class ProgressiveSummarizer:
             topic=cluster.topic,
             key_points=key_points,
             memory_count=len(memories),
-            max_tokens=self.TOKEN_BUDGETS['cluster']
+            max_tokens=self.TOKEN_BUDGETS["cluster"],
         )
 
         # Create summary object
@@ -192,10 +196,10 @@ class ProgressiveSummarizer:
             topic=cluster.topic,
             key_points=key_points[:5],  # Top 5 key points
             metadata={
-                'keywords': cluster.keywords,
-                'coherence': cluster.coherence_score,
-                'importance': cluster.average_importance
-            }
+                "keywords": cluster.keywords,
+                "coherence": cluster.coherence_score,
+                "importance": cluster.average_importance,
+            },
         )
 
         self.cluster_summaries[cluster_id] = summary
@@ -206,7 +210,7 @@ class ProgressiveSummarizer:
         domain: str,
         clusters: List[Any],  # List of MemoryCluster objects
         total_memories: int,
-        force_regenerate: bool = False
+        force_regenerate: bool = False,
     ) -> DomainSummary:
         """
         Create domain-level summary.
@@ -234,7 +238,7 @@ class ProgressiveSummarizer:
             themes=themes,
             cluster_count=len(clusters),
             memory_count=total_memories,
-            max_tokens=self.TOKEN_BUDGETS['domain']
+            max_tokens=self.TOKEN_BUDGETS["domain"],
         )
 
         # Create summary object
@@ -249,9 +253,9 @@ class ProgressiveSummarizer:
             themes=themes[:10],  # Top 10 themes
             overview=overview,
             metadata={
-                'last_update': datetime.now().isoformat(),
-                'coverage': len(clusters) / max(1, total_memories) * 100
-            }
+                "last_update": datetime.now().isoformat(),
+                "coverage": len(clusters) / max(1, total_memories) * 100,
+            },
         )
 
         self.domain_summaries[domain] = summary
@@ -262,7 +266,7 @@ class ProgressiveSummarizer:
         query: str,
         domain: str,
         relevant_clusters: List[str],
-        token_budget: int = 1000
+        token_budget: int = 1000,
     ) -> Tuple[str, Dict[str, Any]]:
         """
         Get progressively detailed context based on token budget.
@@ -279,10 +283,10 @@ class ProgressiveSummarizer:
         context_parts = []
         used_tokens = 0
         metadata = {
-            'levels_included': [],
-            'clusters_expanded': 0,
-            'memories_included': 0,
-            'compression_ratio': 0
+            "levels_included": [],
+            "clusters_expanded": 0,
+            "memories_included": 0,
+            "compression_ratio": 0,
         }
 
         # Level 1: Domain overview (if budget allows)
@@ -291,7 +295,7 @@ class ProgressiveSummarizer:
             if used_tokens + domain_summary.token_count <= token_budget:
                 context_parts.append(f"## Domain Overview\n{domain_summary.overview}")
                 used_tokens += domain_summary.token_count
-                metadata['levels_included'].append('domain')
+                metadata["levels_included"].append("domain")
 
         # Level 2: Cluster summaries
         for cluster_id in relevant_clusters:
@@ -305,11 +309,10 @@ class ProgressiveSummarizer:
                 break
 
             context_parts.append(
-                f"\n### Topic: {cluster_summary.topic}\n"
-                f"{cluster_summary.content}"
+                f"\n### Topic: {cluster_summary.topic}\n" f"{cluster_summary.content}"
             )
             used_tokens += cluster_summary.token_count
-            metadata['clusters_expanded'] += 1
+            metadata["clusters_expanded"] += 1
 
         # Level 3: Individual memory summaries (if budget remains)
         remaining_budget = token_budget - used_tokens
@@ -330,28 +333,27 @@ class ProgressiveSummarizer:
                 if used_tokens + estimated_tokens <= token_budget:
                     context_parts.append(memory_summary_text)
                     used_tokens += estimated_tokens
-                    metadata['memories_included'] += 1
+                    metadata["memories_included"] += 1
 
         # Calculate compression ratio
-        if metadata['memories_included'] > 0:
+        if metadata["memories_included"] > 0:
             # Estimate original size
-            original_estimate = metadata['memories_included'] * 500  # Assume 500 tokens per original
-            metadata['compression_ratio'] = original_estimate / used_tokens
+            original_estimate = (
+                metadata["memories_included"] * 500
+            )  # Assume 500 tokens per original
+            metadata["compression_ratio"] = original_estimate / used_tokens
 
         # Combine context
         context = "\n".join(context_parts)
 
         # Update metadata
-        metadata['total_tokens'] = used_tokens
-        metadata['budget_utilization'] = used_tokens / token_budget * 100
+        metadata["total_tokens"] = used_tokens
+        metadata["budget_utilization"] = used_tokens / token_budget * 100
 
         return context, metadata
 
     def _compress_content(
-        self,
-        content: str,
-        max_tokens: int,
-        preserve_technical: bool = True
+        self, content: str, max_tokens: int, preserve_technical: bool = True
     ) -> str:
         """
         Compress content to fit token budget.
@@ -368,17 +370,30 @@ class ProgressiveSummarizer:
         # In production, use LLM for intelligent compression
 
         # Extract key sentences
-        sentences = content.split('. ')
+        sentences = content.split(". ")
 
         if preserve_technical:
             # Prioritize sentences with technical indicators
-            technical_indicators = ['error', 'fix', 'bug', 'implement', 'function',
-                                   'class', 'method', 'api', 'database', 'optimize']
+            technical_indicators = [
+                "error",
+                "fix",
+                "bug",
+                "implement",
+                "function",
+                "class",
+                "method",
+                "api",
+                "database",
+                "optimize",
+            ]
 
             scored_sentences = []
             for sentence in sentences:
-                score = sum(1 for indicator in technical_indicators
-                          if indicator.lower() in sentence.lower())
+                score = sum(
+                    1
+                    for indicator in technical_indicators
+                    if indicator.lower() in sentence.lower()
+                )
                 scored_sentences.append((score, sentence))
 
             # Sort by technical relevance
@@ -397,7 +412,7 @@ class ProgressiveSummarizer:
             else:
                 break
 
-        result = '. '.join(compressed)
+        result = ". ".join(compressed)
 
         # If still too long, truncate
         if self._estimate_tokens(result) > max_tokens:
@@ -412,13 +427,13 @@ class ProgressiveSummarizer:
         key_points = []
 
         for memory in memories:
-            content = memory.get('content', '')
-            importance = memory.get('metadata', {}).get('importance', 0.5)
+            content = memory.get("content", "")
+            importance = memory.get("metadata", {}).get("importance", 0.5)
 
             # Extract first sentence or key phrase
             if importance > 0.7:
                 # High importance - take more content
-                point = content.split('. ')[0]
+                point = content.split(". ")[0]
             else:
                 # Lower importance - just key phrase
                 point = content[:100]
@@ -454,10 +469,10 @@ class ProgressiveSummarizer:
 
         for cluster in clusters:
             # Use cluster topics and keywords
-            if hasattr(cluster, 'topic'):
+            if hasattr(cluster, "topic"):
                 theme_counts[cluster.topic] += cluster.size
 
-            if hasattr(cluster, 'keywords'):
+            if hasattr(cluster, "keywords"):
                 for keyword in cluster.keywords:
                     theme_counts[keyword] += 1
 
@@ -467,11 +482,7 @@ class ProgressiveSummarizer:
         return [theme for theme, _ in sorted_themes]
 
     def _generate_cluster_summary(
-        self,
-        topic: str,
-        key_points: List[str],
-        memory_count: int,
-        max_tokens: int
+        self, topic: str, key_points: List[str], memory_count: int, max_tokens: int
     ) -> str:
         """Generate cluster-level summary"""
         summary_parts = [
@@ -498,7 +509,7 @@ class ProgressiveSummarizer:
         themes: List[str],
         cluster_count: int,
         memory_count: int,
-        max_tokens: int
+        max_tokens: int,
     ) -> str:
         """Generate domain-level overview"""
         overview_parts = [
@@ -517,7 +528,9 @@ class ProgressiveSummarizer:
 
         # Ensure within token limit
         if self._estimate_tokens(overview) > max_tokens:
-            overview = self._compress_content(overview, max_tokens, preserve_technical=False)
+            overview = self._compress_content(
+                overview, max_tokens, preserve_technical=False
+            )
 
         return overview
 
@@ -527,10 +540,7 @@ class ProgressiveSummarizer:
         return len(text) // 4
 
     def get_optimal_detail_level(
-        self,
-        query: str,
-        available_tokens: int,
-        clusters: List[str]
+        self, query: str, available_tokens: int, clusters: List[str]
     ) -> str:
         """
         Determine optimal detail level for query.
@@ -554,11 +564,7 @@ class ProgressiveSummarizer:
         # Otherwise, can afford memory level detail
         return "memory"
 
-    def cache_summary_combination(
-        self,
-        cache_key: str,
-        summary: str
-    ):
+    def cache_summary_combination(self, cache_key: str, summary: str):
         """Cache a summary combination"""
         self.summary_cache[cache_key] = (summary, datetime.now())
 
@@ -569,7 +575,8 @@ class ProgressiveSummarizer:
         """Remove expired cache entries"""
         current_time = datetime.now()
         expired_keys = [
-            key for key, (_, timestamp) in self.summary_cache.items()
+            key
+            for key, (_, timestamp) in self.summary_cache.items()
             if current_time - timestamp > self.cache_ttl
         ]
 
@@ -579,12 +586,12 @@ class ProgressiveSummarizer:
     def get_summary_stats(self) -> Dict[str, Any]:
         """Get statistics about summaries"""
         return {
-            'memory_summaries': len(self.memory_summaries),
-            'cluster_summaries': len(self.cluster_summaries),
-            'domain_summaries': len(self.domain_summaries),
-            'cache_entries': len(self.summary_cache),
-            'average_compression': self._calculate_average_compression(),
-            'total_token_savings': self._calculate_token_savings()
+            "memory_summaries": len(self.memory_summaries),
+            "cluster_summaries": len(self.cluster_summaries),
+            "domain_summaries": len(self.domain_summaries),
+            "cache_entries": len(self.summary_cache),
+            "average_compression": self._calculate_average_compression(),
+            "total_token_savings": self._calculate_token_savings(),
         }
 
     def _calculate_average_compression(self) -> float:
@@ -592,7 +599,7 @@ class ProgressiveSummarizer:
         ratios = [
             s.compression_ratio
             for s in self.memory_summaries.values()
-            if hasattr(s, 'compression_ratio') and s.compression_ratio > 0
+            if hasattr(s, "compression_ratio") and s.compression_ratio > 0
         ]
 
         return sum(ratios) / len(ratios) if ratios else 0.0
@@ -602,7 +609,7 @@ class ProgressiveSummarizer:
         savings = 0
 
         for summary in self.memory_summaries.values():
-            if hasattr(summary, 'original_length'):
+            if hasattr(summary, "original_length"):
                 original_tokens = summary.original_length // 4
                 savings += original_tokens - summary.token_count
 

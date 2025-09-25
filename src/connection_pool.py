@@ -108,7 +108,9 @@ class DatabaseConnectionPool:
                 try:
                     connection.rollback()
                 except Exception as rollback_error:
-                    logger.warning(f"Failed to rollback connection (connection may be closed): {rollback_error}")
+                    logger.warning(
+                        f"Failed to rollback connection (connection may be closed): {rollback_error}"
+                    )
             logger.error(f"Database connection error: {e}")
             raise
         finally:
@@ -116,7 +118,9 @@ class DatabaseConnectionPool:
                 try:
                     self._pool.putconn(connection)
                 except Exception as putconn_error:
-                    logger.warning(f"Failed to return connection to pool (connection may be invalid): {putconn_error}")
+                    logger.warning(
+                        f"Failed to return connection to pool (connection may be invalid): {putconn_error}"
+                    )
                     # Pool will handle cleanup of invalid connections
 
     @contextmanager
@@ -286,33 +290,33 @@ def cleanup_connections():
 
 def initialize_standalone_pool():
     """Initialize connection pool for standalone scripts.
-    
+
     This is a convenience function for scripts that need to initialize
     the connection pool without running the full bridge server.
-    
+
     Returns:
         The initialized connection pool or None if initialization failed
     """
     import os
-    
+
     try:
         connection_params = {
-            'host': os.getenv('POSTGRES_HOST', 'localhost'),
-            'port': int(os.getenv('POSTGRES_PORT', 5432)),
-            'database': os.getenv('POSTGRES_DB', 'postgres'),
-            'user': os.getenv('POSTGRES_USER', 'postgres'),
-            'password': os.getenv('POSTGRES_PASSWORD', 'postgres')
+            "host": os.getenv("POSTGRES_HOST", "localhost"),
+            "port": int(os.getenv("POSTGRES_PORT", 5432)),
+            "database": os.getenv("POSTGRES_DB", "postgres"),
+            "user": os.getenv("POSTGRES_USER", "postgres"),
+            "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
         }
-        
+
         pool = initialize_connection_pool(
             connection_params,
-            min_connections=int(os.getenv('POOL_MIN_CONNECTIONS', 1)),
-            max_connections=int(os.getenv('POOL_MAX_CONNECTIONS', 5))
+            min_connections=int(os.getenv("POOL_MIN_CONNECTIONS", 1)),
+            max_connections=int(os.getenv("POOL_MAX_CONNECTIONS", 5)),
         )
-        
+
         logger.info("Standalone connection pool initialized successfully")
         return pool
-        
+
     except Exception as e:
         logger.error(f"Failed to initialize standalone connection pool: {e}")
         return None

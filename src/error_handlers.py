@@ -461,65 +461,69 @@ class ErrorRecovery:
 
 def log_api_error(error, context="", request_id=None):
     """Log API error with context information.
-    
+
     Args:
         error: The error that occurred
         context: Additional context about the error
         request_id: Optional request ID for tracking
     """
     import logging
-    
+
     # Don't log test errors
     if context and "test" in context.lower():
         return
-    
+
     # Ensure basic logging is configured
     if not logging.getLogger().handlers:
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        )
+
     logger = logging.getLogger(__name__)
-    
+
     error_msg = f"API Error: {str(error)}"
     if context:
         error_msg += f" | Context: {context}"
     if request_id:
         error_msg += f" | Request ID: {request_id}"
-    
+
     logger.error(error_msg)
 
 
 def handle_database_error(error, operation="unknown"):
     """Handle database errors with appropriate logging and response.
-    
+
     Args:
         error: The database error that occurred
         operation: The database operation that failed
-        
+
     Returns:
         Dict with error information
     """
     import logging
-    
+
     # Don't log test errors
     if operation and "test" in operation.lower():
         return {
             "success": False,
             "error": f"Database operation '{operation}' failed",
             "details": str(error),
-            "type": "database_error"
+            "type": "database_error",
         }
-    
+
     # Ensure basic logging is configured
     if not logging.getLogger().handlers:
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        )
+
     logger = logging.getLogger(__name__)
-    
+
     logger.error(f"Database error during {operation}: {str(error)}")
-    
+
     return {
         "success": False,
         "error": f"Database operation '{operation}' failed",
         "details": str(error),
-        "type": "database_error"
+        "type": "database_error",
     }

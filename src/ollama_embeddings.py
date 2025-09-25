@@ -74,26 +74,25 @@ class OllamaEmbeddings:
 
     def check_health(self) -> bool:
         """Check if the Ollama service is healthy and responsive.
-        
+
         Returns:
             True if service is healthy, False otherwise
         """
         try:
             # First check if the API is reachable
-            test_response = self.session.get(
-                f"{self.base_url}/api/tags",
-                timeout=5
-            )
+            test_response = self.session.get(f"{self.base_url}/api/tags", timeout=5)
             test_response.raise_for_status()
-            
+
             # Check if our model is available
             response_data = test_response.json()
-            models = [model.get('name', '') for model in response_data.get('models', [])]
-            
+            models = [
+                model.get("name", "") for model in response_data.get("models", [])
+            ]
+
             # If our model is not available, still consider it healthy if API works
             if self.model_name not in models:
                 return True  # API is working, model might need to be pulled
-            
+
             # Try a simple embedding with direct API call (avoid fallback logic)
             embedding_response = self.session.post(
                 self.api_url,
@@ -106,15 +105,15 @@ class OllamaEmbeddings:
             )
             embedding_response.raise_for_status()
             embedding_data = embedding_response.json()
-            
+
             # Check if we got a real embedding (not empty or all zeros)
             embedding = embedding_data.get("embedding", [])
             if not embedding or len(embedding) == 0:
                 return False
-                
+
             # Check if it's not all zeros (which would indicate a fallback)
             return any(val != 0.0 for val in embedding[:10])  # Check first 10 values
-            
+
         except Exception:
             return False
 

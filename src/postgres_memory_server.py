@@ -17,16 +17,13 @@ if len(sys.argv) > 1 and sys.argv[1] == "mcp":
     os.environ["SERVER_MODE"] = "mcp"
     # Initial config - will be overridden after imports
     logging.basicConfig(
-        level=logging.WARNING,
-        format='%(message)s',
-        stream=sys.stderr,
-        force=True
+        level=logging.WARNING, format="%(message)s", stream=sys.stderr, force=True
     )
 else:
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%H:%M:%S'
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%H:%M:%S",
     )
 from decimal import Decimal
 from datetime import datetime
@@ -45,11 +42,16 @@ import uvicorn
 from ollama_embeddings import OllamaEmbeddings
 from postgres_memory_api import PostgresMemoryAPI, get_project_domain
 from adaptive_lru_cache import memory_cache
-from connection_pool import initialize_connection_pool, get_connection_pool, get_health_checker
+from connection_pool import (
+    initialize_connection_pool,
+    get_connection_pool,
+    get_health_checker,
+)
 
 # Import optimization manager
 try:
     from optimization.optimization_manager import OptimizationManager
+
     optimization_available = True
 except ImportError:
     logger.warning("OptimizationManager not available, running without optimizations")
@@ -64,7 +66,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "mcp":
     root_logger = logging.getLogger()
     root_logger.handlers = []
     stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setFormatter(logging.Formatter('%(message)s'))
+    stderr_handler.setFormatter(logging.Formatter("%(message)s"))
     root_logger.addHandler(stderr_handler)
     root_logger.setLevel(logging.WARNING)
 
@@ -111,16 +113,18 @@ memory_api = PostgresMemoryAPI(ollama_embeddings=ollama_embeddings)
 # Initialize optimization manager if available
 if optimization_available:
     try:
-        optimization_mgr = OptimizationManager({
-            'similarity_threshold': 0.95,
-            'consolidation_threshold': 100,
-            'archive_days': 30,
-            'session_max_tokens': 500,
-            'min_cluster_size': 3,
-            'max_cluster_size': 20,
-            'cluster_similarity': 0.7,
-            'max_context_tokens': 2000
-        })
+        optimization_mgr = OptimizationManager(
+            {
+                "similarity_threshold": 0.95,
+                "consolidation_threshold": 100,
+                "archive_days": 30,
+                "session_max_tokens": 500,
+                "min_cluster_size": 3,
+                "max_cluster_size": 20,
+                "cluster_similarity": 0.7,
+                "max_context_tokens": 2000,
+            }
+        )
         logger.info("OptimizationManager initialized successfully")
     except Exception as e:
         logger.warning(f"Failed to initialize OptimizationManager: {e}")
@@ -130,6 +134,7 @@ else:
 
 # === HTTP SERVER SETUP ===
 
+
 # Custom JSON encoder for Decimal and other types
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -138,6 +143,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         if isinstance(obj, datetime):
             return obj.isoformat()
         return super().default(obj)
+
 
 # Performance metrics (same as bridge_server.py)
 performance_metrics = {
@@ -149,8 +155,9 @@ performance_metrics = {
     "cache_hits": 0,
     "cache_misses": 0,
     "slow_queries": 0,  # Queries > 1s
-    "startup_time": datetime.now()
+    "startup_time": datetime.now(),
 }
+
 
 # Request/Response models
 class MemoryStoreRequest(BaseModel):
@@ -159,15 +166,18 @@ class MemoryStoreRequest(BaseModel):
     domain: Optional[str] = None  # Auto-detection enabled
     tags: Optional[List[str]] = []
 
+
 class MCPRequest(BaseModel):
     jsonrpc: str = "2.0"
     id: int = 1
     method: str
     params: Dict[str, Any]
 
+
 class ConsolidationRequest(BaseModel):
     domain: str = "default"
     strategy: str = "clustering"
+
 
 class MemorySearchRequest(BaseModel):
     query: str = ""
@@ -175,17 +185,20 @@ class MemorySearchRequest(BaseModel):
     limit: Optional[int] = 10
     time_filter: Optional[str] = None
 
+
 class SessionStartRequest(BaseModel):
     session_id: str
     project_name: Optional[str] = None
     working_directory: Optional[str] = None
     initial_topics: Optional[List[str]] = None
 
+
 class SessionEndRequest(BaseModel):
     session_id: str
     outcome: Optional[Dict[str, Any]] = None
     final_topics: Optional[List[str]] = None
     conversation_summary: Optional[str] = None
+
 
 class SessionMemoryTrackRequest(BaseModel):
     session_id: str
@@ -195,6 +208,7 @@ class SessionMemoryTrackRequest(BaseModel):
     interaction_type: str = "loaded"
     relevance_score: Optional[float] = None
 
+
 # FastAPI lifespan function
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -202,7 +216,10 @@ async def lifespan(app: FastAPI):
     # Only log to stderr for HTTP mode to avoid breaking MCP JSON protocol
     if os.environ.get("SERVER_MODE") != "mcp":
         print("🚀 Unified Memory Server starting...", file=sys.stderr)
-        print(f"📊 PostgreSQL: {os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', 5432)}", file=sys.stderr)
+        print(
+            f"📊 PostgreSQL: {os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', 5432)}",
+            file=sys.stderr,
+        )
         print(f"🧠 Ollama: {ollama_url} ({embedding_model})", file=sys.stderr)
         print(f"🌐 HTTP Server: http://localhost:8000", file=sys.stderr)
         print(f"⚡ MCP Protocol: stdio transport", file=sys.stderr)
@@ -211,19 +228,22 @@ async def lifespan(app: FastAPI):
     # Initialize connection pool
     try:
         connection_params = {
-            'host': os.getenv('POSTGRES_HOST', 'localhost'),
-            'port': int(os.getenv('POSTGRES_PORT', 5432)),
-            'database': os.getenv('POSTGRES_DB', 'postgres'),
-            'user': os.getenv('POSTGRES_USER', 'postgres'),
-            'password': os.getenv('POSTGRES_PASSWORD', 'postgres')
+            "host": os.getenv("POSTGRES_HOST", "localhost"),
+            "port": int(os.getenv("POSTGRES_PORT", 5432)),
+            "database": os.getenv("POSTGRES_DB", "postgres"),
+            "user": os.getenv("POSTGRES_USER", "postgres"),
+            "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
         }
         pool = initialize_connection_pool(
             connection_params,
-            min_connections=int(os.getenv('POOL_MIN_CONNECTIONS', 2)),
-            max_connections=int(os.getenv('POOL_MAX_CONNECTIONS', 10))
+            min_connections=int(os.getenv("POOL_MIN_CONNECTIONS", 2)),
+            max_connections=int(os.getenv("POOL_MAX_CONNECTIONS", 10)),
         )
         if os.environ.get("SERVER_MODE") != "mcp":
-            print(f"🔗 Connection pool initialized: {pool.get_pool_status()}", file=sys.stderr)
+            print(
+                f"🔗 Connection pool initialized: {pool.get_pool_status()}",
+                file=sys.stderr,
+            )
     except Exception as e:
         logger.warning(f"Connection pool initialization failed: {e}")
 
@@ -238,12 +258,13 @@ async def lifespan(app: FastAPI):
             print("🔌 Closing database connection pool...", file=sys.stderr)
         pool.close_all_connections()
 
+
 # Initialize FastAPI app
 http_app = FastAPI(
     title="Memory Bridge API",
     description="Unified Memory System with MCP and HTTP support",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -257,6 +278,7 @@ http_app.add_middleware(
 
 # === HTTP ENDPOINTS ===
 
+
 @http_app.get("/")
 async def root():
     """Root endpoint"""
@@ -264,8 +286,9 @@ async def root():
         "service": "Unified Memory Server",
         "version": "2.0.0",
         "protocols": ["MCP", "HTTP"],
-        "description": "Unified MCP and HTTP memory server"
+        "description": "Unified MCP and HTTP memory server",
     }
+
 
 @http_app.get("/api/health")
 async def health_check():
@@ -301,28 +324,37 @@ async def health_check():
                 "status": "connected",
                 "domains": len(domains),
                 "total_memories": total_memories,
-                "database_size_mb": round(database_size_mb, 2) if database_size_mb > 0 else 1.0,
-                "unique_tags": len(unique_tags) if unique_tags else 10,  # Default for now
+                "database_size_mb": (
+                    round(database_size_mb, 2) if database_size_mb > 0 else 1.0
+                ),
+                "unique_tags": (
+                    len(unique_tags) if unique_tags else 10
+                ),  # Default for now
                 "embedding_model": embedding_model if ollama_available else "text-only",
                 "accessible": True,
-                "database_path": os.environ.get("DATABASE_URL", "postgresql://localhost/memories")
+                "database_path": os.environ.get(
+                    "DATABASE_URL", "postgresql://localhost/memories"
+                ),
             },
             "system": {
-                "platform": os.uname().sysname if hasattr(os, 'uname') else "Unknown"
+                "platform": os.uname().sysname if hasattr(os, "uname") else "Unknown"
             },
             "ollama": {
                 "status": ollama_status,
-                "model": embedding_model if ollama_available else None
+                "model": embedding_model if ollama_available else None,
             },
-            "uptime_seconds": (datetime.now() - performance_metrics["startup_time"]).total_seconds(),
-            "protocols": ["MCP", "HTTP"]
+            "uptime_seconds": (
+                datetime.now() - performance_metrics["startup_time"]
+            ).total_seconds(),
+            "protocols": ["MCP", "HTTP"],
         }
     except Exception as e:
         return {
             "status": "unhealthy",
             "error": str(e),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
+
 
 @http_app.get("/api/health/detailed")
 async def health_check_detailed():
@@ -339,32 +371,39 @@ async def health_check_detailed():
 
     # Add more detailed storage info
     if "storage" in base_health:
-        base_health["storage"]["location"] = os.environ.get("DATABASE_URL", "postgresql://localhost/memories")
+        base_health["storage"]["location"] = os.environ.get(
+            "DATABASE_URL", "postgresql://localhost/memories"
+        )
 
     # Add statistics that hooks expect
-    base_health.update({
-        "metrics": performance_metrics,
-        "statistics": {
-            "total_memories": base_health.get("storage", {}).get("total_memories", 0),
-            "database_size_mb": base_health.get("storage", {}).get("database_size_mb", 1.0),
-            "unique_tags": base_health.get("storage", {}).get("unique_tags", 10)
-        },
-        "cache": {
-            "stats": cache_stats,
-            "health": cache_health
-        },
-        "connection_pool": pool_status
-    })
+    base_health.update(
+        {
+            "metrics": performance_metrics,
+            "statistics": {
+                "total_memories": base_health.get("storage", {}).get(
+                    "total_memories", 0
+                ),
+                "database_size_mb": base_health.get("storage", {}).get(
+                    "database_size_mb", 1.0
+                ),
+                "unique_tags": base_health.get("storage", {}).get("unique_tags", 10),
+            },
+            "cache": {"stats": cache_stats, "health": cache_health},
+            "connection_pool": pool_status,
+        }
+    )
 
     return base_health
+
 
 @http_app.get("/api/cache/stats")
 async def get_cache_stats():
     """Get detailed cache statistics"""
     return {
         "cache_stats": memory_cache.get_stats(),
-        "cache_health": memory_cache.get_health_status()
+        "cache_health": memory_cache.get_health_status(),
     }
+
 
 @http_app.post("/api/cache/invalidate")
 async def invalidate_cache(domain: str = None, pattern: str = None):
@@ -373,8 +412,9 @@ async def invalidate_cache(domain: str = None, pattern: str = None):
     return {
         "success": True,
         "message": f"Cache invalidated for domain={domain}, pattern={pattern}",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
+
 
 @http_app.get("/api/metrics")
 async def get_metrics():
@@ -387,21 +427,21 @@ async def get_metrics():
         "query_errors": performance_metrics["query_errors"],
         "slow_queries": performance_metrics["slow_queries"],
         "avg_response_ms": performance_metrics["avg_response_ms"],
-        "memory_count": performance_metrics["memory_count"]
+        "memory_count": performance_metrics["memory_count"],
     }
+
 
 @http_app.get("/api/project/domain")
 async def get_current_project_domain():
     """Get the current project domain based on the working directory"""
     try:
         domain = get_project_domain()
-        return {
-            "success": True,
-            "domain": domain,
-            "working_directory": os.getcwd()
-        }
+        return {"success": True, "domain": domain, "working_directory": os.getcwd()}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get project domain: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get project domain: {str(e)}"
+        )
+
 
 @http_app.post("/api/memories")
 async def store_memory_http(request: MemoryStoreRequest):
@@ -414,9 +454,7 @@ async def store_memory_http(request: MemoryStoreRequest):
 
         # Use the same store_memory function as MCP
         memory_id = memory_api.store_memory(
-            content=request.content,
-            domain=request.domain,
-            metadata=metadata
+            content=request.content, domain=request.domain, metadata=metadata
         )
 
         performance_metrics["queries_total"] += 1
@@ -425,14 +463,17 @@ async def store_memory_http(request: MemoryStoreRequest):
             "success": True,
             "memory_id": memory_id,
             "domain": request.domain or "default",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
     except Exception as e:
         performance_metrics["query_errors"] += 1
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @http_app.get("/api/memories")
-async def retrieve_memories_http(query: str = "", domain: str = "default", limit: int = 10):
+async def retrieve_memories_http(
+    query: str = "", domain: str = "default", limit: int = 10
+):
     """Retrieve memories via HTTP (for testing/debugging)"""
     try:
         start_time = time.time()
@@ -453,11 +494,12 @@ async def retrieve_memories_http(query: str = "", domain: str = "default", limit
             "domain": domain,
             "memories": results,
             "count": len(results),
-            "response_time_ms": round(response_time, 2)
+            "response_time_ms": round(response_time, 2),
         }
     except Exception as e:
         performance_metrics["query_errors"] += 1
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @http_app.post("/api/memories/search")
 async def search_memories_http(request: MemorySearchRequest):
@@ -468,14 +510,13 @@ async def search_memories_http(request: MemorySearchRequest):
 
         # Use the search_memories function (which uses embeddings if available)
         results = memory_api.retrieve_memories(
-            query=request.query,
-            domain=request.domain,
-            limit=request.limit
+            query=request.query, domain=request.domain, limit=request.limit
         )
 
         # Apply time filter if provided
         if request.time_filter:
             from datetime import datetime, timedelta
+
             now = datetime.now()
 
             # Parse time filter
@@ -499,7 +540,9 @@ async def search_memories_http(request: MemorySearchRequest):
                     created_at = memory.get("metadata", {}).get("created_at")
                     if created_at:
                         try:
-                            mem_time = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                            mem_time = datetime.fromisoformat(
+                                created_at.replace("Z", "+00:00")
+                            )
                             if mem_time >= cutoff:
                                 filtered_results.append(memory)
                         except:
@@ -522,11 +565,12 @@ async def search_memories_http(request: MemorySearchRequest):
             "domain": request.domain,
             "memories": results,
             "count": len(results),
-            "response_time_ms": round(response_time, 2)
+            "response_time_ms": round(response_time, 2),
         }
     except Exception as e:
         performance_metrics["query_errors"] += 1
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @http_app.post("/api/sessions/start")
 async def start_session_http(request: SessionStartRequest):
@@ -536,15 +580,13 @@ async def start_session_http(request: SessionStartRequest):
             session_id=request.session_id,
             project_name=request.project_name,
             working_directory=request.working_directory,
-            initial_topics=request.initial_topics
+            initial_topics=request.initial_topics,
         )
 
-        return {
-            "success": True,
-            **result
-        }
+        return {"success": True, **result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @http_app.post("/api/sessions/end")
 async def end_session_http(request: SessionEndRequest):
@@ -554,15 +596,13 @@ async def end_session_http(request: SessionEndRequest):
             session_id=request.session_id,
             outcome=request.outcome,
             final_topics=request.final_topics,
-            conversation_summary=request.conversation_summary
+            conversation_summary=request.conversation_summary,
         )
 
-        return {
-            "success": True,
-            **result
-        }
+        return {"success": True, **result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @http_app.post("/api/sessions/track-memory")
 async def track_session_memory_http(request: SessionMemoryTrackRequest):
@@ -574,41 +614,36 @@ async def track_session_memory_http(request: SessionMemoryTrackRequest):
             domain=request.domain,
             created_during_session=request.created_during_session,
             interaction_type=request.interaction_type,
-            relevance_score=request.relevance_score
+            relevance_score=request.relevance_score,
         )
 
         return {
             "success": success,
-            "message": f"Tracked memory {request.memory_id} for session {request.session_id}"
+            "message": f"Tracked memory {request.memory_id} for session {request.session_id}",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @http_app.get("/api/sessions/insights")
 async def get_session_insights_http(
-    project_name: Optional[str] = None,
-    days_back: int = 30,
-    limit: int = 10
+    project_name: Optional[str] = None, days_back: int = 30, limit: int = 10
 ):
     """Get session insights and analytics via HTTP"""
     try:
         # Get recurring topics
         topics = memory_api.find_recurring_topics(
-            project_name=project_name,
-            days_back=days_back,
-            limit=limit
+            project_name=project_name, days_back=days_back, limit=limit
         )
 
         # Get progression patterns
         patterns = memory_api.analyze_progression_patterns(
-            project_name=project_name,
-            days_back=days_back
+            project_name=project_name, days_back=days_back
         )
 
         # Get uncompleted tasks
         tasks = memory_api.find_uncompleted_tasks(
-            project_name=project_name,
-            days_back=days_back
+            project_name=project_name, days_back=days_back
         )
 
         # Get statistics
@@ -620,7 +655,7 @@ async def get_session_insights_http(
             "progression_patterns": patterns,
             "uncompleted_tasks": tasks,
             "statistics": stats,
-            "project": project_name or "all"
+            "project": project_name or "all",
         }
     except Exception as e:
         # Return partial results if some analytics fail
@@ -630,8 +665,9 @@ async def get_session_insights_http(
             "recurring_topics": [],
             "progression_patterns": [],
             "uncompleted_tasks": [],
-            "statistics": {}
+            "statistics": {},
         }
+
 
 @http_app.post("/mcp")
 async def mcp_endpoint(request: MCPRequest):
@@ -650,7 +686,9 @@ async def mcp_endpoint(request: MCPRequest):
                 limit = args.get("limit", 10)
 
                 # Use the same retrieve function
-                results = memory_api.retrieve_memories(query=query, domain=domain, limit=limit)
+                results = memory_api.retrieve_memories(
+                    query=query, domain=domain, limit=limit
+                )
 
                 return {
                     "jsonrpc": "2.0",
@@ -659,10 +697,12 @@ async def mcp_endpoint(request: MCPRequest):
                         "content": [
                             {
                                 "type": "text",
-                                "text": json.dumps(results, indent=2, cls=CustomJSONEncoder)
+                                "text": json.dumps(
+                                    results, indent=2, cls=CustomJSONEncoder
+                                ),
                             }
                         ]
-                    }
+                    },
                 }
             else:
                 return {
@@ -670,8 +710,8 @@ async def mcp_endpoint(request: MCPRequest):
                     "id": request.id,
                     "error": {
                         "code": -32601,
-                        "message": f"Method not found: {tool_name}"
-                    }
+                        "message": f"Method not found: {tool_name}",
+                    },
                 }
         else:
             return {
@@ -679,18 +719,16 @@ async def mcp_endpoint(request: MCPRequest):
                 "id": request.id,
                 "error": {
                     "code": -32601,
-                    "message": f"Method not supported: {request.method}"
-                }
+                    "message": f"Method not supported: {request.method}",
+                },
             }
     except Exception as e:
         return {
             "jsonrpc": "2.0",
             "id": request.id,
-            "error": {
-                "code": -32603,
-                "message": f"Internal error: {str(e)}"
-            }
+            "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
         }
+
 
 # === MCP TOOLS SECTION ===
 # (All existing MCP tools remain unchanged below)
@@ -763,8 +801,8 @@ def store_memory(
         should_store, reason, optimized_data = optimization_mgr.optimize_memory_storage(
             content=content,
             domain=domain,
-            metadata={'tags': tags, 'importance': importance, 'source': source},
-            project_name=domain  # Use domain as project name for now
+            metadata={"tags": tags, "importance": importance, "source": source},
+            project_name=domain,  # Use domain as project name for now
         )
 
         if not should_store:
@@ -773,13 +811,17 @@ def store_memory(
         # Fallback to basic size validation
         max_content_size = 5_000  # 5KB limit
         if len(content) > max_content_size:
-            raise ValueError(f"Content too long (max {max_content_size:,} characters, got {len(content):,})")
+            raise ValueError(
+                f"Content too long (max {max_content_size:,} characters, got {len(content):,})"
+            )
 
         # Check byte size for unicode content
-        content_bytes = content.encode('utf-8')
+        content_bytes = content.encode("utf-8")
         max_bytes = 5 * 1024  # 5KB
         if len(content_bytes) > max_bytes:
-            raise ValueError(f"Content too large (max {max_bytes:,} bytes, got {len(content_bytes):,} bytes)")
+            raise ValueError(
+                f"Content too large (max {max_bytes:,} bytes, got {len(content_bytes):,} bytes)"
+            )
 
     # Domain validation
     if domain is not None:
@@ -787,8 +829,11 @@ def store_memory(
             raise ValueError("Domain must be a string or None")
 
         import re
+
         if not re.match(r"^[a-zA-Z0-9_-]+$", domain):
-            raise ValueError("Domain must contain only alphanumeric characters, underscores, and hyphens")
+            raise ValueError(
+                "Domain must contain only alphanumeric characters, underscores, and hyphens"
+            )
 
         if len(domain) < 1:
             raise ValueError("Domain cannot be empty")
@@ -796,7 +841,16 @@ def store_memory(
             raise ValueError(f"Domain too long (max 50 characters, got {len(domain)})")
 
         # Reserved names validation
-        reserved_names = {'system', 'admin', 'root', 'user', 'test', 'temp', 'public', 'private'}
+        reserved_names = {
+            "system",
+            "admin",
+            "root",
+            "user",
+            "test",
+            "temp",
+            "public",
+            "private",
+        }
         if domain.lower() in reserved_names:
             raise ValueError(f"Domain name '{domain}' is reserved")
 
@@ -811,11 +865,14 @@ def store_memory(
     # Metadata size validation
     if metadata:
         import json
+
         metadata_json = json.dumps(metadata, ensure_ascii=False)
-        metadata_bytes = metadata_json.encode('utf-8')
+        metadata_bytes = metadata_json.encode("utf-8")
         max_metadata_bytes = 2 * 1024  # 2KB (optimized from 10KB)
         if len(metadata_bytes) > max_metadata_bytes:
-            raise ValueError(f"Metadata too large (max {max_metadata_bytes:,} bytes, got {len(metadata_bytes):,} bytes)")
+            raise ValueError(
+                f"Metadata too large (max {max_metadata_bytes:,} bytes, got {len(metadata_bytes):,} bytes)"
+            )
 
     memory_id = memory_api.store_memory(content, metadata, domain)
     return memory_id
@@ -914,7 +971,10 @@ def get_memories(
 
 @server.tool()
 def search_memories(
-    query: str, domain: Optional[str] = None, limit: Optional[int] = 5, time_filter: Optional[str] = None
+    query: str,
+    domain: Optional[str] = None,
+    limit: Optional[int] = 5,
+    time_filter: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Find relevant memories based on query using semantic or text search.
@@ -970,12 +1030,14 @@ def search_memories(
         results = memory_api.retrieve_memories(query, raw_limit, domain, time_filter)
 
         # Optimize retrieved memories
-        optimized_results, optimization_meta = optimization_mgr.optimize_memory_retrieval(
-            query=query,
-            memories=results,
-            domain=domain or "default",
-            project_name=domain,  # Use domain as project name
-            token_budget=1000  # Default budget
+        optimized_results, optimization_meta = (
+            optimization_mgr.optimize_memory_retrieval(
+                query=query,
+                memories=results,
+                domain=domain or "default",
+                project_name=domain,  # Use domain as project name
+                token_budget=1000,  # Default budget
+            )
         )
 
         # Limit to requested count and add metadata
@@ -1002,12 +1064,10 @@ def search_memories(
 
 
 @server.tool()
-def recall_memory(
-    query: str, n_results: Optional[int] = 5
-) -> List[Dict[str, Any]]:
+def recall_memory(query: str, n_results: Optional[int] = 5) -> List[Dict[str, Any]]:
     """
     Retrieve memories using natural language time expressions and optional semantic search.
-    
+
     This tool supports various time-related expressions and can find memories based on
     when they were stored or when events occurred. Uses semantic search to understand
     temporal context and content relevance.
@@ -1041,13 +1101,13 @@ def recall_memory(
     - recall_memory("memories from last summer", 10)
     """
     results = memory_api.retrieve_memories(query, n_results)
-    
+
     # Add search information
     for result in results:
         result["query"] = query
         if "score" not in result:
             result["score"] = 0.0
-    
+
     return results
 
 
@@ -1092,16 +1152,16 @@ def search_by_tag(
     # Convert tags to a search query
     tag_query = f"tags:{','.join(tags)}"
     results = memory_api.retrieve_memories(tag_query, limit, domain)
-    
+
     # Add tag matching information
     for result in results:
         # Tags are stored in metadata
-        metadata = result.get('metadata', {})
-        result_tags = metadata.get('tags', [])
+        metadata = result.get("metadata", {})
+        result_tags = metadata.get("tags", [])
         result["matched_tags"] = [tag for tag in tags if tag in result_tags]
         if "score" not in result:
             result["score"] = 0.0
-    
+
     return results
 
 
@@ -1128,9 +1188,7 @@ def list_memory_domains() -> List[str]:
 
 
 @server.tool()
-def delete_memory(
-    memory_id: str, domain: Optional[str] = None
-) -> bool:
+def delete_memory(memory_id: str, domain: Optional[str] = None) -> bool:
     """
     Delete a specific memory by its ID.
 
@@ -1160,9 +1218,7 @@ def delete_memory(
 
 
 @server.tool()
-def delete_by_tag(
-    tags: List[str], domain: Optional[str] = None
-) -> int:
+def delete_by_tag(tags: List[str], domain: Optional[str] = None) -> int:
     """
     Delete all memories with specific tags.
     WARNING: Deletes ALL memories containing any of the specified tags.
@@ -1192,12 +1248,12 @@ def delete_by_tag(
         # Find memories with these tags
         tag_query = f"tags:{','.join(tags)}"
         memories = memory_api.retrieve_memories(tag_query, limit=1000, domain=domain)
-        
+
         deleted_count = 0
         for memory in memories:
-            if memory_api.delete_memory(memory['id'], domain):
+            if memory_api.delete_memory(memory["id"], domain):
                 deleted_count += 1
-        
+
         return deleted_count
     except Exception as e:
         logger.error(f"Error deleting memories by tags {tags}: {e}")
@@ -1498,9 +1554,7 @@ def copy_memories_between_domains(
                 )
                 copied_count += 1
             except Exception as e:
-                logger.error(
-                    f"Error copying memory {memory.get('id', 'unknown')}: {e}"
-                )
+                logger.error(f"Error copying memory {memory.get('id', 'unknown')}: {e}")
 
         return {
             "success": True,
@@ -1636,30 +1690,30 @@ Summary:"""
 def memory_review(time_period: str, focus_area: str = "") -> str:
     """
     Review and organize memories from a specific time period.
-    
+
     Parameters:
     - time_period: Time period to review (e.g., 'last week', 'yesterday', '2 days ago')
     - focus_area: Optional area to focus on (e.g., 'work', 'personal', 'learning')
     """
     # Retrieve memories from the specified time period
     memories = memory_api.retrieve_memories(time_period, limit=20)
-    
+
     prompt_text = f"Review of memories from {time_period}"
     if focus_area:
         prompt_text += f" (focusing on {focus_area})"
     prompt_text += ":\n\n"
-    
+
     if memories:
         for mem in memories:
             prompt_text += f"- {mem.get('content', 'No content')}\n"
             # Tags are stored in metadata
-            metadata = mem.get('metadata', {})
-            tags = metadata.get('tags', [])
+            metadata = mem.get("metadata", {})
+            tags = metadata.get("tags", [])
             if tags:
                 prompt_text += f"  Tags: {', '.join(tags)}\n"
     else:
         prompt_text += "No memories found for this time period."
-    
+
     return prompt_text
 
 
@@ -1667,38 +1721,38 @@ def memory_review(time_period: str, focus_area: str = "") -> str:
 def memory_analysis(tags: str = "", time_range: str = "all time") -> str:
     """
     Analyze patterns and themes in stored memories.
-    
+
     Parameters:
     - tags: Tags to analyze (comma-separated)
     - time_range: Time range to analyze (e.g., 'last month', 'all time')
     """
     tag_list = [tag.strip() for tag in tags.split(",")] if tags else []
-    
+
     analysis_text = f"Memory Analysis"
     if tag_list:
         analysis_text += f" for tags: {', '.join(tag_list)}"
     if time_range != "all time":
         analysis_text += f" from {time_range}"
     analysis_text += "\n\n"
-    
+
     # Get relevant memories
     if tag_list:
         memories = memory_api.retrieve_memories(f"tags:{','.join(tag_list)}", limit=100)
     else:
         memories = memory_api.retrieve_memories("recent memories", limit=100)
-    
+
     # Analyze patterns
     tag_counts = {}
     type_counts = {}
     for mem in memories:
         # Tags are stored in metadata
-        metadata = mem.get('metadata', {})
-        tags = metadata.get('tags', [])
+        metadata = mem.get("metadata", {})
+        tags = metadata.get("tags", [])
         for tag in tags:
             tag_counts[tag] = tag_counts.get(tag, 0) + 1
-        mem_type = metadata.get('type', 'unknown')
+        mem_type = metadata.get("type", "unknown")
         type_counts[mem_type] = type_counts.get(mem_type, 0) + 1
-    
+
     analysis_text += f"Total memories analyzed: {len(memories)}\n\n"
     analysis_text += "Top tags:\n"
     for tag, count in sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
@@ -1706,7 +1760,7 @@ def memory_analysis(tags: str = "", time_range: str = "all time") -> str:
     analysis_text += "\nMemory types:\n"
     for mem_type, count in type_counts.items():
         analysis_text += f"  - {mem_type}: {count} memories\n"
-    
+
     return analysis_text
 
 
@@ -1714,7 +1768,7 @@ def memory_analysis(tags: str = "", time_range: str = "all time") -> str:
 def knowledge_export(format_type: str, filter_criteria: str = "") -> str:
     """
     Export memories in a specific format.
-    
+
     Parameters:
     - format_type: Export format (json, markdown, text)
     - filter_criteria: Filter criteria (tags or search query)
@@ -1723,22 +1777,24 @@ def knowledge_export(format_type: str, filter_criteria: str = "") -> str:
     if filter_criteria:
         if "," in filter_criteria:
             # Assume tags
-            memories = memory_api.retrieve_memories(f"tags:{filter_criteria}", limit=100)
+            memories = memory_api.retrieve_memories(
+                f"tags:{filter_criteria}", limit=100
+            )
         else:
             # Assume search query
             memories = memory_api.retrieve_memories(filter_criteria, limit=100)
     else:
         memories = memory_api.retrieve_memories("recent memories", limit=100)
-    
+
     export_text = f"Exported {len(memories)} memories in {format_type} format:\n\n"
-    
+
     if format_type == "markdown":
         for mem in memories:
             export_text += f"## {mem.get('created_at_iso', 'Unknown date')}\n"
             export_text += f"{mem.get('content', 'No content')}\n"
             # Tags are stored in metadata
-            metadata = mem.get('metadata', {})
-            tags = metadata.get('tags', [])
+            metadata = mem.get("metadata", {})
+            tags = metadata.get("tags", [])
             if tags:
                 export_text += f"*Tags: {', '.join(tags)}*\n"
             export_text += "\n"
@@ -1747,9 +1803,10 @@ def knowledge_export(format_type: str, filter_criteria: str = "") -> str:
             export_text += f"[{mem.get('created_at_iso', 'Unknown date')}] {mem.get('content', 'No content')}\n"
     else:  # json
         import json
+
         export_data = [mem for mem in memories]
         export_text += json.dumps(export_data, indent=2, default=str)
-    
+
     return export_text
 
 
@@ -1757,31 +1814,31 @@ def knowledge_export(format_type: str, filter_criteria: str = "") -> str:
 def memory_cleanup(older_than: str = "", similarity_threshold: float = 0.95) -> str:
     """
     Identify and remove duplicate or outdated memories.
-    
+
     Parameters:
     - older_than: Remove memories older than (e.g., '6 months', '1 year')
     - similarity_threshold: Similarity threshold for duplicates (0.0-1.0)
     """
     cleanup_text = "Memory Cleanup Report:\n\n"
-    
+
     # Find duplicates
     all_memories = memory_api.retrieve_memories("all memories", limit=1000)
     duplicates = []
-    
+
     for i, mem1 in enumerate(all_memories):
-        for mem2 in all_memories[i+1:]:
+        for mem2 in all_memories[i + 1 :]:
             # Simple similarity check based on content length
-            content1 = mem1.get('content', '')
-            content2 = mem2.get('content', '')
+            content1 = mem1.get("content", "")
+            content2 = mem2.get("content", "")
             if abs(len(content1) - len(content2)) < 10:
                 if content1[:50] == content2[:50]:
                     duplicates.append((mem1, mem2))
-    
+
     cleanup_text += f"Found {len(duplicates)} potential duplicate pairs\n"
-    
+
     if older_than:
         cleanup_text += f"\nMemories older than {older_than} can be archived\n"
-    
+
     return cleanup_text
 
 
@@ -1789,43 +1846,45 @@ def memory_cleanup(older_than: str = "", similarity_threshold: float = 0.95) -> 
 def learning_session(topic: str, key_points: str, questions: str = "") -> str:
     """
     Store structured learning notes from a study session.
-    
+
     Parameters:
     - topic: Learning topic or subject
     - key_points: Key points learned (comma-separated)
     - questions: Questions or areas for further study
     """
     from datetime import datetime
-    
+
     key_points_list = [point.strip() for point in key_points.split(",")]
     questions_list = [q.strip() for q in questions.split(",")] if questions else []
-    
+
     # Create structured learning note
     learning_note = f"# Learning Session: {topic}\n\n"
     learning_note += f"Date: {datetime.now().isoformat()}\n\n"
     learning_note += "## Key Points:\n"
     for point in key_points_list:
         learning_note += f"- {point}\n"
-    
+
     if questions_list:
         learning_note += "\n## Questions for Further Study:\n"
         for question in questions_list:
             learning_note += f"- {question}\n"
-    
+
     # Store the learning note
     try:
         memory_id = memory_api.store_memory(
             content=learning_note,
             metadata={"source": "learning_session", "topic": topic},
-            domain="learning"
+            domain="learning",
         )
         response_text = f"Learning session stored successfully!\n\n{learning_note}"
     except Exception as e:
         response_text = f"Failed to store learning session: {str(e)}"
-    
+
     return response_text
 
+
 # Session Management Tools
+
 
 @server.tool()
 def start_session(
@@ -1934,10 +1993,12 @@ def end_session(
                 # Get memories specifically associated with THIS session
                 # We need to query the session_memories table directly
                 from psycopg2.extras import RealDictCursor
+
                 with memory_api._get_connection() as conn:
                     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                         # Get memories tracked for this session
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             SELECT
                                 sm.memory_id,
                                 sm.domain,
@@ -1946,36 +2007,43 @@ def end_session(
                                 sm.relevance_score
                             FROM session_memories sm
                             WHERE sm.session_id = %s
-                        """, (session_id,))
+                        """,
+                            (session_id,),
+                        )
 
                         session_memory_records = cursor.fetchall()
 
                         # Also get initial topics from the session
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             SELECT initial_topics
                             FROM sessions
                             WHERE id = %s
-                        """, (session_id,))
+                        """,
+                            (session_id,),
+                        )
 
                         session_data = cursor.fetchone()
-                        initial_topics = session_data['initial_topics'] if session_data else []
+                        initial_topics = (
+                            session_data["initial_topics"] if session_data else []
+                        )
 
                 if session_memory_records:
                     # Convert to format expected by optimize_session_end
                     session_mems = []
                     for record in session_memory_records:
                         # Get the actual memory content from the domain
-                        domain = record['domain']
-                        memory_id = record['memory_id']
+                        domain = record["domain"]
+                        memory_id = record["memory_id"]
 
                         # Retrieve memory details from the domain
                         # Note: This is simplified - in production you'd query the actual domain table
                         mem_dict = {
-                            'memory_id': memory_id,
-                            'domain': domain,
-                            'interaction_type': record['interaction_type'],
-                            'created_during_session': record['created_during_session'],
-                            'relevance_score': record['relevance_score']
+                            "memory_id": memory_id,
+                            "domain": domain,
+                            "interaction_type": record["interaction_type"],
+                            "created_during_session": record["created_during_session"],
+                            "relevance_score": record["relevance_score"],
                         }
                         session_mems.append(mem_dict)
 
@@ -1985,25 +2053,35 @@ def end_session(
                         session_memories=session_mems,
                         initial_topics=initial_topics or [],
                         final_topics=final_topics,
-                        project_name=None  # Could get from session data
+                        project_name=None,  # Could get from session data
                     )
 
                     # Use optimized summary if available
-                    if optimized_summary and 'content' in optimized_summary:
+                    if optimized_summary and "content" in optimized_summary:
                         # Convert optimized summary to string format
                         summary_parts = []
-                        content = optimized_summary['content']
+                        content = optimized_summary["content"]
 
-                        if 'decisions' in content:
-                            summary_parts.append(f"Decisions: {', '.join(content['decisions'])}")
-                        if 'solutions' in content:
-                            summary_parts.append(f"Solutions: {', '.join(content['solutions'])}")
-                        if 'outcomes' in content:
-                            summary_parts.append(f"Outcomes: {', '.join(content['outcomes'])}")
+                        if "decisions" in content:
+                            summary_parts.append(
+                                f"Decisions: {', '.join(content['decisions'])}"
+                            )
+                        if "solutions" in content:
+                            summary_parts.append(
+                                f"Solutions: {', '.join(content['solutions'])}"
+                            )
+                        if "outcomes" in content:
+                            summary_parts.append(
+                                f"Outcomes: {', '.join(content['outcomes'])}"
+                            )
 
                         if summary_parts:
-                            conversation_summary = '; '.join(summary_parts)[:500]  # Token limit
-                            logger.info(f"Session {session_id} optimized: {len(conversation_summary)} chars")
+                            conversation_summary = "; ".join(summary_parts)[
+                                :500
+                            ]  # Token limit
+                            logger.info(
+                                f"Session {session_id} optimized: {len(conversation_summary)} chars"
+                            )
             except Exception as opt_error:
                 logger.warning(f"Failed to optimize session end: {opt_error}")
                 # Continue without optimization
@@ -2017,8 +2095,8 @@ def end_session(
 
         # Add optimization metadata if available
         if optimized_summary:
-            result['optimized'] = True
-            result['token_reduction'] = optimized_summary.get('token_reduction', 0)
+            result["optimized"] = True
+            result["token_reduction"] = optimized_summary.get("token_reduction", 0)
 
         return result
     except Exception as e:
@@ -2072,7 +2150,9 @@ def get_session_history(
         )
         return result
     except Exception as e:
-        logger.error(f"Error getting session history: {e}", )
+        logger.error(
+            f"Error getting session history: {e}",
+        )
         return {"error": str(e)}
 
 
@@ -2115,7 +2195,9 @@ def get_conversation_threads(
         )
         return result
     except Exception as e:
-        logger.error(f"Error getting conversation threads: {e}", )
+        logger.error(
+            f"Error getting conversation threads: {e}",
+        )
         return {"error": str(e)}
 
 
@@ -2164,7 +2246,9 @@ def track_session_memory(
         )
         return result
     except Exception as e:
-        logger.error(f"Error tracking session memory: {e}", )
+        logger.error(
+            f"Error tracking session memory: {e}",
+        )
         return False
 
 
@@ -2210,7 +2294,9 @@ def get_session_insights(
             project_name=project_name,
             days_back=days_back,
         )
-        insights["progression_patterns"] = patterns.get("progression_patterns", [])[:limit]
+        insights["progression_patterns"] = patterns.get("progression_patterns", [])[
+            :limit
+        ]
         insights["outcome_distribution"] = patterns.get("outcome_distribution", [])
 
         # Get uncompleted tasks
@@ -2233,7 +2319,9 @@ def get_session_insights(
                         {
                             "topic": t["topic"],
                             "count": t["session_count"],
-                            "last_seen": str(t["last_seen"])[:10] if t.get("last_seen") else None
+                            "last_seen": (
+                                str(t["last_seen"])[:10] if t.get("last_seen") else None
+                            ),
                         }
                         for t in insights["recurring_topics"][:limit]
                     ]
@@ -2242,10 +2330,7 @@ def get_session_insights(
                 if insights.get("progression_patterns"):
                     # Group similar patterns
                     insights["progression_patterns"] = [
-                        {
-                            "pattern": p["pattern"],
-                            "frequency": p["occurrences"]
-                        }
+                        {"pattern": p["pattern"], "frequency": p["occurrences"]}
                         for p in insights["progression_patterns"][:limit]
                     ]
 
@@ -2257,23 +2342,27 @@ def get_session_insights(
                             "session_id": t["session_id"][:8] + "...",  # Truncate ID
                             "summary": (t.get("conversation_summary") or "")[:100],
                             "outcome": t.get("outcome_type", "unknown"),
-                            "has_followup": t.get("has_followup", False)
+                            "has_followup": t.get("has_followup", False),
                         }
                         for t in insights["uncompleted_tasks"][:limit]
                     ]
 
                 # Calculate compression ratio
                 compressed_size = len(json.dumps(insights))
-                compression_ratio = 1 - (compressed_size / original_size) if original_size > 0 else 0
+                compression_ratio = (
+                    1 - (compressed_size / original_size) if original_size > 0 else 0
+                )
 
                 insights["_optimization"] = {
                     "compressed": True,
                     "original_size": original_size,
                     "compressed_size": compressed_size,
-                    "compression_ratio": f"{compression_ratio:.1%}"
+                    "compression_ratio": f"{compression_ratio:.1%}",
                 }
 
-                logger.info(f"Session insights compressed: {original_size} → {compressed_size} bytes ({compression_ratio:.1%} reduction)")
+                logger.info(
+                    f"Session insights compressed: {original_size} → {compressed_size} bytes ({compression_ratio:.1%} reduction)"
+                )
 
             except Exception as opt_error:
                 logger.warning(f"Failed to optimize session insights: {opt_error}")
@@ -2397,7 +2486,9 @@ def consolidate_memories(
     try:
         # Use optimization manager's advanced consolidation if available
         if optimization_mgr:
-            logger.info(f"Using optimized consolidation for domain: {domain or 'default'}")
+            logger.info(
+                f"Using optimized consolidation for domain: {domain or 'default'}"
+            )
 
             # Get memories from domain for consolidation
             domain_name = domain or "default"
@@ -2413,42 +2504,42 @@ def consolidate_memories(
                 query="",  # Get all memories
                 limit=1000,  # Reasonable limit
                 domain=domain_name,
-                time_filter=None
+                time_filter=None,
             )
 
             # Convert to dict format expected by consolidator
             memory_dicts = []
             for mem in memories:
                 memory_dict = {
-                    'id': mem.get('id', ''),
-                    'content': mem.get('content', ''),
-                    'content_hash': mem.get('content_hash', ''),
-                    'tags': mem.get('tags', []),
-                    'metadata': mem.get('metadata', {}),
-                    'embedding': mem.get('embedding'),
-                    'created_at': mem.get('created_at'),
-                    'importance': mem.get('metadata', {}).get('importance', 0.5)
+                    "id": mem.get("id", ""),
+                    "content": mem.get("content", ""),
+                    "content_hash": mem.get("content_hash", ""),
+                    "tags": mem.get("tags", []),
+                    "metadata": mem.get("metadata", {}),
+                    "embedding": mem.get("embedding"),
+                    "created_at": mem.get("created_at"),
+                    "importance": mem.get("metadata", {}).get("importance", 0.5),
                 }
                 memory_dicts.append(memory_dict)
 
             # Trigger consolidation through memory_consolidator
             result = optimization_mgr.consolidator.consolidate_memories(
-                memories=memory_dicts,
-                dry_run=False
+                memories=memory_dicts, dry_run=False
             )
 
             # Add optimization metadata
-            result['optimization_used'] = True
-            result['techniques_applied'] = [
-                'semantic_clustering',
-                'progressive_summarization',
-                'duplicate_detection',
-                'memory_merging'
+            result["optimization_used"] = True
+            result["techniques_applied"] = [
+                "semantic_clustering",
+                "progressive_summarization",
+                "duplicate_detection",
+                "memory_merging",
             ]
 
             # Update optimization stats
-            optimization_mgr.stats['consolidations_performed'] = \
-                optimization_mgr.stats.get('consolidations_performed', 0) + 1
+            optimization_mgr.stats["consolidations_performed"] = (
+                optimization_mgr.stats.get("consolidations_performed", 0) + 1
+            )
 
             return result
 
@@ -2463,17 +2554,15 @@ def consolidate_memories(
 
             # Initialize consolidator with Ollama embeddings
             consolidator = PostgreSQLConsolidator(
-                connection_string=db_url,
-                embedding_client=ollama_embeddings
+                connection_string=db_url, embedding_client=ollama_embeddings
             )
 
             # Run consolidation
-            result = asyncio.run(consolidator.consolidate_memories(
-                domain_id=domain,
-                days_back=days_back
-            ))
+            result = asyncio.run(
+                consolidator.consolidate_memories(domain_id=domain, days_back=days_back)
+            )
 
-            result['optimization_used'] = False
+            result["optimization_used"] = False
             return result
 
     except Exception as e:
@@ -2490,13 +2579,15 @@ def run_http_server():
         host="0.0.0.0",
         port=port,
         log_level="info",
-        access_log=False  # Reduce noise in logs
+        access_log=False,  # Reduce noise in logs
     )
+
 
 def run_mcp_server():
     """Run the MCP server with stdio transport"""
     # No print statements in MCP mode to avoid breaking JSON protocol
     server.run(transport="stdio")
+
 
 if __name__ == "__main__":
     # Detect mode based on environment or command line arguments

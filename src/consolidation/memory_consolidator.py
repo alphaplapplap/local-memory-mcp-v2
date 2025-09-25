@@ -16,6 +16,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 logger = logging.getLogger(__name__)
 
+
 class MemoryConsolidator:
     """
     Intelligent memory consolidation system that:
@@ -29,7 +30,7 @@ class MemoryConsolidator:
         self,
         similarity_threshold: float = 0.95,
         consolidation_threshold: int = 100,
-        archive_days: int = 30
+        archive_days: int = 30,
     ):
         """
         Initialize consolidator.
@@ -57,9 +58,7 @@ class MemoryConsolidator:
         return memory_count >= self.consolidation_threshold
 
     def find_duplicates(
-        self,
-        memories: List[Dict[str, Any]],
-        use_embeddings: bool = True
+        self, memories: List[Dict[str, Any]], use_embeddings: bool = True
     ) -> List[Tuple[str, str, float]]:
         """
         Find duplicate or near-duplicate memories.
@@ -84,11 +83,10 @@ class MemoryConsolidator:
 
     def _has_embeddings(self, memories: List[Dict[str, Any]]) -> bool:
         """Check if memories have embeddings."""
-        return all('embedding' in m and m['embedding'] for m in memories)
+        return all("embedding" in m and m["embedding"] for m in memories)
 
     def _find_duplicates_by_embedding(
-        self,
-        memories: List[Dict[str, Any]]
+        self, memories: List[Dict[str, Any]]
     ) -> List[Tuple[str, str, float]]:
         """Find duplicates using vector embeddings."""
         duplicates = []
@@ -98,9 +96,9 @@ class MemoryConsolidator:
         memory_ids = []
 
         for memory in memories:
-            if 'embedding' in memory and memory['embedding']:
-                embeddings.append(memory['embedding'])
-                memory_ids.append(memory['id'])
+            if "embedding" in memory and memory["embedding"]:
+                embeddings.append(memory["embedding"])
+                memory_ids.append(memory["id"])
 
         if len(embeddings) < 2:
             return duplicates
@@ -116,39 +114,34 @@ class MemoryConsolidator:
             for j in range(i + 1, len(memories)):
                 similarity = similarities[i][j]
                 if similarity >= self.similarity_threshold:
-                    duplicates.append((
-                        memory_ids[i],
-                        memory_ids[j],
-                        float(similarity)
-                    ))
+                    duplicates.append((memory_ids[i], memory_ids[j], float(similarity)))
 
         logger.info(f"Found {len(duplicates)} duplicate pairs by embedding")
         return duplicates
 
     def _find_duplicates_by_text(
-        self,
-        memories: List[Dict[str, Any]]
+        self, memories: List[Dict[str, Any]]
     ) -> List[Tuple[str, str, float]]:
         """Find duplicates using text similarity."""
         duplicates = []
 
         for i, mem1 in enumerate(memories):
-            content1 = mem1.get('content', '').lower().strip()
+            content1 = mem1.get("content", "").lower().strip()
             hash1 = self._content_hash(content1)
 
-            for j, mem2 in enumerate(memories[i + 1:], i + 1):
-                content2 = mem2.get('content', '').lower().strip()
+            for j, mem2 in enumerate(memories[i + 1 :], i + 1):
+                content2 = mem2.get("content", "").lower().strip()
                 hash2 = self._content_hash(content2)
 
                 # Check exact hash match first
                 if hash1 == hash2:
-                    duplicates.append((mem1['id'], mem2['id'], 1.0))
+                    duplicates.append((mem1["id"], mem2["id"], 1.0))
                     continue
 
                 # Check similarity for near-duplicates
                 similarity = self._text_similarity(content1, content2)
                 if similarity >= self.similarity_threshold:
-                    duplicates.append((mem1['id'], mem2['id'], similarity))
+                    duplicates.append((mem1["id"], mem2["id"], similarity))
 
         logger.info(f"Found {len(duplicates)} duplicate pairs by text")
         return duplicates
@@ -156,7 +149,7 @@ class MemoryConsolidator:
     def _content_hash(self, content: str) -> str:
         """Generate hash of content for exact duplicate detection."""
         # Normalize content
-        normalized = ' '.join(content.lower().split())
+        normalized = " ".join(content.lower().split())
         return hashlib.md5(normalized.encode()).hexdigest()
 
     def _text_similarity(self, text1: str, text2: str) -> float:
@@ -187,9 +180,7 @@ class MemoryConsolidator:
         return len(intersection) / len(union)
 
     def merge_memories(
-        self,
-        memory1: Dict[str, Any],
-        memory2: Dict[str, Any]
+        self, memory1: Dict[str, Any], memory2: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Merge two similar memories into one.
@@ -202,8 +193,8 @@ class MemoryConsolidator:
             Merged memory
         """
         # Choose the more detailed content
-        content1 = memory1.get('content', '')
-        content2 = memory2.get('content', '')
+        content1 = memory1.get("content", "")
+        content2 = memory2.get("content", "")
 
         if len(content1) >= len(content2):
             merged_content = content1
@@ -213,47 +204,44 @@ class MemoryConsolidator:
             base_memory = memory2
 
         # Merge metadata
-        metadata1 = memory1.get('metadata', {})
-        metadata2 = memory2.get('metadata', {})
+        metadata1 = memory1.get("metadata", {})
+        metadata2 = memory2.get("metadata", {})
 
         # Merge tags
-        tags1 = set(metadata1.get('tags', []))
-        tags2 = set(metadata2.get('tags', []))
+        tags1 = set(metadata1.get("tags", []))
+        tags2 = set(metadata2.get("tags", []))
         merged_tags = list(tags1.union(tags2))
 
         # Take higher importance
-        importance1 = metadata1.get('importance', 0.5)
-        importance2 = metadata2.get('importance', 0.5)
+        importance1 = metadata1.get("importance", 0.5)
+        importance2 = metadata2.get("importance", 0.5)
         merged_importance = max(importance1, importance2)
 
         # Create merged memory
         merged = {
-            'id': base_memory['id'],  # Keep ID of base memory
-            'content': merged_content,
-            'metadata': {
+            "id": base_memory["id"],  # Keep ID of base memory
+            "content": merged_content,
+            "metadata": {
                 **metadata1,
                 **metadata2,  # metadata2 overwrites metadata1
-                'tags': merged_tags,
-                'importance': merged_importance,
-                'merged_from': [memory1['id'], memory2['id']],
-                'merge_timestamp': datetime.now().isoformat()
+                "tags": merged_tags,
+                "importance": merged_importance,
+                "merged_from": [memory1["id"], memory2["id"]],
+                "merge_timestamp": datetime.now().isoformat(),
             },
-            'domain': base_memory.get('domain', 'default'),
-            'created_at': base_memory.get('created_at'),
-            'updated_at': datetime.now().isoformat()
+            "domain": base_memory.get("domain", "default"),
+            "created_at": base_memory.get("created_at"),
+            "updated_at": datetime.now().isoformat(),
         }
 
         # Preserve embedding from base memory if available
-        if 'embedding' in base_memory:
-            merged['embedding'] = base_memory['embedding']
+        if "embedding" in base_memory:
+            merged["embedding"] = base_memory["embedding"]
 
         logger.debug(f"Merged memories {memory1['id']} and {memory2['id']}")
         return merged
 
-    def identify_archivable_memories(
-        self,
-        memories: List[Dict[str, Any]]
-    ) -> List[str]:
+    def identify_archivable_memories(self, memories: List[Dict[str, Any]]) -> List[str]:
         """
         Identify memories that should be archived.
 
@@ -273,31 +261,30 @@ class MemoryConsolidator:
 
         for memory in memories:
             # Check age
-            created_at = memory.get('created_at')
+            created_at = memory.get("created_at")
             if isinstance(created_at, str):
-                created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
 
             if created_at < cutoff_date:
                 # Check importance
-                metadata = memory.get('metadata', {})
-                importance = metadata.get('importance', 0.5)
+                metadata = memory.get("metadata", {})
+                importance = metadata.get("importance", 0.5)
 
                 if importance < 0.3:
                     # Check if it's been accessed recently
-                    last_accessed = metadata.get('last_accessed')
+                    last_accessed = metadata.get("last_accessed")
                     if not last_accessed or (
-                        isinstance(last_accessed, str) and
-                        datetime.fromisoformat(last_accessed.replace('Z', '+00:00')) < cutoff_date
+                        isinstance(last_accessed, str)
+                        and datetime.fromisoformat(last_accessed.replace("Z", "+00:00"))
+                        < cutoff_date
                     ):
-                        archivable.append(memory['id'])
+                        archivable.append(memory["id"])
 
         logger.info(f"Identified {len(archivable)} memories for archival")
         return archivable
 
     def consolidate_memories(
-        self,
-        memories: List[Dict[str, Any]],
-        dry_run: bool = False
+        self, memories: List[Dict[str, Any]], dry_run: bool = False
     ) -> Dict[str, Any]:
         """
         Run full memory consolidation process.
@@ -312,22 +299,22 @@ class MemoryConsolidator:
         logger.info(f"Starting memory consolidation for {len(memories)} memories")
 
         report = {
-            'timestamp': datetime.now().isoformat(),
-            'total_memories': len(memories),
-            'duplicates_found': 0,
-            'memories_merged': 0,
-            'memories_archived': 0,
-            'space_saved_estimate': 0,
-            'actions': []
+            "timestamp": datetime.now().isoformat(),
+            "total_memories": len(memories),
+            "duplicates_found": 0,
+            "memories_merged": 0,
+            "memories_archived": 0,
+            "space_saved_estimate": 0,
+            "actions": [],
         }
 
         # Find duplicates
         duplicates = self.find_duplicates(memories)
-        report['duplicates_found'] = len(duplicates)
+        report["duplicates_found"] = len(duplicates)
 
         if not dry_run:
             # Process duplicates (merge them)
-            memory_map = {m['id']: m for m in memories}
+            memory_map = {m["id"]: m for m in memories}
             merged_ids = set()
 
             for id1, id2, similarity in duplicates:
@@ -337,29 +324,28 @@ class MemoryConsolidator:
 
                     if mem1 and mem2:
                         merged = self.merge_memories(mem1, mem2)
-                        report['actions'].append({
-                            'type': 'merge',
-                            'memory_ids': [id1, id2],
-                            'similarity': similarity
-                        })
+                        report["actions"].append(
+                            {
+                                "type": "merge",
+                                "memory_ids": [id1, id2],
+                                "similarity": similarity,
+                            }
+                        )
                         merged_ids.add(id2)  # Mark memory2 as merged
-                        report['memories_merged'] += 1
+                        report["memories_merged"] += 1
 
         # Identify archivable memories
         archivable = self.identify_archivable_memories(memories)
-        report['memories_archived'] = len(archivable)
+        report["memories_archived"] = len(archivable)
 
         if not dry_run:
             for memory_id in archivable:
-                report['actions'].append({
-                    'type': 'archive',
-                    'memory_id': memory_id
-                })
+                report["actions"].append({"type": "archive", "memory_id": memory_id})
 
         # Calculate space saved
         avg_memory_size = 1000  # bytes estimate
-        report['space_saved_estimate'] = (
-            report['memories_merged'] + report['memories_archived']
+        report["space_saved_estimate"] = (
+            report["memories_merged"] + report["memories_archived"]
         ) * avg_memory_size
 
         self.consolidation_count += 1
@@ -371,10 +357,7 @@ class MemoryConsolidator:
         return report
 
     def calculate_consolidation_metrics(
-        self,
-        before_count: int,
-        after_count: int,
-        report: Dict[str, Any]
+        self, before_count: int, after_count: int, report: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Calculate metrics for consolidation effectiveness.
@@ -387,18 +370,26 @@ class MemoryConsolidator:
         Returns:
             Metrics dictionary
         """
-        reduction_rate = (before_count - after_count) / before_count if before_count > 0 else 0
+        reduction_rate = (
+            (before_count - after_count) / before_count if before_count > 0 else 0
+        )
 
         metrics = {
-            'reduction_rate': round(reduction_rate * 100, 2),
-            'compression_ratio': round(before_count / after_count, 2) if after_count > 0 else 0,
-            'duplicates_percentage': round(
-                report['duplicates_found'] / before_count * 100, 2
-            ) if before_count > 0 else 0,
-            'archive_percentage': round(
-                report['memories_archived'] / before_count * 100, 2
-            ) if before_count > 0 else 0,
-            'efficiency_score': self._calculate_efficiency_score(report)
+            "reduction_rate": round(reduction_rate * 100, 2),
+            "compression_ratio": (
+                round(before_count / after_count, 2) if after_count > 0 else 0
+            ),
+            "duplicates_percentage": (
+                round(report["duplicates_found"] / before_count * 100, 2)
+                if before_count > 0
+                else 0
+            ),
+            "archive_percentage": (
+                round(report["memories_archived"] / before_count * 100, 2)
+                if before_count > 0
+                else 0
+            ),
+            "efficiency_score": self._calculate_efficiency_score(report),
         }
 
         return metrics
@@ -418,18 +409,22 @@ class MemoryConsolidator:
         archive_weight = 0.3
         duplicate_weight = 0.3
 
-        total_actions = report['memories_merged'] + report['memories_archived']
+        total_actions = report["memories_merged"] + report["memories_archived"]
         if total_actions == 0:
             return 0.0
 
-        merge_score = min(1.0, report['memories_merged'] / 20)  # Normalize to 20 merges
-        archive_score = min(1.0, report['memories_archived'] / 50)  # Normalize to 50 archives
-        duplicate_score = min(1.0, report['duplicates_found'] / 10)  # Normalize to 10 duplicates
+        merge_score = min(1.0, report["memories_merged"] / 20)  # Normalize to 20 merges
+        archive_score = min(
+            1.0, report["memories_archived"] / 50
+        )  # Normalize to 50 archives
+        duplicate_score = min(
+            1.0, report["duplicates_found"] / 10
+        )  # Normalize to 10 duplicates
 
         efficiency = (
-            merge_weight * merge_score +
-            archive_weight * archive_score +
-            duplicate_weight * duplicate_score
+            merge_weight * merge_score
+            + archive_weight * archive_score
+            + duplicate_weight * duplicate_score
         )
 
         return round(efficiency, 3)
