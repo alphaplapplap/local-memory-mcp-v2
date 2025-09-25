@@ -168,6 +168,60 @@ class PostgresMemoryAPI:
                 cursor.execute("SELECT create_domain_memories_table(%s)", (domain,))
                 conn.commit()
 
+    def _check_for_duplicate(
+        self,
+        content: str,
+        embedding: List[float],
+        domain: str,
+        similarity_threshold: float = 0.95
+    ) -> bool:
+        """
+        Check if a similar memory already exists using vector similarity.
+
+        Args:
+            content: Memory content
+            embedding: Embedding vector
+            domain: Memory domain
+            similarity_threshold: Threshold for considering as duplicate (0.95 = 95% similar)
+
+        Returns:
+            True if duplicate found, False otherwise
+        """
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    table_name = sql.Identifier(f"{domain}_memories")
+
+                    # Find similar memories using cosine similarity
+                    query = sql.SQL("""
+                        SELECT
+                            id,
+                            content,
+                            1 - (embedding <=> %s::vector) as similarity
+                        FROM {}
+                        WHERE embedding IS NOT NULL
+                            AND 1 - (embedding <=> %s::vector) >= %s
+                        ORDER BY similarity DESC
+                        LIMIT 1
+                    """).format(table_name)
+
+                    cursor.execute(query, (embedding, embedding, similarity_threshold))
+                    result = cursor.fetchone()
+
+                    if result:
+                        logger.info(
+                            f"Found duplicate memory with {result['similarity']:.2%} similarity: "
+                            f"{result['content'][:50]}..."
+                        )
+                        return True
+
+            return False
+
+        except Exception as e:
+            # Log error but don't fail the storage operation
+            logger.warning(f"Failed to check for duplicates: {e}")
+            return False
+
     def _assess_content_quality(self, content: str) -> tuple[bool, float, str]:
         """
         Assess content quality for storage worthiness.
@@ -369,6 +423,12 @@ class PostgresMemoryAPI:
                         logger.error(f"Failed to generate embedding after {max_retries + 1} attempts: {e}")
                         # For now, continue without embedding but track this as degraded service
                         # TODO: Consider making this configurable or failing completely based on use case
+
+        # Check for duplicates before storing (Phase 2 optimization)
+        if embedding and self._check_for_duplicate(content, embedding, domain):
+            logger.info(f"Duplicate memory detected in domain {domain}, skipping storage")
+            # Return a special ID to indicate duplicate was found but not stored
+            return f"duplicate_skipped_{memory_id}"
 
         # Database operation with comprehensive error handling
         with database_operation("INSERT", f"{domain}_memories") as cursor:
