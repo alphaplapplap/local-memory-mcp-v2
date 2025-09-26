@@ -1046,8 +1046,7 @@ def search_memories(
             result["query"] = query
             if "score" not in result:
                 result["score"] = 0.0
-            result["optimization_applied"] = True
-            result["optimization_meta"] = optimization_meta
+            # Removed optimization_meta - unimplemented feature causing token waste
 
         return final_results
     else:
