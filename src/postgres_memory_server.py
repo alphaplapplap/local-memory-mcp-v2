@@ -730,6 +730,29 @@ async def mcp_endpoint(request: MCPRequest):
         }
 
 
+# === MCP RESPONSE SANITIZATION ===
+def _sanitize_mcp_response(data):
+    """
+    Sanitize response data for MCP to reduce token overhead.
+    Removes embeddings and redundant fields while preserving functionality.
+    """
+    if isinstance(data, dict):
+        sanitized = {}
+        for key, value in data.items():
+            # Strip embeddings - massive token waste (768+ values per memory)
+            if key == "embedding":
+                continue
+            # Strip redundant display-only fields
+            elif key in ["query", "matched_tags", "optimization_used", "techniques_applied"]:
+                continue
+            else:
+                sanitized[key] = _sanitize_mcp_response(value)
+        return sanitized
+    elif isinstance(data, list):
+        return [_sanitize_mcp_response(item) for item in data]
+    else:
+        return data
+
 # === MCP TOOLS SECTION ===
 # (All existing MCP tools remain unchanged below)
 
@@ -1048,7 +1071,7 @@ def search_memories(
                 result["score"] = 0.0
             # Removed optimization_meta - unimplemented feature causing token waste
 
-        return final_results
+        return _sanitize_mcp_response(final_results)
     else:
         # Fallback to standard retrieval
         results = memory_api.retrieve_memories(query, limit, domain, time_filter)
@@ -1059,7 +1082,7 @@ def search_memories(
             if "score" not in result:
                 result["score"] = 0.0
 
-        return results
+        return _sanitize_mcp_response(results)
 
 
 @server.tool()
@@ -1107,7 +1130,7 @@ def recall_memory(query: str, n_results: Optional[int] = 5) -> List[Dict[str, An
         if "score" not in result:
             result["score"] = 0.0
 
-    return results
+    return _sanitize_mcp_response(results)
 
 
 @server.tool()
@@ -1161,7 +1184,7 @@ def search_by_tag(
         if "score" not in result:
             result["score"] = 0.0
 
-    return results
+    return _sanitize_mcp_response(results)
 
 
 @server.tool()
@@ -2540,7 +2563,7 @@ def consolidate_memories(
                 optimization_mgr.stats.get("consolidations_performed", 0) + 1
             )
 
-            return result
+            return _sanitize_mcp_response(result)
 
         else:
             # Fallback to basic PostgreSQL consolidator
@@ -2562,7 +2585,7 @@ def consolidate_memories(
             )
 
             result["optimization_used"] = False
-            return result
+            return _sanitize_mcp_response(result)
 
     except Exception as e:
         logger.error(f"Error consolidating memories: {e}")
