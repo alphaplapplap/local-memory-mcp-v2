@@ -294,16 +294,23 @@ def get_git_info(directory: str) -> Dict[str, Any]:
     Get Git repository information
     """
     try:
-        git_dir = os.path.join(directory, ".git")
+        # Walk up directories to find .git
+        current = directory
+        git_root = None
+        while current != "/" and current:
+            git_dir = os.path.join(current, ".git")
+            if os.path.exists(git_dir):
+                git_root = current
+                break
+            current = os.path.dirname(current)
 
-        # Check if this is a git repository
-        if not os.path.exists(git_dir):
+        if not git_root:
             return {"isRepo": False}
 
-        # Get repository information
+        # Get repository information (run from git root)
         result = subprocess.run(
             ["git", "branch", "--show-current"],
-            cwd=directory,
+            cwd=git_root,
             capture_output=True,
             text=True,
             timeout=2,
@@ -312,7 +319,7 @@ def get_git_info(directory: str) -> Dict[str, Any]:
 
         result = subprocess.run(
             ["git", "config", "--get", "remote.origin.url"],
-            cwd=directory,
+            cwd=git_root,
             capture_output=True,
             text=True,
             timeout=2,
@@ -321,7 +328,7 @@ def get_git_info(directory: str) -> Dict[str, Any]:
 
         result = subprocess.run(
             ["git", "log", "-1", "--pretty=format:%h %s"],
-            cwd=directory,
+            cwd=git_root,
             capture_output=True,
             text=True,
             timeout=2,
@@ -343,6 +350,7 @@ def get_git_info(directory: str) -> Dict[str, Any]:
             "remoteUrl": remote_url,
             "repoName": repo_name,
             "lastCommit": last_commit,
+            "gitRoot": git_root,
         }
 
     except Exception as e:
@@ -368,11 +376,28 @@ def detect_project_context(directory: str = None) -> Dict[str, Any]:
         # Detect framework and tools
         framework = detect_framework(directory)
 
-        # Get Git information
+        # Get Git information - check parent directories for git root
         git = get_git_info(directory)
 
-        # Determine project name (priority: git repo > directory name > config file)
-        project_name = git.get("repoName") or directory_name or framework["projectName"]
+        # If we're in a git repo, use the git root for project name
+        if git.get("isRepo"):
+            git_root = git.get("gitRoot", directory)
+            root_project_name = os.path.basename(git_root)
+
+            # Check if we're in a subdirectory of the git root
+            if git_root != directory:
+                # We're in a subdirectory - use the git repo name or root directory name
+                project_name = git.get("repoName", root_project_name)
+                # Add subdirectory context to tools
+                rel_path = os.path.relpath(directory, git_root)
+                if rel_path and rel_path != ".":
+                    framework["tools"].append(f"Subdirectory: {rel_path}")
+            else:
+                # We're at the root - use normal priority
+                project_name = git.get("repoName") or root_project_name or framework["projectName"]
+        else:
+            # No git repo - use directory name or config file
+            project_name = directory_name or framework["projectName"]
 
         # Calculate confidence score
         confidence = 0.5  # Base confidence

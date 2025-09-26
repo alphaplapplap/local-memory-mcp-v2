@@ -1,0 +1,17 @@
+{
+  "project_name": "local-memory-mcp-v2",
+  "domain": "local-memory-mcp-v2",
+  "weights": {
+    "time_decay": 0.2,
+    "tag_relevance": 0.3,
+    "content_relevance": 0.2,
+    "content_quality": 0.25,
+    "conversation_relevance": 0.05
+  },
+  "learning_rate": 0.1,
+  "momentum": 0.9,
+  "last_update": "2025-09-25T20:11:33.076529",
+  "total_queries": 0,
+  "successful_queries": 0,
+  "access_patterns": {}
+}

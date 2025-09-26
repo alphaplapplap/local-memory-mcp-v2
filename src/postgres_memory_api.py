@@ -136,6 +136,20 @@ class PostgresMemoryAPI:
         }
         self.default_domain = os.getenv("DEFAULT_MEMORY_DOMAIN", "default")
 
+        # Per-domain memory limits for token efficiency
+        self.domain_memory_limits = {
+            "default": 50,        # Maximum memories per domain
+            "test-tags": 50,      # Test domain
+            # All domains default to 50 memories max
+        }
+
+        # Per-domain tag limits for token efficiency (smaller since max 50 memories)
+        self.domain_tag_limits = {
+            "default": 15,        # General domain
+            "test-tags": 10,      # Test domain
+            # Auto-calculated for other domains based on memory count
+        }
+
         # Initialize Ollama embeddings if not provided
         if ollama_embeddings is None:
             try:
@@ -373,6 +387,7 @@ class PostgresMemoryAPI:
         domain: Optional[str] = None,
         importance: Optional[int] = None,
         tags: Optional[List[str]] = None,
+        auto_tag: bool = True,
     ) -> str:
         """Store a new memory in the specified domain."""
         # Auto-detect domain if not provided
@@ -499,13 +514,28 @@ class PostgresMemoryAPI:
 
         metadata = metadata or {}
 
-        # Add tags to metadata if provided
-        if tags is not None:
-            if not isinstance(tags, list):
+        # Handle tags (manual + auto-generated)
+        final_tags = list(tags) if tags else []
+
+        # Auto-generate tags if enabled and content is substantial
+        if auto_tag and len(content.strip()) > 20:
+            try:
+                generated_tags = self._generate_tags_with_ollama(content)
+                # Add generated tags, avoiding duplicates
+                for tag in generated_tags:
+                    if tag not in final_tags:
+                        final_tags.append(tag)
+                logger.info(f"Auto-generated {len(generated_tags)} tags, total: {len(final_tags)}")
+            except Exception as e:
+                logger.warning(f"Auto-tagging failed: {e}")
+
+        # Add tags to metadata if we have any
+        if final_tags:
+            if not isinstance(final_tags, list):
                 raise ValidationError("Tags must be a list of strings", field="tags")
 
             # Validate each tag
-            for tag in tags:
+            for tag in final_tags:
                 if not isinstance(tag, str):
                     raise ValidationError("All tags must be strings", field="tags")
                 if len(tag.strip()) == 0:
@@ -514,7 +544,7 @@ class PostgresMemoryAPI:
                     )
 
             # Remove duplicates and empty tags, then add to metadata
-            clean_tags = list(set(tag.strip() for tag in tags if tag.strip()))
+            clean_tags = list(set(tag.strip() for tag in final_tags if tag.strip()))
             if clean_tags:
                 metadata["tags"] = clean_tags
 
@@ -591,6 +621,28 @@ class PostgresMemoryAPI:
                 cursor.execute(query, (memory_id, content, Json(metadata)))
 
         logger.info(f"Successfully stored memory {memory_id} in domain {domain}")
+
+        # Check if we need to prune memories (deterministic based on count)
+        stats = self.get_domain_stats(domain)
+        current_count = stats.get("memory_count", 0)
+        limit = self.get_domain_memory_limit(domain)
+
+        if current_count > limit:
+            # Prune old memories immediately when over limit
+            pruned_memories = self.prune_oldest_memories(domain)
+
+            # Clean up any unused tags after pruning
+            if pruned_memories > 0:
+                self.cleanup_unused_tags(domain)
+
+        # Periodically enforce tag limits (every 5th memory to avoid overhead)
+        import random
+        if random.randint(1, 5) == 1:  # 20% chance
+            try:
+                self.enforce_domain_tag_limit(domain)
+            except Exception as e:
+                logger.warning(f"Tag limit enforcement failed for {domain}: {e}")
+
         return memory_id
 
     def retrieve_memories(
@@ -989,6 +1041,7 @@ class PostgresMemoryAPI:
                         return {
                             "memory_count": 0,
                             "table_size": "0 B",
+                            "size": 0,  # Size in bytes
                             "last_activity": None,
                         }
 
@@ -1001,14 +1054,18 @@ class PostgresMemoryAPI:
                     cursor.execute(count_query)
                     memory_count = cursor.fetchone()[0]
 
-                    # Get table size
+                    # Get table size (both bytes and pretty format)
                     cursor.execute(
                         """
-                        SELECT pg_size_pretty(pg_total_relation_size(%s))
+                        SELECT
+                            pg_total_relation_size(%s) as size_bytes,
+                            pg_size_pretty(pg_total_relation_size(%s)) as size_pretty
                     """,
-                        (table_name,),
+                        (table_name, table_name),
                     )
-                    table_size = cursor.fetchone()[0]
+                    result = cursor.fetchone()
+                    table_size_bytes = result[0]
+                    table_size = result[1]
 
                     # Get last activity (most recent created_at)
                     from psycopg2 import sql as psycopg2_sql
@@ -1025,13 +1082,339 @@ class PostgresMemoryAPI:
                     return {
                         "memory_count": memory_count,
                         "table_size": table_size,
+                        "size": table_size_bytes,  # Size in bytes for calculations
                         "last_activity": (
                             last_activity.isoformat() if last_activity else None
                         ),
                     }
         except Exception as e:
             logger.error(f"Error getting domain stats for {domain}: {e}")
-            return {"memory_count": 0, "table_size": "0 B", "last_activity": None}
+            return {"memory_count": 0, "table_size": "0 B", "size": 0, "last_activity": None}
+
+    def get_domain_memory_limit(self, domain: str) -> int:
+        """Get memory limit for a domain (default 50)."""
+        return self.domain_memory_limits.get(domain, 50)
+
+    def get_domain_tag_limit(self, domain: str) -> int:
+        """Get tag limit for a domain, auto-calculating for new domains."""
+        if domain in self.domain_tag_limits:
+            return self.domain_tag_limits[domain]
+
+        # Auto-calculate limit based on memory count (max 50 memories)
+        stats = self.get_domain_stats(domain)
+        memory_count = stats.get("memory_count", 0)
+
+        if memory_count < 10:
+            limit = 5
+        elif memory_count < 25:
+            limit = 8
+        elif memory_count < 40:
+            limit = 12
+        else:
+            limit = 15  # Max tag limit for max 50 memories
+
+        # Cache the calculated limit
+        self.domain_tag_limits[domain] = limit
+        return limit
+
+    def enforce_domain_tag_limit(self, domain: str) -> int:
+        """Enforce tag limits by pruning least-used tags. Returns number of tags removed."""
+        limit = self.get_domain_tag_limit(domain)
+
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    table_name = f"{domain}_memories"
+
+                    # Check if table exists
+                    cursor.execute(
+                        """
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_schema = 'public'
+                            AND table_name = %s
+                        )
+                    """,
+                        (table_name,),
+                    )
+
+                    if not cursor.fetchone()[0]:
+                        return 0
+
+                    # Get tag usage frequency (only from arrays, not scalars)
+                    cursor.execute(f"""
+                        SELECT tag, COUNT(*) as usage_count
+                        FROM (
+                            SELECT jsonb_array_elements_text(metadata->'tags') as tag
+                            FROM "{table_name}"
+                            WHERE metadata->'tags' IS NOT NULL
+                            AND jsonb_typeof(metadata->'tags') = 'array'
+                        ) tag_stats
+                        WHERE tag IS NOT NULL AND tag != ''
+                        GROUP BY tag
+                        ORDER BY usage_count ASC
+                    """)
+
+                    tag_usage = cursor.fetchall()
+                    current_tag_count = len(tag_usage)
+
+                    if current_tag_count <= limit:
+                        return 0
+
+                    # Remove least-used tags
+                    tags_to_remove = current_tag_count - limit
+                    least_used_tags = [row[0] for row in tag_usage[:tags_to_remove]]
+
+                    # Remove these tags from all memories
+                    for tag in least_used_tags:
+                        cursor.execute(f"""
+                            UPDATE "{table_name}"
+                            SET metadata = metadata || jsonb_build_object(
+                                'tags',
+                                (SELECT jsonb_agg(elem)
+                                 FROM jsonb_array_elements_text(metadata->'tags') elem
+                                 WHERE elem != %s)
+                            )
+                            WHERE metadata->'tags' ? %s
+                        """, (tag, tag))
+
+                    logger.info(f"Enforced tag limit for {domain}: removed {tags_to_remove} least-used tags")
+                    return tags_to_remove
+
+        except Exception as e:
+            logger.error(f"Error enforcing tag limit for {domain}: {e}")
+            return 0
+
+    def prune_oldest_memories(self, domain: str) -> int:
+        """Prune oldest memories when domain exceeds memory limit. Returns number removed."""
+        limit = self.get_domain_memory_limit(domain)
+
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    table_name = f"{domain}_memories"
+
+                    # Check if table exists
+                    cursor.execute(
+                        """
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_schema = 'public'
+                            AND table_name = %s
+                        )
+                    """,
+                        (table_name,),
+                    )
+
+                    if not cursor.fetchone()[0]:
+                        return 0
+
+                    # Count current memories
+                    cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+                    current_count = cursor.fetchone()[0]
+
+                    if current_count <= limit:
+                        return 0
+
+                    # Calculate how many to remove
+                    to_remove = current_count - limit
+
+                    # Get oldest memory IDs
+                    cursor.execute(f"""
+                        SELECT id FROM "{table_name}"
+                        ORDER BY created_at ASC
+                        LIMIT %s
+                    """, (to_remove,))
+
+                    old_memory_ids = [row[0] for row in cursor.fetchall()]
+
+                    # Delete oldest memories
+                    if old_memory_ids:
+                        placeholders = ','.join(['%s'] * len(old_memory_ids))
+                        cursor.execute(f"""
+                            DELETE FROM "{table_name}"
+                            WHERE id IN ({placeholders})
+                        """, old_memory_ids)
+
+                        logger.info(f"Pruned {to_remove} oldest memories from {domain} (limit: {limit})")
+                        return to_remove
+
+            return 0
+
+        except Exception as e:
+            logger.error(f"Error pruning memories for {domain}: {e}")
+            return 0
+
+    def cleanup_unused_tags(self, domain: str) -> int:
+        """Remove tags that are no longer used by any memories. Returns number removed."""
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    table_name = f"{domain}_memories"
+
+                    # Check if table exists
+                    cursor.execute(
+                        """
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_schema = 'public'
+                            AND table_name = %s
+                        )
+                    """,
+                        (table_name,),
+                    )
+
+                    if not cursor.fetchone()[0]:
+                        return 0
+
+                    # Get all currently used tags (only from arrays, not scalars)
+                    cursor.execute(f"""
+                        SELECT DISTINCT jsonb_array_elements_text(metadata->'tags') as tag
+                        FROM "{table_name}"
+                        WHERE metadata->'tags' IS NOT NULL
+                        AND jsonb_typeof(metadata->'tags') = 'array'
+                    """)
+
+                    used_tags = set()
+                    for row in cursor.fetchall():
+                        if row[0] and row[0].strip():
+                            used_tags.add(row[0])
+
+                    # Find memories with tags not in the used set and clean them
+                    cursor.execute(f"""
+                        SELECT id, metadata
+                        FROM "{table_name}"
+                        WHERE metadata->'tags' IS NOT NULL
+                    """)
+
+                    cleaned_count = 0
+                    for row in cursor.fetchall():
+                        memory_id, metadata = row
+                        current_tags = metadata.get('tags', [])
+                        if current_tags:
+                            # Filter to only keep used tags
+                            filtered_tags = [tag for tag in current_tags if tag in used_tags]
+
+                            if len(filtered_tags) != len(current_tags):
+                                # Update memory with filtered tags
+                                metadata['tags'] = filtered_tags
+                                cursor.execute(f"""
+                                    UPDATE "{table_name}"
+                                    SET metadata = %s
+                                    WHERE id = %s
+                                """, (Json(metadata), memory_id))
+                                cleaned_count += 1
+
+                    if cleaned_count > 0:
+                        logger.info(f"Cleaned unused tags from {cleaned_count} memories in {domain}")
+
+                    return cleaned_count
+
+        except Exception as e:
+            logger.error(f"Error cleaning unused tags for {domain}: {e}")
+            return 0
+
+    def get_total_unique_tags_count(self) -> int:
+        """Get total unique tags count across all domains."""
+        try:
+            all_tags = set()
+            domains = self.list_domains()
+
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    for domain in domains:
+                        table_name = f"{domain}_memories"
+
+                        # Check if table exists
+                        cursor.execute(
+                            """
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables
+                                WHERE table_schema = 'public'
+                                AND table_name = %s
+                            )
+                        """,
+                            (table_name,),
+                        )
+
+                        if cursor.fetchone()[0]:
+                            # Get unique tags from this domain (only from arrays, not scalars)
+                            cursor.execute(f"""
+                                SELECT DISTINCT jsonb_array_elements_text(metadata->'tags') as tag
+                                FROM "{table_name}"
+                                WHERE metadata->'tags' IS NOT NULL
+                                AND jsonb_typeof(metadata->'tags') = 'array'
+                            """)
+
+                            domain_tags = cursor.fetchall()
+                            for row in domain_tags:
+                                if row[0] and row[0].strip():  # Skip empty tags
+                                    all_tags.add(row[0].lower())
+
+            return len(all_tags)
+
+        except Exception as e:
+            logger.error(f"Error calculating total unique tags: {e}")
+            return 0
+
+    def _generate_tags_with_ollama(self, content: str) -> List[str]:
+        """Generate intelligent tags using Ollama AI."""
+        if not self.ollama_embeddings:
+            logger.warning("Ollama not available for tag generation")
+            return []
+
+        try:
+            # Create a concise prompt for tag extraction
+            prompt = f"""Extract 3-5 relevant tags from this text. Return only tags separated by commas:
+
+{content[:500]}
+
+Tags:"""
+
+            # Use Ollama's generate API for text completion
+            generate_url = f"{self.ollama_embeddings.base_url}/api/generate"
+            response = self.ollama_embeddings.session.post(
+                generate_url,
+                json={
+                    "model": "llama3.2:3b",
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.3,
+                        "num_predict": 50,  # Limit tokens
+                        "stop": ["\n", ".", "!", "?"]
+                    }
+                },
+                timeout=15
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                tags_text = result.get('response', '').strip()
+
+                # Parse comma-separated tags and clean them
+                tags = [
+                    tag.strip().lower().replace(' ', '-')
+                    for tag in tags_text.split(',')
+                    if tag.strip() and len(tag.strip()) > 1
+                ]
+
+                # Filter out common words and limit to 5 tags
+                filtered_tags = [
+                    tag for tag in tags[:5]
+                    if tag not in ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'from']
+                    and len(tag) > 1
+                ]
+
+                logger.info(f"Generated {len(filtered_tags)} tags: {filtered_tags}")
+                return filtered_tags
+            else:
+                logger.warning(f"Ollama API returned status {response.status_code}")
+
+        except Exception as e:
+            logger.warning(f"Failed to generate tags with Ollama: {e}")
+
+        return []
 
     def _init_consolidation_system(self) -> None:
         """Initialize the existing consolidation system."""
