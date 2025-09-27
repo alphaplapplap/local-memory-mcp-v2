@@ -1,0 +1,54 @@
+[Unit]
+Description=Local Memory MCP Server
+After=network.target postgresql.service
+Wants=postgresql.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+WorkingDirectory=/opt/localmemory-mcp
+
+# Environment Variables
+Environment="POSTGRES_HOST=localhost"
+Environment="POSTGRES_PORT=5432"
+Environment="POSTGRES_DB=postgres"
+Environment="POSTGRES_USER=postgres"
+Environment="POSTGRES_PASSWORD=postgres"
+Environment="SERVER_HOST=127.0.0.1"
+Environment="SERVER_PORT=8000"
+Environment="LOG_LEVEL=INFO"
+Environment="MAX_RETRIES=5"
+Environment="PYTHONUNBUFFERED=1"
+
+# Use the wrapper script for automatic restarts
+ExecStart=/opt/localmemory-mcp/scripts/run_with_restart.sh http
+
+# Restart configuration
+Restart=always
+RestartSec=10
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Security hardening (optional, adjust based on needs)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/localmemory-mcp/logs
+
+# Resource limits
+LimitNOFILE=4096
+Nice=10
+
+# Logging
+StandardOutput=append:/opt/localmemory-mcp/logs/mcp-systemd.log
+StandardError=append:/opt/localmemory-mcp/logs/mcp-systemd.error.log
+
+[Install]
+WantedBy=multi-user.target

@@ -3,6 +3,7 @@ import sys
 
 # CRITICAL: Disable banner BEFORE importing FastMCP to prevent JSON protocol errors
 os.environ["FASTMCP_SHOW_CLI_BANNER"] = "false"
+os.environ["FASTMCP_SUPPRESS_STARTUP_MESSAGES"] = "true"
 
 import time
 import json
@@ -30,8 +31,27 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
 
+# Get logger for this module
+logger = logging.getLogger(__name__)
+
+# Monkey patch rich console to suppress banner
+import rich.console
+_original_print = rich.console.Console.print
+
+def _suppressed_print(self, *args, **kwargs):
+    # Suppress FastMCP banner in MCP mode
+    if hasattr(self, 'file') and self.file and hasattr(self.file, 'name'):
+        if self.file.name == '<stdout>':
+            return  # Suppress stdout prints from rich in MCP mode
+    return _original_print(self, *args, **kwargs)
+
+# Apply patch before importing FastMCP
+if len(sys.argv) > 1 and sys.argv[1] == "mcp":
+    rich.console.Console.print = _suppressed_print
+
 import fastmcp
 from fastmcp import FastMCP, Context
+from fastmcp.server.auth import StaticTokenVerifier
 
 # FastAPI imports for HTTP layer
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -60,6 +80,19 @@ except ImportError:
 # Configure logger
 logger = logging.getLogger(__name__)
 
+# === START MCP MONITORING === (Added for Claude Desktop monitoring)
+# To remove: Delete from this line to END MCP MONITORING
+import datetime as dt
+mcp_monitor_logger = logging.getLogger('MCP_MONITOR')
+mcp_monitor_handler = logging.FileHandler('/tmp/mcp_monitor.log', mode='a')
+mcp_monitor_handler.setFormatter(
+    logging.Formatter('[%(asctime)s] MCP_CALL: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+)
+mcp_monitor_logger.addHandler(mcp_monitor_handler)
+mcp_monitor_logger.setLevel(logging.INFO)
+mcp_monitor_logger.propagate = False
+# === END MCP MONITORING ===
+
 # CRITICAL: Re-configure logging AFTER all imports to ensure stderr output in MCP mode
 if len(sys.argv) > 1 and sys.argv[1] == "mcp":
     # Force ALL loggers to use stderr
@@ -71,10 +104,37 @@ if len(sys.argv) > 1 and sys.argv[1] == "mcp":
     root_logger.setLevel(logging.WARNING)
 
 # Get server name from environment or use default
-server_name = os.environ.get("MCP_SERVER_NAME", "Local Context Memory")
+server_name = os.environ.get("MCP_SERVER_NAME", "local_memory_service")
 
-# Initialize the FastMCP server
-server = FastMCP(server_name)
+# Detect if we're running in MCP mode to suppress banner
+is_mcp_mode = len(sys.argv) > 1 and sys.argv[1] == "mcp"
+
+if is_mcp_mode:
+    # Temporarily suppress stdout to prevent banner corruption
+    import io
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+
+# Production configuration from environment variables
+SERVER_HOST = os.environ.get("MCP_SERVER_HOST", "127.0.0.1")
+SERVER_PORT = int(os.environ.get("MCP_SERVER_PORT", 8000))
+AUTH_TOKEN = os.environ.get("MCP_AUTH_TOKEN")
+LOG_LEVEL = os.environ.get("MCP_LOG_LEVEL", "info")
+WORKERS = int(os.environ.get("MCP_WORKERS", 1))
+
+# Initialize the FastMCP server with optional authentication
+if AUTH_TOKEN:
+    # Create static token verifier for simple authentication
+    token_verifier = StaticTokenVerifier({AUTH_TOKEN: {"user": "admin", "scope": "all"}})
+    mcp = FastMCP(server_name, auth_provider=token_verifier)
+    logger.info("FastMCP server initialized with authentication")
+else:
+    mcp = FastMCP(server_name)
+    logger.info("FastMCP server initialized without authentication")
+
+if is_mcp_mode:
+    # Restore stdout after initialization
+    sys.stdout = old_stdout
 
 # Check if Ollama is available
 ollama_available = False
@@ -184,6 +244,7 @@ class MemorySearchRequest(BaseModel):
     domain: Optional[str] = "default"
     limit: Optional[int] = 10
     time_filter: Optional[str] = None
+    min_similarity: Optional[float] = 0.35
 
 
 class SessionStartRequest(BaseModel):
@@ -332,7 +393,7 @@ async def health_check():
                 "embedding_model": embedding_model if ollama_available else "text-only",
                 "accessible": True,
                 "database_path": os.environ.get(
-                    "DATABASE_URL", "postgresql://localhost/memories"
+                    "DATABASE_URL", "postgresql://localhost/postgres"
                 ),
             },
             "system": {
@@ -371,7 +432,7 @@ async def health_check_detailed():
     # Add more detailed storage info
     if "storage" in base_health:
         base_health["storage"]["location"] = os.environ.get(
-            "DATABASE_URL", "postgresql://localhost/memories"
+            "DATABASE_URL", "postgresql://localhost/postgres"
         )
 
     # Add statistics that hooks expect
@@ -448,13 +509,27 @@ async def store_memory_http(request: MemoryStoreRequest):
     try:
         # Prepare metadata with tags
         metadata = request.metadata or {}
+
+        # Debug: Check what's in the incoming metadata
+        if 'facts' in metadata:
+            logger.info(f"HTTP endpoint received metadata with facts: {len(metadata.get('facts', {}))}")
         if request.tags:
             metadata["tags"] = request.tags
 
-        # Use the same store_memory function as MCP
-        memory_id = memory_api.store_memory(
-            content=request.content, domain=request.domain, metadata=metadata
-        )
+        # Try to store memory with retry on table recreation
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                memory_id = memory_api.store_memory(
+                    content=request.content, domain=request.domain, metadata=metadata
+                )
+                break  # Success, exit retry loop
+            except Exception as e:
+                if "Table was missing and has been recreated" in str(e) and attempt < max_retries - 1:
+                    logger.info(f"Table recreated, retrying store operation (attempt {attempt + 2}/{max_retries})...")
+                    continue
+                else:
+                    raise  # Re-raise if not a table recreation or last attempt
 
         performance_metrics["queries_total"] += 1
 
@@ -471,7 +546,10 @@ async def store_memory_http(request: MemoryStoreRequest):
 
 @http_app.get("/api/memories")
 async def retrieve_memories_http(
-    query: str = "", domain: str = "default", limit: int = 10
+    query: str = "",
+    domain: str = "default",
+    limit: int = 10,
+    min_similarity: float = 0.35
 ):
     """Retrieve memories via HTTP (for testing/debugging)"""
     try:
@@ -479,7 +557,9 @@ async def retrieve_memories_http(
         performance_metrics["queries_total"] += 1
 
         # Use the same retrieve_memories function as MCP
-        results = memory_api.retrieve_memories(query=query, domain=domain, limit=limit)
+        results = memory_api.retrieve_memories(
+            query=query, domain=domain, limit=limit, min_similarity=min_similarity
+        )
 
         response_time = (time.time() - start_time) * 1000
         performance_metrics["avg_response_ms"] = response_time
@@ -509,7 +589,10 @@ async def search_memories_http(request: MemorySearchRequest):
 
         # Use the search_memories function (which uses embeddings if available)
         results = memory_api.retrieve_memories(
-            query=request.query, domain=request.domain, limit=request.limit
+            query=request.query,
+            domain=request.domain,
+            limit=request.limit,
+            min_similarity=request.min_similarity
         )
 
         # Apply time filter if provided
@@ -668,65 +751,8 @@ async def get_session_insights_http(
         }
 
 
-@http_app.post("/mcp")
-async def mcp_endpoint(request: MCPRequest):
-    """
-    MCP protocol endpoint for memory retrieval
-    Handles tools/call method for retrieve_memory
-    """
-    try:
-        if request.method == "tools/call":
-            tool_name = request.params.get("name")
-            args = request.params.get("arguments", {})
-
-            if tool_name == "retrieve_memory":
-                query = args.get("query", "")
-                domain = args.get("domain", "default")
-                limit = args.get("limit", 10)
-
-                # Use the same retrieve function
-                results = memory_api.retrieve_memories(
-                    query=query, domain=domain, limit=limit
-                )
-
-                return {
-                    "jsonrpc": "2.0",
-                    "id": request.id,
-                    "result": {
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": json.dumps(
-                                    results, indent=2, cls=CustomJSONEncoder
-                                ),
-                            }
-                        ]
-                    },
-                }
-            else:
-                return {
-                    "jsonrpc": "2.0",
-                    "id": request.id,
-                    "error": {
-                        "code": -32601,
-                        "message": f"Method not found: {tool_name}",
-                    },
-                }
-        else:
-            return {
-                "jsonrpc": "2.0",
-                "id": request.id,
-                "error": {
-                    "code": -32601,
-                    "message": f"Method not supported: {request.method}",
-                },
-            }
-    except Exception as e:
-        return {
-            "jsonrpc": "2.0",
-            "id": request.id,
-            "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
-        }
+# FastMCP automatically handles MCP protocol through @mcp.tool() decorators
+# No manual /mcp endpoint needed
 
 
 # === MCP RESPONSE SANITIZATION ===
@@ -753,7 +779,7 @@ def _sanitize_mcp_response(data):
         return data
 
 # === MCP TOOLS SECTION ===
-# Essential tools based on proven mcp-memory-service design
+# Essential tools based on proven local-memory-mcp design
 
 def generate_tags_with_ollama(content: str) -> List[str]:
     """Generate intelligent tags using Ollama AI."""
@@ -815,7 +841,7 @@ Tags:"""
     return []
 
 
-@server.tool()
+@mcp.tool()
 def store_memory(
     content: str,
     domain: Optional[str] = None,
@@ -825,6 +851,12 @@ def store_memory(
     importance: Optional[float] = None,
 ) -> str:
     """Store memory with content and metadata."""
+    # === MCP MONITORING === (Remove this block to disable)
+    mcp_monitor_logger.info(
+        f"store_memory called | content_len: {len(content)} | domain: {domain} | "
+        f"tags: {tags} | source: {source} | importance: {importance}"
+    )
+    # === END MCP MONITORING ===
     metadata = {}
     if source:
         metadata["source"] = source
@@ -851,15 +883,33 @@ def store_memory(
     memory_id = memory_api.store_memory(content, metadata, domain)
     return memory_id
 
-@server.tool()
+@mcp.tool()
 def retrieve_memory(
     query: str,
     domain: Optional[str] = None,
     limit: Optional[int] = 5,
-    min_similarity: Optional[float] = 0.0,
+    min_similarity: Optional[float] = 0.35,
 ) -> List[Dict[str, Any]]:
-    """Retrieve memories by semantic similarity."""
-    results = memory_api.retrieve_memories(query, limit, domain)
+    """Retrieve memories by semantic similarity.
+
+    Args:
+        query: Search query text
+        domain: Memory domain to search in (default: auto-detect)
+        limit: Maximum number of results (default: 5)
+        min_similarity: Minimum similarity score 0.0-1.0 (default: 0.35)
+    """
+    # === MCP MONITORING === (Remove this block to disable)
+    mcp_monitor_logger.info(
+        f"retrieve_memory called | query: '{query[:100] if len(query) > 100 else query}' | "
+        f"domain: {domain} | limit: {limit} | min_similarity: {min_similarity}"
+    )
+    # === END MCP MONITORING ===
+    results = memory_api.retrieve_memories(
+        query=query,
+        limit=limit,
+        domain=domain,
+        min_similarity=min_similarity
+    )
 
     for result in results:
         result["query"] = query
@@ -868,33 +918,46 @@ def retrieve_memory(
 
     return _sanitize_mcp_response(results)
 
-@server.tool()
+@mcp.tool()
 def search_by_tag(
     tags: List[str],
     domain: Optional[str] = None,
     match_all: bool = False,
 ) -> List[Dict[str, Any]]:
     """Search memories by tags."""
+    # === MCP MONITORING === (Remove this block to disable)
+    mcp_monitor_logger.info(
+        f"search_by_tag called | tags: {tags} | domain: {domain} | match_all: {match_all}"
+    )
+    # === END MCP MONITORING ===
     tag_query = f"tags:{','.join(tags)}"
     results = memory_api.retrieve_memories(tag_query, 100, domain)
 
     return _sanitize_mcp_response(results)
 
-@server.tool()
+@mcp.tool()
 def delete_memory(
     memory_id: str,
     domain: Optional[str] = None,
 ) -> bool:
     """Delete memory by ID."""
+    # === MCP MONITORING === (Remove this block to disable)
+    mcp_monitor_logger.info(
+        f"delete_memory called | memory_id: {memory_id} | domain: {domain}"
+    )
+    # === END MCP MONITORING ===
     return memory_api.delete_memory(memory_id, domain)
 
-@server.tool()
+@mcp.tool()
 def list_domains() -> List[str]:
     """List available memory domains."""
+    # === MCP MONITORING === (Remove this block to disable)
+    mcp_monitor_logger.info("list_domains called")
+    # === END MCP MONITORING ===
     return memory_api.list_domains()
 
 # Keep resource for compatibility
-@server.resource("memory://{domain}/{query}")
+@mcp.resource("memory://{domain}/{query}")
 def get_memories(
     domain: str, query: str, limit: Optional[int] = 5
 ) -> List[Dict[str, Any]]:
@@ -925,35 +988,114 @@ def run_http_server():
     )
 
 
-def run_mcp_server():
-    """Run the MCP server with stdio transport"""
-    # No print statements in MCP mode to avoid breaking JSON protocol
-    server.run(transport="stdio")
+def create_mcp_server():
+    """Factory function to create MCP server without banner for FastMCP install"""
+    import io
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
 
+    try:
+        server = FastMCP(server_name)
+        # Add all tools and resources
+        for name, func in globals().items():
+            if hasattr(func, '_tool_metadata'):
+                server._tools[name] = func
+        return server
+    finally:
+        sys.stdout = old_stdout
+
+
+# Create unified ASGI app with both FastAPI and FastMCP
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+# Mount FastMCP into FastAPI for unified HTTP/MCP server
+# Create ASGI applications for production deployment
+app = mcp.http_app()  # Standard FastMCP ASGI app for production
+
+# Optional: Custom path version
+mcp_app_custom = mcp.http_app(path="/api/mcp/")
+
+def run_server_with_recovery(mode="mcp", max_retries=3):
+    """Run server with automatic recovery from crashes"""
+    retry_count = 0
+
+    while retry_count < max_retries:
+        try:
+            if mode == "http":
+                # HTTP mode for session-end hooks and debugging
+                print(f"🚀 Starting HTTP Memory Server on {SERVER_HOST}:{SERVER_PORT}", file=sys.stderr)
+                print("🌐 HTTP API: Available at /api/*", file=sys.stderr)
+                print("🔄 Supporting session-end hooks", file=sys.stderr)
+                if AUTH_TOKEN:
+                    print("🔒 Authentication: Bearer token enabled", file=sys.stderr)
+                if WORKERS > 1:
+                    print(f"⚡ Workers: {WORKERS} (production mode)", file=sys.stderr)
+
+                uvicorn.run(
+                    http_app,
+                    host=SERVER_HOST,
+                    port=SERVER_PORT,
+                    workers=WORKERS,
+                    log_level=LOG_LEVEL,
+                    access_log=True if LOG_LEVEL == "debug" else False,
+                    server_header=False,  # Security - don't expose server version
+                    date_header=False,    # Performance - skip date header
+                )
+            elif mode == "unified":
+                # Unified mode with FastMCP HTTP server
+                print(f"🚀 Starting Unified FastMCP Server on {SERVER_HOST}:{SERVER_PORT}", file=sys.stderr)
+                print("⚡ MCP Protocol: Available at /", file=sys.stderr)
+                print("🔄 Supporting both Claude Code (HTTP MCP) and session-end hooks", file=sys.stderr)
+                if AUTH_TOKEN:
+                    print("🔒 Authentication: Bearer token enabled", file=sys.stderr)
+
+                # Use FastMCP's direct HTTP server
+                mcp.run(transport="http", host=SERVER_HOST, port=SERVER_PORT)
+            else:
+                # Default: MCP stdio for Claude Code
+                print("⚡ Starting FastMCP stdio server for Claude Code", file=sys.stderr)
+                mcp.run()
+
+            # If we get here, server exited normally
+            break
+
+        except KeyboardInterrupt:
+            logger.info("Server stopped by user")
+            break
+        except Exception as e:
+            retry_count += 1
+            logger.error(f"Server crashed with error: {e}", exc_info=True)
+
+            if retry_count < max_retries:
+                wait_time = min(retry_count * 5, 30)  # Exponential backoff, max 30s
+                logger.info(f"Restarting server in {wait_time} seconds (attempt {retry_count + 1}/{max_retries})...")
+                time.sleep(wait_time)
+
+                # Try to reinitialize connections
+                try:
+                    global memory_api
+                    if hasattr(memory_api, 'db_pool'):
+                        memory_api.db_pool.close_all()
+                    memory_api = PostgresMemoryAPI()
+                    logger.info("Reinitialized database connections")
+                except Exception as reinit_error:
+                    logger.error(f"Failed to reinitialize connections: {reinit_error}")
+            else:
+                logger.error(f"Max retries ({max_retries}) exceeded. Exiting.")
+                sys.exit(1)
 
 if __name__ == "__main__":
-    # Detect mode based on environment or command line arguments
     mode = os.environ.get("SERVER_MODE", "mcp")
-
     if len(sys.argv) > 1:
         mode = sys.argv[1]
 
-    if mode == "http":
-        # HTTP-only mode (for testing)
-        run_http_server()
-    elif mode == "dual":
-        # Dual protocol mode - HTTP in background thread, MCP in main thread
-        print("🚀 Starting Unified Memory Server in DUAL mode", file=sys.stderr)
-
-        # Start HTTP server in background thread
-        http_thread = threading.Thread(target=run_http_server, daemon=True)
-        http_thread.start()
-
-        # Give HTTP server time to start
-        time.sleep(2)
-
-        # Run MCP server in main thread (blocks)
-        run_mcp_server()
+    # Check for --no-retry flag for backward compatibility
+    no_retry = "--no-retry" in sys.argv
+    if no_retry:
+        sys.argv.remove("--no-retry")
+        max_retries = 1
     else:
-        # Default: MCP-only mode (for Claude Code)
-        run_mcp_server()
+        max_retries = int(os.environ.get("MAX_RETRIES", "3"))
+
+    run_server_with_recovery(mode, max_retries)

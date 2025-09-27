@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.localmemory.mcp.stdio</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/Cellar/python@3.11/3.11.13/Frameworks/Python.framework/Versions/3.11/Resources/Python.app/Contents/MacOS/Python</string>
+        <string>/Users/linuxbabe/local-memory-mcp/src/postgres_memory_server.py</string>
+        <string>mcp</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/linuxbabe/local-memory-mcp</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>POSTGRES_HOST</key>
+        <string>localhost</string>
+        <key>POSTGRES_PORT</key>
+        <string>5432</string>
+        <key>POSTGRES_DB</key>
+        <string>postgres</string>
+        <key>POSTGRES_USER</key>
+        <string>postgres</string>
+        <key>POSTGRES_PASSWORD</key>
+        <string>postgres</string>
+        <key>LOG_LEVEL</key>
+        <string>INFO</string>
+        <key>MAX_RETRIES</key>
+        <string>5</string>
+        <key>FASTMCP_SHOW_CLI_BANNER</key>
+        <string>false</string>
+        <key>FASTMCP_SUPPRESS_STARTUP_MESSAGES</key>
+        <string>true</string>
+    </dict>
+
+    <!-- Automatic restart on crash -->
+    <key>KeepAlive</key>
+    <dict>
+        <!-- Restart if process exits with non-zero code -->
+        <key>SuccessfulExit</key>
+        <false/>
+        <!-- Restart if process crashes -->
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <!-- Prevent rapid restart loops -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Start after boot -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- Logs -->
+    <key>StandardOutPath</key>
+    <string>/Users/linuxbabe/local-memory-mcp/logs/mcp-stdio.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/linuxbabe/local-memory-mcp/logs/mcp-stdio.error.log</string>
+
+    <!-- Nice value for lower priority -->
+    <key>Nice</key>
+    <integer>10</integer>
+
+    <!-- Note: MCP stdio servers are typically started by Claude Code, not launchd -->
+    <!-- This plist is provided for manual testing and debugging purposes -->
+</dict>
+</plist>

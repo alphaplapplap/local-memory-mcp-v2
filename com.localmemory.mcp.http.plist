@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.localmemory.mcp.http</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/Cellar/python@3.11/3.11.13/Frameworks/Python.framework/Versions/3.11/Resources/Python.app/Contents/MacOS/Python</string>
+        <string>/Users/linuxbabe/local-memory-mcp/src/postgres_memory_server.py</string>
+        <string>http</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/linuxbabe/local-memory-mcp</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>POSTGRES_HOST</key>
+        <string>localhost</string>
+        <key>POSTGRES_PORT</key>
+        <string>5432</string>
+        <key>POSTGRES_DB</key>
+        <string>postgres</string>
+        <key>POSTGRES_USER</key>
+        <string>postgres</string>
+        <key>POSTGRES_PASSWORD</key>
+        <string>postgres</string>
+        <key>SERVER_HOST</key>
+        <string>127.0.0.1</string>
+        <key>SERVER_PORT</key>
+        <string>8000</string>
+        <key>LOG_LEVEL</key>
+        <string>INFO</string>
+        <key>MAX_RETRIES</key>
+        <string>5</string>
+    </dict>
+
+    <!-- Automatic restart on crash -->
+    <key>KeepAlive</key>
+    <dict>
+        <!-- Restart if process exits with non-zero code -->
+        <key>SuccessfulExit</key>
+        <false/>
+        <!-- Restart if process crashes -->
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <!-- Prevent rapid restart loops -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Start after boot -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Logs -->
+    <key>StandardOutPath</key>
+    <string>/Users/linuxbabe/local-memory-mcp/logs/mcp-http.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/linuxbabe/local-memory-mcp/logs/mcp-http.error.log</string>
+
+    <!-- Nice value for lower priority -->
+    <key>Nice</key>
+    <integer>10</integer>
+
+    <!-- Soft and hard resource limits -->
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>4096</integer>
+    </dict>
+    <key>HardResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>8192</integer>
+    </dict>
+</dict>
+</plist>

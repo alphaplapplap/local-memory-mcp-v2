@@ -207,6 +207,30 @@ def database_operation(operation: str, table: str = None, connection_pool=None):
         if connection:
             connection.rollback()
 
+        error_code = getattr(e, "pgcode", None)
+
+        # Handle table-not-exists error (42P01) by recreating the table
+        if error_code == "42P01" and table and table.endswith("_memories"):
+            logger.warning(f"Table {table} does not exist, attempting to recreate...")
+            domain = table[:-9]  # Remove "_memories" suffix
+
+            try:
+                # Import and use the API to recreate the table
+                from postgres_memory_api import PostgresMemoryAPI
+                api = PostgresMemoryAPI()
+                api._ensure_table_exists(domain)
+                logger.info(f"Table {table} recreated successfully")
+
+                # Re-raise a more informative error
+                raise DatabaseError(
+                    f"Table was missing and has been recreated - please retry operation",
+                    operation=operation,
+                    table=table,
+                    details={"recreated": True, "domain": domain}
+                )
+            except Exception as recreate_error:
+                logger.error(f"Failed to recreate table {table}: {recreate_error}")
+
         # Convert to custom exception
         custom_error = DatabaseErrorHandler.handle_psycopg2_error(e, operation, table)
 

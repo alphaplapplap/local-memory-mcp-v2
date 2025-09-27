@@ -111,6 +111,13 @@ class SecurityValidator:
                     elif isinstance(item, (int, float, bool)):
                         sanitized_list.append(item)
                 value = sanitized_list
+            elif isinstance(value, dict):
+                # Recursively validate nested dictionaries
+                sanitized_dict = cls.validate_metadata(value)
+                if sanitized_dict:
+                    value = sanitized_dict
+                else:
+                    continue
             else:
                 continue  # Skip unsupported types
 
